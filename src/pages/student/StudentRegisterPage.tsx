@@ -3,8 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import {
   User,
   Mail,
-  Phone,
-  Lock,
   ShieldCheck,
   AlertCircle,
 } from 'lucide-react';
@@ -12,6 +10,8 @@ import { Header } from '../../components/common/Header';
 import { ClayCard } from '../../components/common/ClayCard';
 import { ClayInput } from '../../components/common/ClayInput';
 import { ClayButton } from '../../components/common/ClayButton';
+import { PhoneInput } from '../../components/common/PhoneInput';
+import { PasswordInput, validatePasswordStrength } from '../../components/common/PasswordInput';
 import { ProgressBar } from '../../components/common/ProgressBar';
 import { SetupNotice } from '../../components/common/SetupNotice';
 import { useAuth } from '../../context/AuthContext';
@@ -21,7 +21,6 @@ import {
   TEACHING_LANGUAGES,
   SCHOOL_SUBJECTS,
 } from '../../config/options';
-import { isSupabaseConfigured } from '../../lib/supabase';
 
 const STEPS = [
   { id: 0, label: 'Student Account', shortLabel: 'Account' },
@@ -36,7 +35,7 @@ export const StudentRegisterPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Step A: Account & Guardian Info
+  // Step 0: Account Details
   const [studentName, setStudentName] = useState('');
   const [email, setEmail] = useState('');
   const [studentPhone, setStudentPhone] = useState('');
@@ -45,11 +44,12 @@ export const StudentRegisterPage: React.FC = () => {
   const [guardianPhone, setGuardianPhone] = useState('');
   const [guardianConsent, setGuardianConsent] = useState(true);
 
-  // Step B: Academic Profile
+  // Step 1: Academic Profile
   const [selectedClass, setSelectedClass] = useState(INDIVIDUAL_CLASSES[7].id); // default Class 8
-  const [selectedBoard, setSelectedBoard] = useState(EDUCATION_BOARDS[0].id); // default Karnataka State Board
-  const [preferredLanguage, setPreferredLanguage] = useState(TEACHING_LANGUAGES[0].id); // default Kannada
+  const [selectedBoard, setSelectedBoard] = useState(EDUCATION_BOARDS[0].id); // Karnataka State Board
+  const [preferredLanguage, setPreferredLanguage] = useState(TEACHING_LANGUAGES[0].id); // Kannada
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>(['mathematics', 'science']);
+  const [learningGoals, setLearningGoals] = useState('');
 
   const toggleSubject = (subId: string) => {
     if (selectedSubjects.includes(subId)) {
@@ -62,19 +62,25 @@ export const StudentRegisterPage: React.FC = () => {
   const handleNext = () => {
     setError(null);
 
-    // Step A validation
     if (currentStep === 0) {
-      if (!studentName.trim()) return setError('Please enter student’s name.');
-      if (!email.trim() || !email.includes('@')) return setError('Please enter a valid email address.');
-      if (!studentPhone.trim() || studentPhone.length < 10) {
-        return setError('Please enter a valid 10-digit mobile number.');
+      if (!studentName.trim()) return setError('Please enter student’s full name.');
+      if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+        return setError('Please enter a valid email address.');
+      }
+      if (studentPhone.length !== 10 || !/^[6-9]\d{9}$/.test(studentPhone)) {
+        return setError('Enter a valid 10-digit mobile number.');
       }
       if (!guardianConsent) {
         return setError('Parent / Guardian consent is required for school student enrollment.');
       }
       if (!user) {
-        if (password.length < 6) return setError('Password must be at least 6 characters.');
-        if (password !== confirmPassword) return setError('Passwords do not match.');
+        const { isValid } = validatePasswordStrength(password);
+        if (!isValid) {
+          return setError('Please satisfy all 5 password requirements.');
+        }
+        if (password !== confirmPassword) {
+          return setError('Passwords do not match.');
+        }
       }
     }
 
@@ -103,60 +109,50 @@ export const StudentRegisterPage: React.FC = () => {
     try {
       let activeUserId = user?.id;
 
-      // 1. Create Supabase Auth account if not signed in
       if (!activeUserId) {
-        if (!isSupabaseConfigured) {
-          activeUserId = 'demo-student-' + Date.now();
-        } else {
-          const { userId, error: signUpErr } = await signUp(email.trim(), password);
-          if (signUpErr) {
-            setError(signUpErr);
-            setIsSubmitting(false);
-            return;
-          }
-          activeUserId = userId!;
-        }
-      }
-
-      // 2. Save user profile
-      if (isSupabaseConfigured && activeUserId) {
-        const { error: profErr } = await createProfile({
-          id: activeUserId,
-          role: 'student',
-          name: studentName.trim(),
-          email: email.trim(),
-          phone: `+91 ${studentPhone.trim()}`,
-        });
-
-        if (profErr) {
-          setError(`Profile error: ${profErr}`);
+        const { userId, error: signUpErr } = await signUp(email.trim(), password);
+        if (signUpErr) {
+          setError(signUpErr);
           setIsSubmitting(false);
           return;
         }
-
-        // 3. Save student academic profile
-        const { error: studentErr } = await saveStudentProfile({
-          student_id: activeUserId,
-          class_level: INDIVIDUAL_CLASSES.find((c) => c.id === selectedClass)?.label || selectedClass,
-          board: EDUCATION_BOARDS.find((b) => b.id === selectedBoard)?.label || selectedBoard,
-          learning_language: TEACHING_LANGUAGES.find((l) => l.id === preferredLanguage)?.label || preferredLanguage,
-          subjects: selectedSubjects,
-          guardian_phone: guardianPhone ? `+91 ${guardianPhone.trim()}` : undefined,
-          guardian_consent: guardianConsent,
-        });
-
-        if (studentErr) {
-          setError(`Academic profile error: ${studentErr}`);
-          setIsSubmitting(false);
-          return;
-        }
+        activeUserId = userId!;
       }
 
-      // 4. Navigate directly to student dashboard
+      const { error: profErr } = await createProfile({
+        id: activeUserId,
+        role: 'student',
+        name: studentName.trim(),
+        email: email.trim(),
+        phone: `+91 ${studentPhone.trim()}`,
+      });
+
+      if (profErr) {
+        setError(profErr);
+        setIsSubmitting(false);
+        return;
+      }
+
+      const { error: studentErr } = await saveStudentProfile({
+        student_id: activeUserId,
+        class_level: INDIVIDUAL_CLASSES.find((c) => c.id === selectedClass)?.label || selectedClass,
+        board: EDUCATION_BOARDS.find((b) => b.id === selectedBoard)?.label || selectedBoard,
+        learning_language: TEACHING_LANGUAGES.find((l) => l.id === preferredLanguage)?.label || preferredLanguage,
+        subjects: selectedSubjects,
+        learning_goals: learningGoals.trim() || undefined,
+        guardian_phone: guardianPhone ? `+91 ${guardianPhone.trim()}` : undefined,
+        guardian_consent: guardianConsent,
+      });
+
+      if (studentErr) {
+        setError(studentErr);
+        setIsSubmitting(false);
+        return;
+      }
+
       navigate('/student/dashboard', { replace: true });
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Registration failed. Please try again.';
-      setError(msg);
+      setError(err instanceof Error ? err.message : 'Registration failed. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -171,8 +167,7 @@ export const StudentRegisterPage: React.FC = () => {
       />
       <SetupNotice />
 
-      <main className="flex-1 max-w-xl mx-auto w-full px-4 sm:px-6 py-6 flex flex-col justify-center">
-        {/* Progress Bar */}
+      <main className="flex-1 max-w-xl mx-auto w-full px-4 sm:px-6 py-6 flex flex-col justify-between">
         <div className="mb-4">
           <ProgressBar
             steps={STEPS}
@@ -190,13 +185,13 @@ export const StudentRegisterPage: React.FC = () => {
             </div>
           )}
 
-          {/* STEP 0: Student & Guardian Account */}
+          {/* STEP 0: Student Account & Guardian Consent */}
           {currentStep === 0 && (
             <div className="space-y-4 animate-fade-in text-left">
               <div>
                 <h3 className="text-lg font-bold text-slate-900">Student Account</h3>
                 <p className="text-xs text-slate-500 font-kannada">
-                  ವಿದ್ಯಾರ್ಥಿಯ ವಿವರಗಳು • Simple and secure enrollment
+                  ವಿದ್ಯಾರ್ಥಿಯ ವಿವರಗಳು • Safe and simple student registration
                 </p>
               </div>
 
@@ -219,42 +214,27 @@ export const StudentRegisterPage: React.FC = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 icon={<Mail className="w-4 h-4" />}
-                hint="Used to log in and receive mentor updates."
+                hint="Used to sign in and receive tutor response notifications."
               />
 
-              <div className="flex flex-col gap-1.5 text-left">
-                <label htmlFor="student-mobile-input" className="text-sm font-semibold text-slate-800 flex justify-between">
-                  <span>Student / Family Contact Mobile <span className="text-red-500">*</span></span>
-                  <span className="text-xs font-normal text-slate-500 font-kannada">ಸಂಪರ್ಕ ಸಂಖ್ಯೆ</span>
-                </label>
-                <div className="flex items-center gap-2">
-                  <span className="clay-input w-20 flex items-center justify-center font-bold text-slate-600 bg-slate-100 select-none">
-                    +91
-                  </span>
-                  <ClayInput
-                    id="student-mobile-input"
-                    label=""
-                    type="tel"
-                    required
-                    placeholder="98765 43210"
-                    maxLength={10}
-                    value={studentPhone}
-                    onChange={(e) => setStudentPhone(e.target.value.replace(/\D/g, ''))}
-                    icon={<Phone className="w-4 h-4" />}
-                  />
-                </div>
-              </div>
+              <PhoneInput
+                id="student-phone-input"
+                label="Student / Family Mobile Number"
+                kannadaLabel="ಸಂಪರ್ಕ ಸಂಖ್ಯೆ"
+                required
+                value={studentPhone}
+                onChange={setStudentPhone}
+                hint="10-digit mobile number for communication."
+              />
 
               {!user && (
                 <>
-                  <ClayInput
+                  <PasswordInput
                     label="Account Password"
-                    type="password"
-                    required
-                    placeholder="At least 6 characters"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    icon={<Lock className="w-4 h-4" />}
+                    onChange={setPassword}
+                    required
+                    showRequirements={true}
                   />
 
                   <ClayInput
@@ -264,33 +244,29 @@ export const StudentRegisterPage: React.FC = () => {
                     placeholder="Repeat password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    icon={<Lock className="w-4 h-4" />}
                   />
                 </>
               )}
 
-              {/* Guardian Protection and Consent */}
-              <div className="p-4 rounded-2xl bg-blue-50/80 border border-blue-100 space-y-2">
+              {/* Child Safety & Guardian Details */}
+              <div className="p-4 rounded-2xl bg-blue-50/80 border border-blue-100 space-y-3">
                 <div className="flex items-center gap-2 text-xs font-bold text-blue-900">
                   <ShieldCheck className="w-4 h-4 text-blue-600" />
-                  <span>Child Privacy & Guardian Involvement</span>
+                  <span>Child Privacy & Guardian Safeguards</span>
                 </div>
                 <p className="text-xs text-slate-600 leading-relaxed">
-                  As our platform is intended for school-age students, registration is protected under our child-safety guidelines. We do not ask for unnecessary personal information.
+                  Shikshan is designed for school-age students. We minimize data collection and do not expose children&apos;s contact numbers publicly.
                 </p>
 
-                <div className="pt-1">
-                  <ClayInput
-                    label="Parent / Guardian Contact Mobile (Optional)"
-                    kannadaLabel="ಪಾಲಕರ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ"
-                    type="tel"
-                    placeholder="98765 43210"
-                    maxLength={10}
-                    value={guardianPhone}
-                    onChange={(e) => setGuardianPhone(e.target.value.replace(/\D/g, ''))}
-                    icon={<Phone className="w-4 h-4" />}
-                  />
-                </div>
+                <PhoneInput
+                  id="guardian-phone-input"
+                  label="Parent / Guardian Alternate Mobile (Optional)"
+                  kannadaLabel="ಪಾಲಕರ ಮೊಬೈಲ್"
+                  required={false}
+                  value={guardianPhone}
+                  onChange={setGuardianPhone}
+                  hint="Optional secondary family phone for guardian updates."
+                />
 
                 <label className="flex items-start gap-2.5 pt-1 cursor-pointer">
                   <input
@@ -300,14 +276,14 @@ export const StudentRegisterPage: React.FC = () => {
                     className="mt-1 w-4 h-4 rounded text-blue-600 focus:ring-0"
                   />
                   <span className="text-xs font-semibold text-slate-800 leading-snug">
-                    Parent / Guardian confirms consent for academic mentoring on Shikshan.
+                    Parent / Guardian confirms consent for learning and tutor discovery on Shikshan.
                   </span>
                 </label>
               </div>
             </div>
           )}
 
-          {/* STEP 1: Academic Information */}
+          {/* STEP 1: Academic Profile */}
           {currentStep === 1 && (
             <div className="space-y-5 animate-fade-in text-left">
               <div>
@@ -317,11 +293,10 @@ export const StudentRegisterPage: React.FC = () => {
                 </p>
               </div>
 
-              {/* Class Selector */}
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="student-class-select" className="text-sm font-semibold text-slate-800 flex justify-between">
-                  <span>Current Class <span className="text-red-500">*</span></span>
-                  <span className="text-xs font-normal text-slate-500 font-kannada">ಪ್ರಸ್ತುತ ತರಗತಿ</span>
+                  <span>Current Class (Classes 1–10) <span className="text-red-500">*</span></span>
+                  <span className="text-xs font-normal text-slate-500 font-kannada">ತರಗತಿ</span>
                 </label>
                 <select
                   id="student-class-select"
@@ -337,7 +312,6 @@ export const StudentRegisterPage: React.FC = () => {
                 </select>
               </div>
 
-              {/* Board Selector */}
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="student-board-select" className="text-sm font-semibold text-slate-800 flex justify-between">
                   <span>School Board / Curriculum <span className="text-red-500">*</span></span>
@@ -357,14 +331,13 @@ export const StudentRegisterPage: React.FC = () => {
                 </select>
               </div>
 
-              {/* Learning Language */}
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="student-language-select" className="text-sm font-semibold text-slate-800 flex justify-between">
+                <label htmlFor="student-lang-select" className="text-sm font-semibold text-slate-800 flex justify-between">
                   <span>Preferred Learning Language <span className="text-red-500">*</span></span>
                   <span className="text-xs font-normal text-slate-500 font-kannada">ಕಲಿಕೆಯ ಮಾಧ್ಯಮ</span>
                 </label>
                 <select
-                  id="student-language-select"
+                  id="student-lang-select"
                   value={preferredLanguage}
                   onChange={(e) => setPreferredLanguage(e.target.value)}
                   className="clay-input"
@@ -377,7 +350,7 @@ export const StudentRegisterPage: React.FC = () => {
                 </select>
               </div>
 
-              {/* Subjects */}
+              {/* Subjects requiring support */}
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-slate-800 flex justify-between">
                   <span>Subjects You Need Help With <span className="text-red-500">*</span></span>
@@ -415,10 +388,26 @@ export const StudentRegisterPage: React.FC = () => {
                   })}
                 </div>
               </div>
+
+              {/* Optional Learning Goals */}
+              <div className="space-y-1">
+                <label htmlFor="student-goals-input" className="text-sm font-semibold text-slate-800 block">
+                  Learning Goals & Specific Difficulties (Optional)
+                </label>
+                <textarea
+                  id="student-goals-input"
+                  rows={2}
+                  maxLength={300}
+                  placeholder="e.g. Need help with SSLC algebra formulas, geometry theorems, and English grammar..."
+                  value={learningGoals}
+                  onChange={(e) => setLearningGoals(e.target.value)}
+                  className="clay-input text-xs"
+                />
+              </div>
             </div>
           )}
 
-          {/* Buttons */}
+          {/* Navigation Controls */}
           <div className="pt-6 border-t border-slate-100 flex items-center justify-between gap-3">
             <ClayButton
               type="button"

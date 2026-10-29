@@ -384,9 +384,9 @@ export const AdminDashboardPage: React.FC = () => {
                     </div>
 
                     <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-600">
-                      <span>{app.commitment_months} Mo • {app.hours_per_day} hr/day</span>
+                      <span>{app.hours_per_day || 2} hr/day</span>
                       <span className="font-semibold text-slate-800">
-                        {app.proposed_rate ? `₹${app.proposed_rate}/mo` : 'No rate'}
+                        {app.fee_amount ? `₹${app.fee_amount}` : app.proposed_rate ? `₹${app.proposed_rate}` : 'N/A'}
                       </span>
                     </div>
                   </ClayCard>
@@ -456,16 +456,16 @@ export const AdminDashboardPage: React.FC = () => {
                     </div>
 
                     <div>
-                      <span className="text-slate-400 block text-[11px]">Commitment & Hours</span>
+                      <span className="text-slate-400 block text-[11px]">Availability</span>
                       <span className="font-semibold text-slate-800">
-                        {selectedApp.commitment_months} Months • {selectedApp.hours_per_day} hrs/day
+                        {selectedApp.hours_per_day || 2} hrs/day ({selectedApp.available_days?.join(', ') || 'Flexible'})
                       </span>
                     </div>
 
                     <div>
                       <span className="text-slate-400 block text-[11px]">Proposed Rate</span>
                       <span className="font-semibold text-slate-800">
-                        ₹{selectedApp.proposed_rate || 'N/A'} / month
+                        ₹{selectedApp.fee_amount || selectedApp.proposed_rate || 'N/A'} {selectedApp.fee_unit ? `(${selectedApp.fee_unit})` : ''}
                       </span>
                     </div>
 
@@ -488,7 +488,9 @@ export const AdminDashboardPage: React.FC = () => {
                   </h4>
 
                   {documents.length === 0 ? (
-                    <p className="text-xs text-slate-400 italic">No academic marksheets attached.</p>
+                    <p className="text-xs text-slate-500 italic bg-slate-50 p-3 rounded-xl border border-slate-100">
+                      No in-app marksheets uploaded. Manual qualification review is conducted directly by founder/trustees outside the app.
+                    </p>
                   ) : (
                     <div className="space-y-2">
                       {documents.map((doc) => (

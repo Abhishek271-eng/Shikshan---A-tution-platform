@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Mail, Lock, LogIn, AlertCircle } from 'lucide-react';
+import { Mail, LogIn, AlertCircle } from 'lucide-react';
 import { Header } from '../../components/common/Header';
 import { ClayCard } from '../../components/common/ClayCard';
 import { ClayInput } from '../../components/common/ClayInput';
+import { PasswordInput } from '../../components/common/PasswordInput';
 import { ClayButton } from '../../components/common/ClayButton';
 import { SetupNotice } from '../../components/common/SetupNotice';
 import { useAuth } from '../../context/AuthContext';
@@ -130,15 +131,14 @@ export const LoginPage: React.FC = () => {
             />
 
             <div>
-              <ClayInput
+              <PasswordInput
                 label="Password"
-                type="password"
                 autoComplete="current-password"
                 required
-                placeholder="••••••••"
+                placeholder="Enter your password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                icon={<Lock className="w-4 h-4" />}
+                onChange={setPassword}
+                showRequirements={false}
               />
               <div className="flex justify-end mt-1.5">
                 <Link

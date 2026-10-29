@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Shikshan</string>
+    <string name="title_activity_main">Shikshan</string>
+    <string name="package_name">org.shikshan.app</string>
+    <string name="custom_url_scheme">org.shikshan.app</string>
+</resources>

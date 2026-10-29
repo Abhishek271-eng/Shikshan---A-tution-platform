@@ -1,5 +1,8 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { Capacitor } from '@capacitor/core';
+import { App as CapApp } from '@capacitor/app';
+import { StatusBar, Style } from '@capacitor/status-bar';
 import { AuthProvider } from './context/AuthContext';
 import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/auth/LoginPage';
@@ -19,10 +22,48 @@ import { HelpContactPage } from './pages/info/HelpContactPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
 
+const AndroidHardwareBackHandler: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+
+    // Configure status bar for Android WebView
+    StatusBar.setStyle({ style: Style.Dark }).catch(() => {});
+    StatusBar.setBackgroundColor({ color: '#2563EB' }).catch(() => {});
+
+    let isSubscribed = true;
+    let removeListener: (() => void) | null = null;
+
+    CapApp.addListener('backButton', ({ canGoBack }) => {
+      if (location.pathname === '/' || !canGoBack) {
+        CapApp.exitApp();
+      } else {
+        navigate(-1);
+      }
+    }).then((handler) => {
+      if (isSubscribed) {
+        removeListener = () => handler.remove();
+      } else {
+        handler.remove();
+      }
+    });
+
+    return () => {
+      isSubscribed = false;
+      if (removeListener) removeListener();
+    };
+  }, [location, navigate]);
+
+  return null;
+};
+
 export const App: React.FC = () => {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <AndroidHardwareBackHandler />
         <Routes>
           {/* Public Landing */}
           <Route path="/" element={<HomePage />} />

@@ -15,7 +15,7 @@ describe('Student Registration Journey', () => {
     );
 
     expect(screen.getByRole('heading', { level: 3, name: /student account/i })).toBeInTheDocument();
-    expect(screen.getByText(/child privacy & guardian involvement/i)).toBeInTheDocument();
+    expect(screen.getByText(/child privacy & guardian safeguards/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/parent \/ guardian confirms consent/i)).toBeInTheDocument();
   });
 
@@ -31,7 +31,7 @@ describe('Student Registration Journey', () => {
     const continueButton = screen.getByRole('button', { name: /continue/i });
     fireEvent.click(continueButton);
 
-    expect(screen.getByText(/please enter student’s name/i)).toBeInTheDocument();
+    expect(screen.getByText(/please enter student’s full name/i)).toBeInTheDocument();
   });
 
   it('allows selecting Karnataka State Board and Kannada learning language in Step 1', () => {
@@ -43,13 +43,13 @@ describe('Student Registration Journey', () => {
       </AuthProvider>
     );
 
-    // Complete Step A
+    // Complete Step A with valid 10-digit phone and strong password
     fireEvent.change(screen.getByLabelText(/student's full name/i), { target: { value: 'Chidananda' } });
     fireEvent.change(screen.getByLabelText(/email address/i), { target: { value: 'chidu@example.com' } });
     const mobileInputs = screen.getAllByPlaceholderText(/98765 43210/i);
     fireEvent.change(mobileInputs[0], { target: { value: '9900112233' } });
-    fireEvent.change(screen.getByLabelText(/^account password/i), { target: { value: 'student123' } });
-    fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'student123' } });
+    fireEvent.change(screen.getByLabelText(/^account password/i), { target: { value: 'Student@123' } });
+    fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'Student@123' } });
 
     // Advance to Step 1
     fireEvent.click(screen.getByRole('button', { name: /continue/i }));

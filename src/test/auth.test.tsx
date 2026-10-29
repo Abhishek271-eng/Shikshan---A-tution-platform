@@ -17,7 +17,7 @@ describe('Authentication & Account Recovery Tests', () => {
 
     expect(screen.getByRole('heading', { level: 2, name: /welcome back/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/email address/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/enter your password/i)).toBeInTheDocument();
 
     const submitButton = screen.getByRole('button', { name: /^sign in$/i });
     const form = submitButton.closest('form')!;

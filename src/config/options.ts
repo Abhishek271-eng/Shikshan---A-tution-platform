@@ -8,7 +8,7 @@ export interface OptionItem {
 export const EDUCATION_LEVELS: OptionItem[] = [
   { id: '10th_completed', label: '10th Standard Completed', kannadaLabel: '10ನೇ ತರಗತಿ ಪೂರ್ಣಗೊಂಡಿದೆ' },
   { id: 'puc_completed', label: 'PUC / 12th Completed', kannadaLabel: 'ಪಿಯುಸಿ / 12ನೇ ತರಗತಿ ಪೂರ್ಣಗೊಂಡಿದೆ' },
-  { id: 'college_student', label: 'Current College / University Student', kannadaLabel: 'ಕಾಲೇಜು / ವಿಶ್ವವಿದ್ಯಾಲಯದ ವಿದ್ಯಾರ್ಥಿ' },
+  { id: 'college_student', label: 'Current College / University Student', kannadaLabel: 'ಕಾಲೇಜು ವಿದ್ಯಾರ್ಥಿ' },
   { id: 'graduate', label: 'Graduate (B.Sc / B.A / B.Com / B.E / B.Tech / etc.)', kannadaLabel: 'ಪದವೀಧರರು' },
   { id: 'post_graduate', label: 'Post Graduate (M.Sc / M.A / M.Tech / etc.)', kannadaLabel: 'ಸ್ನಾತಕೋತ್ತರ ಪದವೀಧರರು' },
   { id: 'qualified_teacher', label: 'Professional / Certified Teacher (B.Ed / D.Ed)', kannadaLabel: 'ವೃತ್ತಿಪರ ಶಿಕ್ಷಕರು' },
@@ -52,21 +52,14 @@ export const EDUCATION_BOARDS: OptionItem[] = [
 export const TEACHING_LANGUAGES: OptionItem[] = [
   { id: 'kannada', label: 'Kannada (ಕನ್ನಡ)', kannadaLabel: 'ಕನ್ನಡ' },
   { id: 'english', label: 'English', kannadaLabel: 'ಇಂಗ್ಲಿಷ್' },
-  { id: 'bilingual', label: 'Bilingual (Kannada + English explanation)', kannadaLabel: 'ದ್ವಿಭಾಷಾ (ಕನ್ನಡ + ಇಂಗ್ಲಿಷ್)' },
+  { id: 'bilingual', label: 'Bilingual (Kannada + English)', kannadaLabel: 'ದ್ವಿಭಾಷಾ (ಕನ್ನಡ + ಇಂಗ್ಲಿಷ್)' },
   { id: 'hindi', label: 'Hindi', kannadaLabel: 'ಹಿಂದಿ' },
 ];
 
-export const COMMITMENT_PERIODS = [
-  {
-    months: 3,
-    label: '3 Months Commitment',
-    description: 'Quarterly academic term support — ideal for semester stability and continuous doubt solving.',
-  },
-  {
-    months: 6,
-    label: '6 Months Commitment',
-    description: 'Full semester or exam preparation support — deep mentorship and sustained academic growth.',
-  },
+export const FEE_UNITS = [
+  { id: 'per_hour', label: 'Per Hour', shortLabel: '/hr' },
+  { id: 'per_session', label: 'Per Session', shortLabel: '/session' },
+  { id: 'per_month', label: 'Per Month', shortLabel: '/mo' },
 ];
 
 export const WEEKDAYS = [
@@ -80,9 +73,9 @@ export const WEEKDAYS = [
 ];
 
 export const TIME_WINDOWS = [
-  { id: 'morning_early', label: 'Early Morning (6:00 AM – 8:00 AM)' },
-  { id: 'evening_early', label: 'Early Evening (4:30 PM – 6:30 PM)' },
-  { id: 'evening_prime', label: 'Prime Evening (6:30 PM – 8:30 PM)' },
-  { id: 'night', label: 'Night (8:30 PM – 10:00 PM)' },
+  { id: 'morning_early', label: 'Morning (6:00 AM – 9:00 AM)' },
+  { id: 'afternoon', label: 'Afternoon (2:00 PM – 5:00 PM)' },
+  { id: 'evening_prime', label: 'Prime Evening (5:00 PM – 8:00 PM)' },
+  { id: 'night', label: 'Night (8:00 PM – 10:00 PM)' },
   { id: 'weekend_flexible', label: 'Weekends (Flexible Hours)' },
 ];
