@@ -510,19 +510,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .order('reviewed_at', { ascending: false });
 
       if (queryErr) {
-        console.error('Error fetching approved tutors:', queryErr);
-        return DEFAULT_APPROVED_TUTORS;
+        console.error('Error fetching approved tutors from database:', queryErr);
+        return [];
       }
 
-      if (data && data.length > 0) {
-        return data as TutorApplication[];
-      }
-
-      // If database has no approved tutors yet, return standard approved catalog
-      return DEFAULT_APPROVED_TUTORS;
+      // Return real database results (empty array if none have been approved yet)
+      return (data || []) as TutorApplication[];
     } catch (err) {
-      console.error('Failed to get approved tutors:', err);
-      return DEFAULT_APPROVED_TUTORS;
+      console.error('Failed to get approved tutors from database:', err);
+      return [];
     }
   };
 

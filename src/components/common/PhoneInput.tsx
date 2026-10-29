@@ -53,8 +53,8 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
 
       <div className="relative flex items-center w-full">
         {/* +91 Country Badge fixed inside the input container */}
-        <div className="absolute inset-y-0 left-0 pl-3.5 pr-2.5 flex items-center pointer-events-none border-r border-slate-200 text-slate-700 font-bold text-sm bg-slate-50/80 rounded-l-[14px]">
-          <span className="text-slate-400 mr-1.5">
+        <div className="absolute inset-y-0 left-0 pl-3.5 pr-2.5 flex items-center pointer-events-none border-r border-[#DFD8F3] text-[#1C1938] font-bold text-sm bg-[#F4F1FA] rounded-l-[16px]">
+          <span className="text-[#A7AAE5] mr-1.5">
             <Phone className="w-3.5 h-3.5 inline" />
           </span>
           <span>+91</span>

@@ -159,7 +159,7 @@ export const StudentRegisterPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#EEF4FA]">
+    <div className="min-h-screen flex flex-col bg-[#F7F6FC]">
       <Header
         title="Student Registration"
         subtitle={`Step ${currentStep + 1} of ${STEPS.length}: ${STEPS[currentStep].label}`}
@@ -167,7 +167,7 @@ export const StudentRegisterPage: React.FC = () => {
       />
       <SetupNotice />
 
-      <main className="flex-1 max-w-xl mx-auto w-full px-4 sm:px-6 py-6 flex flex-col justify-between">
+      <main className="flex-1 max-w-xl mx-auto w-full px-4 sm:px-6 py-6 flex flex-col justify-between pb-24">
         <div className="mb-4">
           <ProgressBar
             steps={STEPS}
@@ -177,10 +177,10 @@ export const StudentRegisterPage: React.FC = () => {
           />
         </div>
 
-        <ClayCard className="p-6 sm:p-8 space-y-6 flex-1 flex flex-col justify-between">
+        <ClayCard className="p-6 sm:p-8 space-y-6 flex-1 flex flex-col justify-between shadow-clay border border-[#DFD8F3]">
           {error && (
-            <div className="p-3.5 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-start gap-2.5">
-              <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-red-600" />
+            <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-start gap-2.5">
+              <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-rose-600" />
               <span>{error}</span>
             </div>
           )}
@@ -189,8 +189,8 @@ export const StudentRegisterPage: React.FC = () => {
           {currentStep === 0 && (
             <div className="space-y-4 animate-fade-in text-left">
               <div>
-                <h3 className="text-lg font-bold text-slate-900">Student Account</h3>
-                <p className="text-xs text-slate-500 font-kannada">
+                <h3 className="text-xl font-extrabold text-[#1C1938]">Student Account</h3>
+                <p className="text-xs text-[#686487] font-kannada mt-0.5">
                   ವಿದ್ಯಾರ್ಥಿಯ ವಿವರಗಳು • Safe and simple student registration
                 </p>
               </div>
@@ -202,7 +202,7 @@ export const StudentRegisterPage: React.FC = () => {
                 placeholder="e.g. Ananya Rao"
                 value={studentName}
                 onChange={(e) => setStudentName(e.target.value)}
-                icon={<User className="w-4 h-4" />}
+                icon={<User className="w-4 h-4 text-[#A7AAE5]" />}
               />
 
               <ClayInput
@@ -213,7 +213,7 @@ export const StudentRegisterPage: React.FC = () => {
                 placeholder="student@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                icon={<Mail className="w-4 h-4" />}
+                icon={<Mail className="w-4 h-4 text-[#A7AAE5]" />}
                 hint="Used to sign in and receive tutor response notifications."
               />
 
@@ -249,12 +249,12 @@ export const StudentRegisterPage: React.FC = () => {
               )}
 
               {/* Child Safety & Guardian Details */}
-              <div className="p-4 rounded-2xl bg-blue-50/80 border border-blue-100 space-y-3">
-                <div className="flex items-center gap-2 text-xs font-bold text-blue-900">
-                  <ShieldCheck className="w-4 h-4 text-blue-600" />
+              <div className="p-4 rounded-2xl bg-[#F3EEFB] border border-[#DFD8F3] space-y-3">
+                <div className="flex items-center gap-2 text-xs font-bold text-[#4136CA]">
+                  <ShieldCheck className="w-4 h-4 text-[#4136CA]" />
                   <span>Child Privacy & Guardian Safeguards</span>
                 </div>
-                <p className="text-xs text-slate-600 leading-relaxed">
+                <p className="text-xs text-[#4A4668] leading-relaxed">
                   Shikshan is designed for school-age students. We minimize data collection and do not expose children&apos;s contact numbers publicly.
                 </p>
 
@@ -273,9 +273,9 @@ export const StudentRegisterPage: React.FC = () => {
                     type="checkbox"
                     checked={guardianConsent}
                     onChange={(e) => setGuardianConsent(e.target.checked)}
-                    className="mt-1 w-4 h-4 rounded text-blue-600 focus:ring-0"
+                    className="mt-1 w-4 h-4 rounded text-[#4136CA] focus:ring-0"
                   />
-                  <span className="text-xs font-semibold text-slate-800 leading-snug">
+                  <span className="text-xs font-semibold text-[#1C1938] leading-snug">
                     Parent / Guardian confirms consent for learning and tutor discovery on Shikshan.
                   </span>
                 </label>
@@ -287,16 +287,16 @@ export const StudentRegisterPage: React.FC = () => {
           {currentStep === 1 && (
             <div className="space-y-5 animate-fade-in text-left">
               <div>
-                <h3 className="text-lg font-bold text-slate-900">Academic Details</h3>
-                <p className="text-xs text-slate-500 font-kannada">
+                <h3 className="text-xl font-extrabold text-[#1C1938]">Academic Details</h3>
+                <p className="text-xs text-[#686487] font-kannada mt-0.5">
                   ತರಗತಿ ಮತ್ತು ಪಠ್ಯಕ್ರಮ • Tell us what you want to learn
                 </p>
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="student-class-select" className="text-sm font-semibold text-slate-800 flex justify-between">
+                <label htmlFor="student-class-select" className="text-sm font-semibold text-[#1C1938] flex justify-between">
                   <span>Current Class (Classes 1–10) <span className="text-red-500">*</span></span>
-                  <span className="text-xs font-normal text-slate-500 font-kannada">ತರಗತಿ</span>
+                  <span className="text-xs font-normal text-[#686487] font-kannada">ತರಗತಿ</span>
                 </label>
                 <select
                   id="student-class-select"
@@ -313,9 +313,9 @@ export const StudentRegisterPage: React.FC = () => {
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="student-board-select" className="text-sm font-semibold text-slate-800 flex justify-between">
+                <label htmlFor="student-board-select" className="text-sm font-semibold text-[#1C1938] flex justify-between">
                   <span>School Board / Curriculum <span className="text-red-500">*</span></span>
-                  <span className="text-xs font-normal text-slate-500 font-kannada">ಪಠ್ಯಕ್ರಮ ಮಂಡಳಿ</span>
+                  <span className="text-xs font-normal text-[#686487] font-kannada">ಪಠ್ಯಕ್ರಮ ಮಂಡಳಿ</span>
                 </label>
                 <select
                   id="student-board-select"
@@ -332,9 +332,9 @@ export const StudentRegisterPage: React.FC = () => {
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="student-lang-select" className="text-sm font-semibold text-slate-800 flex justify-between">
+                <label htmlFor="student-lang-select" className="text-sm font-semibold text-[#1C1938] flex justify-between">
                   <span>Preferred Learning Language <span className="text-red-500">*</span></span>
-                  <span className="text-xs font-normal text-slate-500 font-kannada">ಕಲಿಕೆಯ ಮಾಧ್ಯಮ</span>
+                  <span className="text-xs font-normal text-[#686487] font-kannada">ಕಲಿಕೆಯ ಮಾಧ್ಯಮ</span>
                 </label>
                 <select
                   id="student-lang-select"
@@ -352,9 +352,9 @@ export const StudentRegisterPage: React.FC = () => {
 
               {/* Subjects requiring support */}
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-slate-800 flex justify-between">
+                <label className="text-sm font-semibold text-[#1C1938] flex justify-between">
                   <span>Subjects You Need Help With <span className="text-red-500">*</span></span>
-                  <span className="text-xs font-normal text-slate-500 font-kannada">ಸಹಾಯ ಬೇಕಿರುವ ವಿಷಯಗಳು</span>
+                  <span className="text-xs font-normal text-[#686487] font-kannada">ಸಹಾಯ ಬೇಕಿರುವ ವಿಷಯಗಳು</span>
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {SCHOOL_SUBJECTS.map((sub) => {
@@ -365,14 +365,14 @@ export const StudentRegisterPage: React.FC = () => {
                         onClick={() => toggleSubject(sub.id)}
                         className={`p-3 rounded-2xl border text-xs font-semibold cursor-pointer select-none transition-all flex items-center justify-between ${
                           isSelected
-                            ? 'bg-blue-50 border-blue-400 text-blue-900 shadow-sm'
-                            : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                            ? 'bg-[#F3EEFB] border-[#4136CA] text-[#4136CA] shadow-sm'
+                            : 'bg-white border-[#DFD8F3] text-[#1C1938] hover:bg-[#FAF9FE]'
                         }`}
                       >
                         <div>
                           <p>{sub.label}</p>
                           {sub.kannadaLabel && (
-                            <p className="text-[11px] text-slate-500 font-normal font-kannada">
+                            <p className="text-[11px] text-[#686487] font-normal font-kannada">
                               {sub.kannadaLabel}
                             </p>
                           )}
@@ -381,7 +381,7 @@ export const StudentRegisterPage: React.FC = () => {
                           type="checkbox"
                           checked={isSelected}
                           readOnly
-                          className="rounded text-blue-600 focus:ring-0 ml-2"
+                          className="rounded text-[#4136CA] focus:ring-0 ml-2"
                         />
                       </div>
                     );
@@ -391,7 +391,7 @@ export const StudentRegisterPage: React.FC = () => {
 
               {/* Optional Learning Goals */}
               <div className="space-y-1">
-                <label htmlFor="student-goals-input" className="text-sm font-semibold text-slate-800 block">
+                <label htmlFor="student-goals-input" className="text-sm font-semibold text-[#1C1938] block">
                   Learning Goals & Specific Difficulties (Optional)
                 </label>
                 <textarea
@@ -408,7 +408,7 @@ export const StudentRegisterPage: React.FC = () => {
           )}
 
           {/* Navigation Controls */}
-          <div className="pt-6 border-t border-slate-100 flex items-center justify-between gap-3">
+          <div className="pt-6 border-t border-[#E6E1F7] flex items-center justify-between gap-3">
             <ClayButton
               type="button"
               variant="secondary"

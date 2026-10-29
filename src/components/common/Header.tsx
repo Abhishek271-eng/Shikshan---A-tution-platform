@@ -49,14 +49,14 @@ export const Header: React.FC<HeaderProps> = ({
               <button
                 onClick={handleBack}
                 aria-label="Go back to previous screen"
-                className="w-10 h-10 rounded-2xl bg-white/90 border border-slate-200/80 shadow-sm flex items-center justify-center text-slate-700 hover:text-blue-600 hover:bg-white active:scale-95 transition-all"
+                className="w-10 h-10 rounded-2xl bg-white border border-[#DFD8F3] shadow-sm flex items-center justify-center text-[#1C1938] hover:text-[#4136CA] hover:bg-[#F3EEFB] active:scale-95 transition-all"
               >
                 <ArrowLeft className="w-5 h-5 stroke-[2.2]" />
               </button>
             ) : (
               <Link
                 to="/"
-                className="w-10 h-10 rounded-2xl bg-blue-600 text-white shadow-md flex items-center justify-center hover:bg-blue-700 transition-colors"
+                className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#5B4FCF] to-[#4136CA] text-white shadow-md flex items-center justify-center hover:opacity-95 transition-all"
                 aria-label="Shikshan Home"
               >
                 <GraduationCap className="w-6 h-6" />
@@ -67,19 +67,19 @@ export const Header: React.FC<HeaderProps> = ({
             <div className="flex flex-col text-left">
               {title ? (
                 <>
-                  <h1 className="text-base sm:text-lg font-bold text-slate-900 leading-tight truncate max-w-[200px] sm:max-w-xs">
+                  <h1 className="text-base sm:text-lg font-extrabold text-[#1C1938] leading-tight truncate max-w-[200px] sm:max-w-xs">
                     {title}
                   </h1>
                   {subtitle && (
-                    <span className="text-[11px] text-slate-500 font-medium truncate">
+                    <span className="text-[11px] text-[#686487] font-medium truncate">
                       {subtitle}
                     </span>
                   )}
                 </>
               ) : (
                 <Link to="/" className="text-left">
-                  <span className="text-xl font-extrabold text-blue-700 tracking-tight">Shikshan</span>
-                  <span className="hidden sm:inline-block text-xs text-slate-500 ml-2 font-medium">
+                  <span className="text-xl font-black text-[#4136CA] tracking-tight">Shikshan</span>
+                  <span className="hidden sm:inline-block text-xs text-[#686487] ml-2 font-medium">
                     Learn with confidence
                   </span>
                 </Link>
@@ -94,7 +94,7 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               onClick={() => setIsDrawerOpen(true)}
               aria-label="Open menu"
-              className="w-10 h-10 rounded-2xl bg-white/90 border border-slate-200/80 shadow-sm flex items-center justify-center text-slate-700 hover:text-blue-600 hover:bg-white active:scale-95 transition-all"
+              className="w-10 h-10 rounded-2xl bg-white border border-[#DFD8F3] shadow-sm flex items-center justify-center text-[#1C1938] hover:text-[#4136CA] hover:bg-[#F3EEFB] active:scale-95 transition-all"
             >
               <Menu className="w-5 h-5 stroke-[2.2]" />
             </button>

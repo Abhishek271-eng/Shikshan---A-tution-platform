@@ -155,7 +155,7 @@ export const StudentDashboardPage: React.FC = () => {
   }, [tutors, favoriteIds]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#EEF4FA]">
+    <div className="min-h-screen flex flex-col bg-[#F7F6FC]">
       <Header
         title="Student Portal"
         subtitle={profile?.name ? `Namaskara, ${profile.name}` : 'Shikshan Learning Platform'}
@@ -163,24 +163,24 @@ export const StudentDashboardPage: React.FC = () => {
           <button
             onClick={handleRefresh}
             disabled={isRefreshing}
-            className="w-10 h-10 rounded-2xl bg-white/90 border border-slate-200/80 shadow-sm flex items-center justify-center text-slate-700 hover:text-blue-600 active:scale-95 transition-all"
+            className="w-10 h-10 rounded-2xl bg-white border border-[#DFD8F3] shadow-sm flex items-center justify-center text-[#1C1938] hover:text-[#4136CA] hover:bg-[#F4F1FA] active:scale-95 transition-all"
             title="Refresh Data"
           >
-            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-blue-600' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-[#4136CA]' : ''}`} />
           </button>
         }
       />
       <SetupNotice />
 
-      <main className="flex-1 max-w-4xl mx-auto w-full px-4 sm:px-6 py-6 space-y-6">
+      <main className="flex-1 max-w-4xl mx-auto w-full px-4 sm:px-6 py-6 pb-24 space-y-6">
         {/* Welcoming Academic Snapshot Banner */}
-        <ClayCard className="p-5 sm:p-6 text-left border border-slate-200/90 shadow-md bg-gradient-to-br from-white to-blue-50/60">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+        <ClayCard className="p-5 sm:p-6 text-left border border-[#DFD8F3] shadow-clay-card bg-gradient-to-br from-white to-[#F4F1FA]">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#DFD8F3]">
             <div>
-              <span className="text-[11px] font-bold text-blue-700 uppercase tracking-wider">
+              <span className="text-[11px] font-bold text-[#4136CA] uppercase tracking-wider">
                 Student Learning Dashboard
               </span>
-              <h2 className="text-xl sm:text-2xl font-black text-slate-900 mt-0.5">
+              <h2 className="text-xl sm:text-2xl font-black text-[#1C1938] mt-0.5">
                 Namaskara, {profile?.name || user?.email}!
               </h2>
               <p className="text-xs text-slate-500 font-kannada">
@@ -189,35 +189,35 @@ export const StudentDashboardPage: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-2 self-start sm:self-auto">
-              <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-800 text-xs font-bold">
+              <span className="px-3 py-1 rounded-full bg-[#DFD8F3]/60 text-[#4136CA] border border-[#A7AAE5]/50 text-xs font-bold">
                 {studentProfile?.class_level || 'Class 8'} • {studentProfile?.board?.split(' ')[0] || 'KSEAB'}
               </span>
             </div>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-3 text-xs">
-            <div className="p-2.5 rounded-2xl bg-white border border-slate-100 shadow-sm">
+            <div className="p-2.5 rounded-2xl bg-white border border-[#DFD8F3] shadow-sm">
               <span className="text-[10px] text-slate-400 font-bold uppercase block">Current Class</span>
-              <span className="font-extrabold text-slate-900 text-sm">
+              <span className="font-extrabold text-[#1C1938] text-sm">
                 {studentProfile?.class_level || 'Class 8'}
               </span>
             </div>
 
-            <div className="p-2.5 rounded-2xl bg-white border border-slate-100 shadow-sm">
+            <div className="p-2.5 rounded-2xl bg-white border border-[#DFD8F3] shadow-sm">
               <span className="text-[10px] text-slate-400 font-bold uppercase block">Medium</span>
-              <span className="font-extrabold text-slate-900 text-sm truncate block">
+              <span className="font-extrabold text-[#1C1938] text-sm truncate block">
                 {studentProfile?.learning_language || 'Kannada'}
               </span>
             </div>
 
-            <div className="p-2.5 rounded-2xl bg-white border border-slate-100 shadow-sm">
+            <div className="p-2.5 rounded-2xl bg-white border border-[#DFD8F3] shadow-sm">
               <span className="text-[10px] text-slate-400 font-bold uppercase block">Active Requests</span>
-              <span className="font-extrabold text-blue-700 text-sm">
+              <span className="font-extrabold text-[#4136CA] text-sm">
                 {myRequests.filter((r) => r.status === 'pending').length} Pending
               </span>
             </div>
 
-            <div className="p-2.5 rounded-2xl bg-white border border-slate-100 shadow-sm">
+            <div className="p-2.5 rounded-2xl bg-white border border-[#DFD8F3] shadow-sm">
               <span className="text-[10px] text-slate-400 font-bold uppercase block">Shortlist</span>
               <span className="font-extrabold text-rose-600 text-sm">
                 {favoriteIds.length} Saved
@@ -232,13 +232,15 @@ export const StudentDashboardPage: React.FC = () => {
             onClick={() => setActiveTab('discover')}
             className={`px-4 py-2.5 rounded-2xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
               activeTab === 'discover'
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                ? 'bg-[#4136CA] text-white shadow-clay-button border border-[#4136CA]'
+                : 'bg-white text-[#1C1938] hover:bg-[#F4F1FA] border border-[#DFD8F3]'
             }`}
           >
             <BookOpen className="w-4 h-4" />
             <span>Find Tutors</span>
-            <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-blue-500 text-white">
+            <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${
+              activeTab === 'discover' ? 'bg-white/20 text-white' : 'bg-[#DFD8F3] text-[#4136CA]'
+            }`}>
               {filteredTutors.length}
             </span>
           </button>
@@ -247,14 +249,16 @@ export const StudentDashboardPage: React.FC = () => {
             onClick={() => setActiveTab('requests')}
             className={`px-4 py-2.5 rounded-2xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
               activeTab === 'requests'
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                ? 'bg-[#4136CA] text-white shadow-clay-button border border-[#4136CA]'
+                : 'bg-white text-[#1C1938] hover:bg-[#F4F1FA] border border-[#DFD8F3]'
             }`}
           >
             <Send className="w-4 h-4" />
             <span>My Requests</span>
             {myRequests.length > 0 && (
-              <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-blue-100 text-blue-800 font-bold">
+              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+                activeTab === 'requests' ? 'bg-white/20 text-white' : 'bg-[#DFD8F3] text-[#4136CA]'
+              }`}>
                 {myRequests.length}
               </span>
             )}
@@ -264,8 +268,8 @@ export const StudentDashboardPage: React.FC = () => {
             onClick={() => setActiveTab('saved')}
             className={`px-4 py-2.5 rounded-2xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
               activeTab === 'saved'
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                ? 'bg-[#4136CA] text-white shadow-clay-button border border-[#4136CA]'
+                : 'bg-white text-[#1C1938] hover:bg-[#F4F1FA] border border-[#DFD8F3]'
             }`}
           >
             <Heart className="w-4 h-4" />
@@ -276,8 +280,8 @@ export const StudentDashboardPage: React.FC = () => {
             onClick={() => setActiveTab('profile')}
             className={`px-4 py-2.5 rounded-2xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
               activeTab === 'profile'
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                ? 'bg-[#4136CA] text-white shadow-clay-button border border-[#4136CA]'
+                : 'bg-white text-[#1C1938] hover:bg-[#F4F1FA] border border-[#DFD8F3]'
             }`}
           >
             <User className="w-4 h-4" />
@@ -305,16 +309,16 @@ export const StudentDashboardPage: React.FC = () => {
             />
 
             {isLoading ? (
-              <ClayCard className="p-12 text-center space-y-3">
-                <div className="w-10 h-10 rounded-full border-4 border-blue-600 border-t-transparent animate-spin mx-auto" />
+              <ClayCard className="p-12 text-center space-y-3 border-[#DFD8F3] shadow-clay-card bg-white">
+                <div className="w-10 h-10 rounded-full border-4 border-[#4136CA] border-t-transparent animate-spin mx-auto" />
                 <p className="text-xs font-semibold text-slate-600">Discovering verified tutors...</p>
               </ClayCard>
             ) : filteredTutors.length === 0 ? (
-              <ClayCard className="p-8 text-center space-y-3">
-                <div className="w-14 h-14 rounded-3xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto">
+              <ClayCard className="p-8 text-center space-y-3 border-[#DFD8F3] shadow-clay-card bg-white">
+                <div className="w-14 h-14 rounded-3xl bg-[#DFD8F3]/60 text-[#4136CA] flex items-center justify-center mx-auto border border-[#DFD8F3]">
                   <SlidersHorizontal className="w-7 h-7" />
                 </div>
-                <h3 className="font-extrabold text-base text-slate-900">
+                <h3 className="font-extrabold text-base text-[#1C1938]">
                   No Tutors Matching Your Current Filters
                 </h3>
                 <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
@@ -360,18 +364,18 @@ export const StudentDashboardPage: React.FC = () => {
         {activeTab === 'requests' && (
           <div className="space-y-3 text-left">
             <div className="flex items-center justify-between px-1">
-              <h3 className="font-extrabold text-sm text-slate-900">
+              <h3 className="font-extrabold text-sm text-[#1C1938]">
                 Your Submitted Tutor Requests ({myRequests.length})
               </h3>
               <span className="text-[11px] text-slate-500">Track acceptance status in real time</span>
             </div>
 
             {myRequests.length === 0 ? (
-              <ClayCard className="p-8 text-center space-y-3">
-                <div className="w-14 h-14 rounded-3xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto">
+              <ClayCard className="p-8 text-center space-y-3 border-[#DFD8F3] shadow-clay-card bg-white">
+                <div className="w-14 h-14 rounded-3xl bg-[#DFD8F3]/60 text-[#4136CA] flex items-center justify-center mx-auto border border-[#DFD8F3]">
                   <Send className="w-6 h-6" />
                 </div>
-                <h4 className="font-extrabold text-base text-slate-900">No Tutor Requests Yet</h4>
+                <h4 className="font-extrabold text-base text-[#1C1938]">No Tutor Requests Yet</h4>
                 <p className="text-xs text-slate-500 max-w-xs mx-auto">
                   Browse our approved educators and tap &apos;Request&apos; to arrange learning sessions.
                 </p>
@@ -388,30 +392,30 @@ export const StudentDashboardPage: React.FC = () => {
                   const subjectName = SCHOOL_SUBJECTS.find((s) => s.id === req.subject)?.label || req.subject;
 
                   return (
-                    <ClayCard key={req.id} className="p-4 sm:p-5 text-left space-y-3 bg-white">
+                    <ClayCard key={req.id} className="p-4 sm:p-5 text-left space-y-3 bg-white border-[#DFD8F3] shadow-clay-card">
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <div className="flex items-center gap-2">
-                            <h4 className="font-extrabold text-base text-slate-900">{tutorName}</h4>
+                            <h4 className="font-extrabold text-base text-[#1C1938]">{tutorName}</h4>
                             <span
                               className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold capitalize flex items-center gap-1 ${
                                 req.status === 'accepted'
-                                  ? 'bg-emerald-100 text-emerald-800'
+                                  ? 'bg-[#EBF3E8] text-[#3B522F] border border-[#3B522F]/20'
                                   : req.status === 'declined'
-                                  ? 'bg-rose-100 text-rose-800'
+                                  ? 'bg-rose-50 text-rose-800 border border-rose-200'
                                   : req.status === 'cancelled'
                                   ? 'bg-slate-100 text-slate-600'
-                                  : 'bg-amber-100 text-amber-800'
+                                  : 'bg-[#DFD8F3]/70 text-[#4136CA] border border-[#A7AAE5]/50'
                               }`}
                             >
-                              {req.status === 'accepted' && <CheckCircle className="w-3 h-3" />}
-                              {req.status === 'declined' && <XCircle className="w-3 h-3" />}
-                              {req.status === 'pending' && <Clock className="w-3 h-3" />}
+                              {req.status === 'accepted' && <CheckCircle className="w-3 h-3 text-[#3B522F]" />}
+                              {req.status === 'declined' && <XCircle className="w-3 h-3 text-rose-600" />}
+                              {req.status === 'pending' && <Clock className="w-3 h-3 text-[#4136CA]" />}
                               {req.status}
                             </span>
                           </div>
                           <p className="text-xs text-slate-500 mt-0.5">
-                            Subject: <strong className="text-slate-800">{subjectName}</strong> ({req.class_level})
+                            Subject: <strong className="text-[#1C1938]">{subjectName}</strong> ({req.class_level})
                           </p>
                         </div>
                         <span className="text-[11px] text-slate-400">
@@ -419,7 +423,7 @@ export const StudentDashboardPage: React.FC = () => {
                         </span>
                       </div>
 
-                      <div className="p-3 rounded-2xl bg-slate-50 text-xs space-y-1">
+                      <div className="p-3 rounded-2xl bg-[#F4F1FA] border border-[#DFD8F3] text-xs space-y-1">
                         <p className="text-slate-700">
                           <strong>Your Learning Note:</strong> {req.learning_needs}
                         </p>
@@ -429,7 +433,7 @@ export const StudentDashboardPage: React.FC = () => {
                           </p>
                         )}
                         {req.response_message && (
-                          <p className="pt-1.5 border-t border-slate-200 font-semibold text-blue-900">
+                          <p className="pt-1.5 border-t border-[#DFD8F3] font-semibold text-[#4136CA]">
                             <strong>Tutor Reply:</strong> {req.response_message}
                           </p>
                         )}

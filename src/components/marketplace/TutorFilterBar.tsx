@@ -66,8 +66,8 @@ export const TutorFilterBar: React.FC<TutorFilterBarProps> = ({
           onClick={() => setShowAdvanced(!showAdvanced)}
           className={`h-12 px-3.5 rounded-2xl border font-bold text-xs flex items-center gap-1.5 transition-all select-none ${
             showAdvanced || hasActiveFilters
-              ? 'bg-blue-600 text-white border-blue-600 shadow-md'
-              : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+              ? 'bg-[#4136CA] text-white border-[#4136CA] shadow-clay-button'
+              : 'bg-white text-[#1C1938] border-[#DFD8F3] hover:bg-[#F4F1FA]'
           }`}
           aria-expanded={showAdvanced}
         >
@@ -81,11 +81,11 @@ export const TutorFilterBar: React.FC<TutorFilterBarProps> = ({
 
       {/* Advanced Filter Drawer / Controls */}
       {showAdvanced && (
-        <div className="p-4 rounded-3xl bg-white border border-slate-200/90 shadow-md space-y-3 animate-fade-in text-xs">
+        <div className="p-4 rounded-3xl bg-white border border-[#DFD8F3] shadow-clay-card space-y-3 animate-fade-in text-xs">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
             {/* Subject Filter */}
             <div>
-              <label htmlFor="filter-subject" className="text-[11px] font-bold text-slate-600 block mb-1">
+              <label htmlFor="filter-subject" className="text-[11px] font-bold text-[#1C1938] block mb-1">
                 Subject
               </label>
               <select
@@ -105,7 +105,7 @@ export const TutorFilterBar: React.FC<TutorFilterBarProps> = ({
 
             {/* Class Level */}
             <div>
-              <label htmlFor="filter-class" className="text-[11px] font-bold text-slate-600 block mb-1">
+              <label htmlFor="filter-class" className="text-[11px] font-bold text-[#1C1938] block mb-1">
                 Class Level
               </label>
               <select
@@ -125,7 +125,7 @@ export const TutorFilterBar: React.FC<TutorFilterBarProps> = ({
 
             {/* Board */}
             <div>
-              <label htmlFor="filter-board" className="text-[11px] font-bold text-slate-600 block mb-1">
+              <label htmlFor="filter-board" className="text-[11px] font-bold text-[#1C1938] block mb-1">
                 Curriculum / Board
               </label>
               <select
@@ -145,7 +145,7 @@ export const TutorFilterBar: React.FC<TutorFilterBarProps> = ({
 
             {/* Teaching Language */}
             <div>
-              <label htmlFor="filter-lang" className="text-[11px] font-bold text-slate-600 block mb-1">
+              <label htmlFor="filter-lang" className="text-[11px] font-bold text-[#1C1938] block mb-1">
                 Teaching Language
               </label>
               <select
@@ -164,7 +164,7 @@ export const TutorFilterBar: React.FC<TutorFilterBarProps> = ({
             </div>
           </div>
 
-          <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+          <div className="pt-2 border-t border-[#DFD8F3] flex items-center justify-between">
             <span className="text-[11px] text-slate-500 font-medium">
               Showing <strong>{resultCount}</strong> matching verified tutors
             </span>
@@ -172,7 +172,7 @@ export const TutorFilterBar: React.FC<TutorFilterBarProps> = ({
               <button
                 type="button"
                 onClick={onReset}
-                className="text-xs font-bold text-blue-700 hover:text-blue-900 flex items-center gap-1"
+                className="text-xs font-bold text-[#4136CA] hover:underline flex items-center gap-1"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
                 <span>Reset Filters</span>
@@ -191,7 +191,7 @@ export const TutorFilterBar: React.FC<TutorFilterBarProps> = ({
           {hasActiveFilters && (
             <button
               onClick={onReset}
-              className="text-xs font-bold text-blue-700 hover:underline flex items-center gap-1"
+              className="text-xs font-bold text-[#4136CA] hover:underline flex items-center gap-1"
             >
               <RotateCcw className="w-3 h-3" />
               Reset

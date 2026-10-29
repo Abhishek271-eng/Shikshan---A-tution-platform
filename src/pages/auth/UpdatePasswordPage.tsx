@@ -49,11 +49,11 @@ export const UpdatePasswordPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#EEF4FA]">
+    <div className="min-h-screen flex flex-col bg-[#F7F6FC]">
       <Header title="Set New Password" subtitle="Security update" />
 
-      <main className="flex-1 max-w-md mx-auto w-full px-5 py-8 flex flex-col justify-center">
-        <ClayCard className="p-6 sm:p-8 space-y-6">
+      <main className="flex-1 max-w-md mx-auto w-full px-5 py-8 flex flex-col justify-center pb-24">
+        <ClayCard className="p-6 sm:p-8 space-y-6 shadow-clay border border-[#DFD8F3]">
           {isSuccess ? (
             <div className="text-center space-y-4 py-3">
               <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-inner">

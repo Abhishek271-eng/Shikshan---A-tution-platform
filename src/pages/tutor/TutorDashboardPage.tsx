@@ -160,7 +160,7 @@ export const TutorDashboardPage: React.FC = () => {
   const pendingRequests = requests.filter((r) => r.status === 'pending');
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#EEF4FA]">
+    <div className="min-h-screen flex flex-col bg-[#F7F6FC]">
       <Header
         title="Tutor Dashboard"
         subtitle="Verified Educator Portal"
@@ -168,30 +168,30 @@ export const TutorDashboardPage: React.FC = () => {
           <button
             onClick={handleRefresh}
             disabled={isRefreshing}
-            className="w-10 h-10 rounded-2xl bg-white/90 border border-slate-200/80 shadow-sm flex items-center justify-center text-slate-700 hover:text-blue-600 active:scale-95 transition-all"
+            className="w-10 h-10 rounded-2xl bg-white border border-[#DFD8F3] shadow-sm flex items-center justify-center text-[#1C1938] hover:text-[#4136CA] hover:bg-[#F4F1FA] active:scale-95 transition-all"
             title="Refresh Requests"
           >
-            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-blue-600' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-[#4136CA]' : ''}`} />
           </button>
         }
       />
 
-      <main className="flex-1 max-w-3xl mx-auto w-full px-4 sm:px-6 py-6 space-y-6">
+      <main className="flex-1 max-w-3xl mx-auto w-full px-4 sm:px-6 py-6 pb-24 space-y-6">
         {isLoading ? (
-          <ClayCard className="p-8 text-center space-y-3">
-            <div className="w-10 h-10 rounded-full border-4 border-blue-600 border-t-transparent animate-spin mx-auto" />
+          <ClayCard className="p-8 text-center space-y-3 border-[#DFD8F3] shadow-clay-card bg-white">
+            <div className="w-10 h-10 rounded-full border-4 border-[#4136CA] border-t-transparent animate-spin mx-auto" />
             <p className="text-xs font-semibold text-slate-600">Loading tutor dashboard...</p>
           </ClayCard>
         ) : (
           <>
             {/* Educator Profile Overview Banner */}
-            <ClayCard className="p-6 text-left space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
+            <ClayCard className="p-6 text-left space-y-4 border border-[#DFD8F3] shadow-clay-card bg-gradient-to-br from-white to-[#F4F1FA]">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#DFD8F3]">
                 <div>
-                  <span className="text-xs font-bold text-blue-700 uppercase tracking-wider">
+                  <span className="text-xs font-bold text-[#4136CA] uppercase tracking-wider">
                     Verified Shikshan Educator
                   </span>
-                  <h2 className="text-2xl font-black text-slate-900 mt-0.5">
+                  <h2 className="text-2xl font-black text-[#1C1938] mt-0.5">
                     Namaskara, {profile?.name || user?.email}!
                   </h2>
                   <p className="text-xs text-slate-500 font-kannada">
@@ -202,30 +202,30 @@ export const TutorDashboardPage: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1 text-xs">
-                <div className="p-3 rounded-2xl bg-blue-50/70 border border-blue-100">
+                <div className="p-3 rounded-2xl bg-white border border-[#DFD8F3] shadow-sm">
                   <span className="text-slate-400 font-bold block text-[10px] uppercase">Proposed Rate</span>
-                  <span className="font-extrabold text-blue-900 text-sm">
+                  <span className="font-extrabold text-[#4136CA] text-sm">
                     ₹{application?.fee_amount || application?.proposed_rate || 350} {feeUnitLabel}
                   </span>
                 </div>
 
-                <div className="p-3 rounded-2xl bg-blue-50/70 border border-blue-100">
+                <div className="p-3 rounded-2xl bg-white border border-[#DFD8F3] shadow-sm">
                   <span className="text-slate-400 font-bold block text-[10px] uppercase">Daily Hours</span>
-                  <span className="font-extrabold text-blue-900 text-sm">
+                  <span className="font-extrabold text-[#4136CA] text-sm">
                     {application?.hours_per_day || 2} hrs/day
                   </span>
                 </div>
 
-                <div className="p-3 rounded-2xl bg-blue-50/70 border border-blue-100">
+                <div className="p-3 rounded-2xl bg-white border border-[#DFD8F3] shadow-sm">
                   <span className="text-slate-400 font-bold block text-[10px] uppercase">Languages</span>
-                  <span className="font-extrabold text-blue-900 text-sm truncate block">
+                  <span className="font-extrabold text-[#1C1938] text-sm truncate block">
                     {application?.teaching_languages?.join(', ') || 'Kannada'}
                   </span>
                 </div>
 
-                <div className="p-3 rounded-2xl bg-blue-50/70 border border-blue-100">
+                <div className="p-3 rounded-2xl bg-white border border-[#DFD8F3] shadow-sm">
                   <span className="text-slate-400 font-bold block text-[10px] uppercase">New Requests</span>
-                  <span className="font-extrabold text-emerald-700 text-sm flex items-center gap-1">
+                  <span className="font-extrabold text-[#3B522F] text-sm flex items-center gap-1">
                     <Send className="w-3.5 h-3.5" />
                     {pendingRequests.length} Pending
                   </span>
@@ -236,8 +236,8 @@ export const TutorDashboardPage: React.FC = () => {
             {/* Incoming Student Requests Section */}
             <div className="space-y-3 text-left">
               <div className="flex items-center justify-between px-1">
-                <h3 className="font-extrabold text-base text-slate-900 flex items-center gap-2">
-                  <Send className="w-4 h-4 text-blue-600" />
+                <h3 className="font-extrabold text-base text-[#1C1938] flex items-center gap-2">
+                  <Send className="w-4 h-4 text-[#4136CA]" />
                   <span>Student Requests Received ({requests.length})</span>
                 </h3>
                 <span className="text-xs text-slate-500">
@@ -246,11 +246,11 @@ export const TutorDashboardPage: React.FC = () => {
               </div>
 
               {requests.length === 0 ? (
-                <ClayCard className="p-8 text-center space-y-2">
-                  <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto">
+                <ClayCard className="p-8 text-center space-y-2 border-[#DFD8F3] shadow-clay-card bg-white">
+                  <div className="w-12 h-12 rounded-2xl bg-[#DFD8F3]/60 text-[#4136CA] flex items-center justify-center mx-auto border border-[#DFD8F3]">
                     <Clock className="w-6 h-6" />
                   </div>
-                  <h4 className="font-bold text-sm text-slate-900">No Student Requests Yet</h4>
+                  <h4 className="font-bold text-sm text-[#1C1938]">No Student Requests Yet</h4>
                   <p className="text-xs text-slate-500 max-w-xs mx-auto">
                     Students from Karnataka schools are currently browsing verified tutors. You will receive notifications here when a student submits a request.
                   </p>
@@ -263,29 +263,29 @@ export const TutorDashboardPage: React.FC = () => {
                       SCHOOL_SUBJECTS.find((s) => s.id === req.subject)?.label || req.subject;
 
                     return (
-                      <ClayCard key={req.id} className="p-5 text-left space-y-3 bg-white">
+                      <ClayCard key={req.id} className="p-5 text-left space-y-3 bg-white border-[#DFD8F3] shadow-clay-card">
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm">
+                            <div className="w-10 h-10 rounded-xl bg-[#DFD8F3] text-[#4136CA] flex items-center justify-center font-bold text-sm border border-[#A7AAE5]/50">
                               {studentName[0]?.toUpperCase() || 'S'}
                             </div>
                             <div>
                               <div className="flex items-center gap-2">
-                                <h4 className="font-extrabold text-sm text-slate-900">{studentName}</h4>
+                                <h4 className="font-extrabold text-sm text-[#1C1938]">{studentName}</h4>
                                 <span
                                   className={`px-2 py-0.5 rounded-full text-[10px] font-bold capitalize ${
                                     req.status === 'accepted'
-                                      ? 'bg-emerald-100 text-emerald-800'
+                                      ? 'bg-[#EBF3E8] text-[#3B522F] border border-[#3B522F]/20'
                                       : req.status === 'declined'
-                                      ? 'bg-rose-100 text-rose-800'
-                                      : 'bg-amber-100 text-amber-800'
+                                      ? 'bg-rose-50 text-rose-800 border border-rose-200'
+                                      : 'bg-[#DFD8F3]/70 text-[#4136CA] border border-[#A7AAE5]/50'
                                   }`}
                                 >
                                   {req.status}
                                 </span>
                               </div>
                               <p className="text-xs text-slate-500">
-                                Class: <strong className="text-slate-800">{req.class_level}</strong> • Subject: <strong className="text-slate-800">{subjectName}</strong>
+                                Class: <strong className="text-[#1C1938]">{req.class_level}</strong> • Subject: <strong className="text-[#1C1938]">{subjectName}</strong>
                               </p>
                             </div>
                           </div>
@@ -294,7 +294,7 @@ export const TutorDashboardPage: React.FC = () => {
                           </span>
                         </div>
 
-                        <div className="p-3 rounded-2xl bg-slate-50 text-xs space-y-1">
+                        <div className="p-3 rounded-2xl bg-[#F4F1FA] border border-[#DFD8F3] text-xs space-y-1">
                           <p className="text-slate-800">
                             <strong>Student Note:</strong> {req.learning_needs}
                           </p>
@@ -304,14 +304,14 @@ export const TutorDashboardPage: React.FC = () => {
                             </p>
                           )}
                           {req.response_message && (
-                            <p className="pt-1.5 border-t border-slate-200 text-blue-900 font-semibold">
+                            <p className="pt-1.5 border-t border-[#DFD8F3] text-[#4136CA] font-semibold">
                               <strong>Your Response:</strong> {req.response_message}
                             </p>
                           )}
                         </div>
 
                         {req.status === 'pending' && (
-                          <div className="flex items-center justify-end gap-2 pt-1 border-t border-slate-100">
+                          <div className="flex items-center justify-end gap-2 pt-1 border-t border-[#DFD8F3]">
                             <button
                               type="button"
                               onClick={() => handleOpenResponse(req, 'declined')}
@@ -325,7 +325,7 @@ export const TutorDashboardPage: React.FC = () => {
                               variant="primary"
                               onClick={() => handleOpenResponse(req, 'accepted')}
                               icon={<CheckCircle className="w-3.5 h-3.5" />}
-                              className="bg-emerald-600 hover:bg-emerald-700"
+                              className="bg-[#3B522F] hover:bg-[#3B522F]/90"
                             >
                               Accept Student
                             </ClayButton>
@@ -339,9 +339,9 @@ export const TutorDashboardPage: React.FC = () => {
             </div>
 
             {/* Educator Teaching Values Card */}
-            <ClayCard className="p-5 text-left space-y-2 border border-blue-100 bg-blue-50/40">
-              <div className="flex items-center gap-2 font-bold text-xs text-blue-900">
-                <HeartHandshake className="w-4 h-4 text-blue-600" />
+            <ClayCard className="p-5 text-left space-y-2 border border-[#DFD8F3] bg-[#F4F1FA]">
+              <div className="flex items-center gap-2 font-bold text-xs text-[#4136CA]">
+                <HeartHandshake className="w-4 h-4 text-[#4136CA]" />
                 <span>Mentoring Standards for Rural & Kannada-Medium Students</span>
               </div>
               <p className="text-xs text-slate-600 leading-relaxed">
@@ -355,21 +355,21 @@ export const TutorDashboardPage: React.FC = () => {
       {/* Response Action Modal */}
       {activeRequest && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-slate-100 space-y-4 text-left animate-fade-in">
+          <div className="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-[#DFD8F3] space-y-4 text-left animate-fade-in">
             <div className="flex items-center justify-between">
-              <h3 className="font-extrabold text-base text-slate-900 capitalize">
+              <h3 className="font-extrabold text-base text-[#1C1938] capitalize">
                 {responseAction} Request from {activeRequest.student_profile?.name || 'Student'}
               </h3>
               <button
                 onClick={() => setActiveRequest(null)}
-                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600"
+                className="p-1.5 rounded-xl text-slate-400 hover:text-[#1C1938]"
               >
                 <XCircle className="w-5 h-5" />
               </button>
             </div>
 
             <div className="space-y-1.5 text-xs">
-              <label htmlFor="tutor-resp-textarea" className="font-bold text-slate-700 block">
+              <label htmlFor="tutor-resp-textarea" className="font-bold text-[#1C1938] block">
                 Message to Student (Visible on their dashboard)
               </label>
               <textarea
@@ -396,7 +396,7 @@ export const TutorDashboardPage: React.FC = () => {
                 size="sm"
                 isLoading={isUpdating}
                 onClick={handleConfirmResponse}
-                className={responseAction === 'accepted' ? 'bg-emerald-600' : 'bg-rose-600'}
+                className={responseAction === 'accepted' ? 'bg-[#3B522F]' : 'bg-rose-600'}
               >
                 Confirm {responseAction === 'accepted' ? 'Acceptance' : 'Decline'}
               </ClayButton>

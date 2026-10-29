@@ -258,7 +258,7 @@ export const TutorRegisterPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#EEF4FA]">
+    <div className="min-h-screen flex flex-col bg-[#F7F6FC]">
       <Header
         title="Tutor Onboarding"
         subtitle={`Step ${currentStep + 1} of ${STEPS.length}: ${STEPS[currentStep].label}`}
@@ -266,7 +266,7 @@ export const TutorRegisterPage: React.FC = () => {
       />
       <SetupNotice />
 
-      <main className="flex-1 max-w-xl mx-auto w-full px-4 sm:px-6 py-6 flex flex-col justify-between">
+      <main className="flex-1 max-w-xl mx-auto w-full px-4 sm:px-6 py-6 pb-24 flex flex-col justify-between">
         {!isSubmitted && (
           <div className="mb-4">
             <ProgressBar
@@ -279,13 +279,13 @@ export const TutorRegisterPage: React.FC = () => {
         )}
 
         {isSubmitted ? (
-          <ClayCard className="p-6 sm:p-8 space-y-6 text-center my-auto animate-fade-in">
-            <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-inner">
+          <ClayCard className="p-6 sm:p-8 space-y-6 text-center my-auto animate-fade-in border-[#DFD8F3] shadow-clay-card bg-white">
+            <div className="w-16 h-16 rounded-full bg-[#EBF3E8] text-[#3B522F] border border-[#3B522F]/20 flex items-center justify-center mx-auto shadow-inner">
               <CheckCircle2 className="w-9 h-9 stroke-[2.2]" />
             </div>
 
             <div className="space-y-2">
-              <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+              <h2 className="text-2xl font-black text-[#1C1938] tracking-tight">
                 Application Submitted Successfully
               </h2>
               <p className="text-sm text-slate-600 leading-relaxed max-w-md mx-auto">
@@ -296,10 +296,10 @@ export const TutorRegisterPage: React.FC = () => {
               </p>
             </div>
 
-            <div className="p-4 rounded-2xl bg-blue-50/80 border border-blue-100 text-left space-y-2 text-xs text-slate-700">
-              <div className="flex justify-between font-bold text-slate-900 pb-1 border-b border-blue-200/60">
+            <div className="p-4 rounded-2xl bg-[#F4F1FA] border border-[#DFD8F3] text-left space-y-2 text-xs text-[#1C1938]">
+              <div className="flex justify-between font-bold text-[#1C1938] pb-1 border-b border-[#DFD8F3]">
                 <span>Application Summary</span>
-                <span className="text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full font-semibold">
+                <span className="text-[#3B522F] bg-[#EBF3E8] border border-[#3B522F]/20 px-2.5 py-0.5 rounded-full font-bold">
                   Pending Review
                 </span>
               </div>
@@ -325,7 +325,7 @@ export const TutorRegisterPage: React.FC = () => {
             </div>
           </ClayCard>
         ) : (
-          <ClayCard className="p-6 sm:p-8 space-y-6 flex-1 flex flex-col justify-between">
+          <ClayCard className="p-6 sm:p-8 space-y-6 flex-1 flex flex-col justify-between border-[#DFD8F3] shadow-clay-card bg-white">
             {error && (
               <div className="p-3.5 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-start gap-2.5">
                 <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-red-600" />
@@ -337,7 +337,7 @@ export const TutorRegisterPage: React.FC = () => {
             {currentStep === 0 && (
               <div className="space-y-4 animate-fade-in text-left">
                 <div>
-                  <h3 className="text-lg font-bold text-slate-900">Basic Account Information</h3>
+                  <h3 className="text-lg font-bold text-[#1C1938]">Basic Account Information</h3>
                   <p className="text-xs text-slate-500">
                     We collect only what is necessary to create and contact your tutor account.
                   </p>
@@ -399,14 +399,14 @@ export const TutorRegisterPage: React.FC = () => {
             {currentStep === 1 && (
               <div className="space-y-5 animate-fade-in text-left">
                 <div>
-                  <h3 className="text-lg font-bold text-slate-900">Teaching Profile & Expertise</h3>
+                  <h3 className="text-lg font-bold text-[#1C1938]">Teaching Profile & Expertise</h3>
                   <p className="text-xs text-slate-500 font-kannada">
                     ಬೋಧನಾ ವಿವರಗಳು • Subjects and classes you are qualified to support
                   </p>
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <label htmlFor="tutor-edu-select" className="text-sm font-semibold text-slate-800">
+                  <label htmlFor="tutor-edu-select" className="text-sm font-semibold text-[#1C1938]">
                     Highest Qualification <span className="text-red-500">*</span>
                   </label>
                   <select
@@ -441,7 +441,7 @@ export const TutorRegisterPage: React.FC = () => {
 
                 {/* Subjects */}
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold text-slate-800 block">
+                  <label className="text-sm font-semibold text-[#1C1938] block">
                     Subjects You Teach <span className="text-red-500">*</span>
                   </label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -453,8 +453,8 @@ export const TutorRegisterPage: React.FC = () => {
                           onClick={() => toggleSubject(sub.id)}
                           className={`p-3 rounded-2xl border text-xs font-semibold cursor-pointer select-none transition-all flex items-center justify-between ${
                             isSelected
-                              ? 'bg-blue-50 border-blue-400 text-blue-900 shadow-sm'
-                              : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                              ? 'bg-[#DFD8F3]/60 border-[#4136CA] text-[#4136CA] shadow-sm'
+                              : 'bg-white border-[#DFD8F3] text-slate-700 hover:bg-[#F4F1FA]'
                           }`}
                         >
                           <div>
@@ -469,7 +469,7 @@ export const TutorRegisterPage: React.FC = () => {
                             type="checkbox"
                             checked={isSelected}
                             readOnly
-                            className="rounded text-blue-600 focus:ring-0 ml-2"
+                            className="rounded text-[#4136CA] focus:ring-0 ml-2"
                           />
                         </div>
                       );
@@ -479,7 +479,7 @@ export const TutorRegisterPage: React.FC = () => {
 
                 {/* Classes 1-10 Multi-Selector */}
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold text-slate-800 block">
+                  <label className="text-sm font-semibold text-[#1C1938] block">
                     Classes You Can Support (Classes 1–10) <span className="text-red-500">*</span>
                   </label>
                   <div className="grid grid-cols-5 sm:grid-cols-5 gap-1.5">
@@ -492,8 +492,8 @@ export const TutorRegisterPage: React.FC = () => {
                           onClick={() => toggleClass(cls.id)}
                           className={`py-2 px-1 text-center rounded-xl text-xs font-bold border transition-all ${
                             isSelected
-                              ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
-                              : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                              ? 'bg-[#4136CA] text-white border-[#4136CA] shadow-sm'
+                              : 'bg-white text-slate-700 border-[#DFD8F3] hover:bg-[#F4F1FA]'
                           }`}
                         >
                           {cls.label.replace('Class ', 'C')}
@@ -505,7 +505,7 @@ export const TutorRegisterPage: React.FC = () => {
 
                 {/* Board familiarity */}
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold text-slate-800 block">
+                  <label className="text-sm font-semibold text-[#1C1938] block">
                     Curriculum / Board Familiarity
                   </label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -518,8 +518,8 @@ export const TutorRegisterPage: React.FC = () => {
                           onClick={() => toggleBoard(board.id)}
                           className={`p-2.5 rounded-xl text-left text-xs font-semibold border transition-all ${
                             isSelected
-                              ? 'bg-blue-50 border-blue-500 text-blue-900'
-                              : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                              ? 'bg-[#DFD8F3]/60 border-[#4136CA] text-[#4136CA] font-bold'
+                              : 'bg-white border-[#DFD8F3] text-slate-700 hover:bg-[#F4F1FA]'
                           }`}
                         >
                           {board.label}
@@ -531,7 +531,7 @@ export const TutorRegisterPage: React.FC = () => {
 
                 {/* Teaching languages */}
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold text-slate-800 block">
+                  <label className="text-sm font-semibold text-[#1C1938] block">
                     Teaching Languages <span className="text-red-500">*</span>
                   </label>
                   <div className="flex flex-wrap gap-2">
@@ -544,8 +544,8 @@ export const TutorRegisterPage: React.FC = () => {
                           onClick={() => toggleLanguage(lang.id)}
                           className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
                             isSelected
-                              ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
-                              : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                              ? 'bg-[#4136CA] text-white border-[#4136CA] shadow-sm'
+                              : 'bg-white text-slate-700 border-[#DFD8F3] hover:bg-[#F4F1FA]'
                           }`}
                         >
                           {lang.label}
@@ -557,7 +557,7 @@ export const TutorRegisterPage: React.FC = () => {
 
                 {/* Short bio and teaching approach */}
                 <div className="space-y-1">
-                  <label htmlFor="tutor-bio-textarea" className="text-sm font-semibold text-slate-800 flex items-center justify-between">
+                  <label htmlFor="tutor-bio-textarea" className="text-sm font-semibold text-[#1C1938] flex items-center justify-between">
                     <span>Short Bio & Teaching Approach <span className="text-red-500">*</span></span>
                     <span className="text-xs text-slate-400 font-normal">{bioIntro.length}/400</span>
                   </label>
@@ -586,15 +586,15 @@ export const TutorRegisterPage: React.FC = () => {
             {currentStep === 2 && (
               <div className="space-y-5 animate-fade-in text-left">
                 <div>
-                  <h3 className="text-lg font-bold text-slate-900">Proposed Fees & Schedule</h3>
+                  <h3 className="text-lg font-bold text-[#1C1938]">Proposed Fees & Schedule</h3>
                   <p className="text-xs text-slate-500 font-kannada">
                     ಲಭ್ಯತೆ ಮತ್ತು ಶುಲ್ಕ • Set your availability and proposed tuition rate
                   </p>
                 </div>
 
                 {/* Proposed fee & unit */}
-                <div className="p-4 rounded-2xl bg-blue-50/70 border border-blue-200 space-y-3">
-                  <label className="text-sm font-bold text-slate-900 block">
+                <div className="p-4 rounded-2xl bg-[#F4F1FA] border border-[#DFD8F3] space-y-3">
+                  <label className="text-sm font-bold text-[#1C1938] block">
                     Proposed Tutoring Rate <span className="text-red-500">*</span>
                   </label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -604,11 +604,11 @@ export const TutorRegisterPage: React.FC = () => {
                       placeholder="e.g. 350"
                       value={feeAmount}
                       onChange={(e) => setFeeAmount(e.target.value)}
-                      icon={<IndianRupee className="w-4 h-4" />}
+                      icon={<IndianRupee className="w-4 h-4 text-[#4136CA]" />}
                     />
 
                     <div className="flex flex-col gap-1.5 text-left">
-                      <label htmlFor="tutor-fee-unit-select" className="text-sm font-semibold text-slate-800">
+                      <label htmlFor="tutor-fee-unit-select" className="text-sm font-semibold text-[#1C1938]">
                         Fee Unit <span className="text-red-500">*</span>
                       </label>
                       <select
@@ -632,7 +632,7 @@ export const TutorRegisterPage: React.FC = () => {
 
                 {/* Days available */}
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold text-slate-800 block">
+                  <label className="text-sm font-semibold text-[#1C1938] block">
                     Days Available Each Week <span className="text-red-500">*</span>
                   </label>
                   <div className="flex flex-wrap gap-2">
@@ -645,8 +645,8 @@ export const TutorRegisterPage: React.FC = () => {
                           onClick={() => toggleDay(day.id)}
                           className={`w-11 h-11 rounded-2xl font-bold text-xs border transition-all ${
                             isSelected
-                              ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
-                              : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                              ? 'bg-[#4136CA] text-white border-[#4136CA] shadow-sm'
+                              : 'bg-white text-slate-700 border-[#DFD8F3] hover:bg-[#F4F1FA]'
                           }`}
                         >
                           {day.label}
@@ -658,7 +658,7 @@ export const TutorRegisterPage: React.FC = () => {
 
                 {/* Time windows */}
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold text-slate-800 block">
+                  <label className="text-sm font-semibold text-[#1C1938] block">
                     Daily Time Slots <span className="text-red-500">*</span>
                   </label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -670,19 +670,19 @@ export const TutorRegisterPage: React.FC = () => {
                           onClick={() => toggleTimeWindow(win.id)}
                           className={`p-3 rounded-2xl border text-xs font-semibold cursor-pointer select-none transition-all flex items-center justify-between ${
                             isSelected
-                              ? 'bg-blue-50 border-blue-400 text-blue-900 shadow-sm'
-                              : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                              ? 'bg-[#DFD8F3]/60 border-[#4136CA] text-[#4136CA] shadow-sm'
+                              : 'bg-white border-[#DFD8F3] text-slate-700 hover:bg-[#F4F1FA]'
                           }`}
                         >
                           <span className="flex items-center gap-2">
-                            <Clock className="w-3.5 h-3.5 text-blue-600" />
+                            <Clock className="w-3.5 h-3.5 text-[#4136CA]" />
                             {win.label}
                           </span>
                           <input
                             type="checkbox"
                             checked={isSelected}
                             readOnly
-                            className="rounded text-blue-600"
+                            className="rounded text-[#4136CA]"
                           />
                         </div>
                       );
@@ -692,7 +692,7 @@ export const TutorRegisterPage: React.FC = () => {
 
                 {/* Hours per day */}
                 <div className="flex flex-col gap-1.5">
-                  <label htmlFor="tutor-hours-day-select" className="text-sm font-semibold text-slate-800">
+                  <label htmlFor="tutor-hours-day-select" className="text-sm font-semibold text-[#1C1938]">
                     Approximate Hours Available Per Day
                   </label>
                   <select
@@ -715,13 +715,13 @@ export const TutorRegisterPage: React.FC = () => {
             {currentStep === 3 && (
               <div className="space-y-5 animate-fade-in text-left">
                 <div>
-                  <h3 className="text-lg font-bold text-slate-900">Review & Consent</h3>
+                  <h3 className="text-lg font-bold text-[#1C1938]">Review & Consent</h3>
                   <p className="text-xs text-slate-500">
                     Review your application summary before final submission.
                   </p>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2.5 text-xs text-slate-700">
+                <div className="p-4 rounded-2xl bg-[#F4F1FA] border border-[#DFD8F3] space-y-2.5 text-xs text-[#1C1938]">
                   <p><strong>Name:</strong> {name} • +91 {phone}</p>
                   <p><strong>Education:</strong> {EDUCATION_LEVELS.find((e) => e.id === educationLevel)?.label}</p>
                   <p><strong>Subjects:</strong> {selectedSubjects.map((s) => SCHOOL_SUBJECTS.find((sub) => sub.id === s)?.label).join(', ')}</p>
@@ -737,7 +737,7 @@ export const TutorRegisterPage: React.FC = () => {
                       type="checkbox"
                       checked={consentReview}
                       onChange={(e) => setConsentReview(e.target.checked)}
-                      className="mt-1 w-4 h-4 rounded text-blue-600 focus:ring-0"
+                      className="mt-1 w-4 h-4 rounded text-[#4136CA] focus:ring-0"
                     />
                     <span className="text-xs text-slate-700 leading-relaxed">
                       I understand that applications are <strong>reviewed manually</strong> by the founder and trusted educators outside the app before profile approval.
@@ -749,7 +749,7 @@ export const TutorRegisterPage: React.FC = () => {
                       type="checkbox"
                       checked={confirmAccuracy}
                       onChange={(e) => setConfirmAccuracy(e.target.checked)}
-                      className="mt-1 w-4 h-4 rounded text-blue-600 focus:ring-0"
+                      className="mt-1 w-4 h-4 rounded text-[#4136CA] focus:ring-0"
                     />
                     <span className="text-xs text-slate-700 leading-relaxed">
                       I confirm that all submitted educational and contact details are truthful and authentic.
@@ -760,7 +760,7 @@ export const TutorRegisterPage: React.FC = () => {
             )}
 
             {/* Navigation buttons */}
-            <div className="pt-6 border-t border-slate-100 flex items-center justify-between gap-3">
+            <div className="pt-6 border-t border-[#DFD8F3] flex items-center justify-between gap-3">
               <ClayButton
                 type="button"
                 variant="secondary"

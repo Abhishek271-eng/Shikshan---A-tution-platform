@@ -36,11 +36,11 @@ export const ClayButton: React.FC<ClayButtonProps> = ({
   const getVariantClasses = () => {
     switch (variant) {
       case 'secondary':
-        return 'clay-button-secondary text-blue-800';
+        return 'clay-button-secondary text-[#4136CA]';
       case 'danger':
-        return 'bg-red-600 hover:bg-red-700 text-white shadow-md active:translate-y-0.5';
+        return 'bg-rose-600 hover:bg-rose-700 text-white shadow-md active:translate-y-0.5 rounded-2xl';
       case 'ghost':
-        return 'bg-transparent hover:bg-blue-50 text-slate-700 active:bg-blue-100';
+        return 'bg-transparent hover:bg-lavender-100 text-slate-700 active:bg-lavender-200 rounded-2xl';
       case 'primary':
       default:
         return 'clay-button-primary text-white';

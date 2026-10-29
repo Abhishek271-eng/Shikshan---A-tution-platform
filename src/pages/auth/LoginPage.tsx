@@ -58,19 +58,19 @@ export const LoginPage: React.FC = () => {
           return;
         }
 
+        // Default role-based routing
         if (role === 'admin') {
           navigate('/admin', { replace: true });
         } else if (role === 'student') {
           navigate('/student/dashboard', { replace: true });
         } else if (role === 'tutor') {
-          // Check application status
-          const { data: app } = await supabase
+          const { data: appData } = await supabase
             .from('tutor_applications')
             .select('status')
             .eq('tutor_id', user.id)
             .maybeSingle();
 
-          if (app?.status === 'approved') {
+          if (appData?.status === 'approved') {
             navigate('/tutor/dashboard', { replace: true });
           } else {
             navigate('/tutor/status', { replace: true });
@@ -89,31 +89,31 @@ export const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#EEF4FA]">
+    <div className="min-h-screen flex flex-col bg-[#F7F6FC]">
       <Header title="Sign In" subtitle="Access your Shikshan account" />
       <SetupNotice />
 
-      <main className="flex-1 max-w-md mx-auto w-full px-5 py-8 flex flex-col justify-center">
-        <ClayCard className="p-6 sm:p-8 space-y-6">
+      <main className="flex-1 max-w-md mx-auto w-full px-5 py-8 flex flex-col justify-center pb-24">
+        <ClayCard className="p-6 sm:p-8 space-y-6 shadow-clay border border-[#DFD8F3]">
           <div className="text-center space-y-1">
-            <h2 className="text-2xl font-black text-slate-900 tracking-tight">Welcome Back</h2>
-            <p className="text-xs text-slate-500">
+            <h2 className="text-2xl font-black text-[#1C1938] tracking-tight">Welcome Back</h2>
+            <p className="text-xs text-[#686487]">
               Sign in to continue your learning or tutoring journey
             </p>
           </div>
 
           {errorMessage && (
-            <div className="p-3.5 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-start gap-2.5">
-              <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-red-600" />
+            <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-start gap-2.5">
+              <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-rose-600" />
               <span>{errorMessage}</span>
             </div>
           )}
 
           {!isSupabaseConfigured && (
-            <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-xs">
-              <p className="font-semibold">Demo Notice:</p>
-              <p className="mt-0.5">
-                Supabase credentials have not been configured yet. To sign in with real cloud credentials, configure <code className="bg-amber-100 px-1 py-0.5 rounded">.env</code>.
+            <div className="p-3.5 rounded-2xl bg-[#FFFBEB] border border-[#FCE68C] text-[#8E4408] text-xs">
+              <p className="font-bold">Backend Configuration Notice:</p>
+              <p className="mt-0.5 leading-relaxed">
+                Supabase credentials have not been configured yet. In preview mode, simulated accounts or credentials can be explored. Add real Supabase keys to <code className="bg-amber-100 px-1 py-0.5 rounded font-mono">.env</code> to activate cloud persistence.
               </p>
             </div>
           )}
@@ -127,7 +127,7 @@ export const LoginPage: React.FC = () => {
               placeholder="name@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              icon={<Mail className="w-4 h-4" />}
+              icon={<Mail className="w-4 h-4 text-[#A7AAE5]" />}
             />
 
             <div>
@@ -143,7 +143,7 @@ export const LoginPage: React.FC = () => {
               <div className="flex justify-end mt-1.5">
                 <Link
                   to="/forgot-password"
-                  className="text-xs font-semibold text-blue-700 hover:underline"
+                  className="text-xs font-bold text-[#4136CA] hover:underline"
                 >
                   Forgot password?
                 </Link>
@@ -162,13 +162,13 @@ export const LoginPage: React.FC = () => {
             </ClayButton>
           </form>
 
-          <div className="pt-4 border-t border-slate-100 text-center space-y-2">
-            <p className="text-xs text-slate-500">Don&apos;t have an account yet?</p>
-            <div className="flex items-center justify-center gap-3 text-xs font-bold text-blue-700">
+          <div className="pt-4 border-t border-[#E6E1F7] text-center space-y-2">
+            <p className="text-xs text-[#736E93]">Don&apos;t have an account yet?</p>
+            <div className="flex items-center justify-center gap-3 text-xs font-extrabold text-[#4136CA]">
               <Link to="/student/register" className="hover:underline">
                 Register as Student
               </Link>
-              <span className="text-slate-300">•</span>
+              <span className="text-[#C7BBEA]">•</span>
               <Link to="/tutor/register" className="hover:underline">
                 Apply as Tutor
               </Link>

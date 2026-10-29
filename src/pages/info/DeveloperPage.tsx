@@ -17,26 +17,26 @@ export const DeveloperPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#EEF4FA]">
+    <div className="min-h-screen flex flex-col bg-[#F7F6FC]">
       <Header title="Developer & Founder" subtitle="Engineering & Leadership" />
 
-      <main className="flex-1 max-w-xl mx-auto w-full px-4 sm:px-6 py-6 space-y-6">
+      <main className="flex-1 max-w-xl mx-auto w-full px-4 sm:px-6 py-6 pb-24 space-y-6">
         {/* Founder Profile Card */}
-        <ClayCard className="p-6 sm:p-8 space-y-5 text-left">
+        <ClayCard className="p-6 sm:p-8 space-y-5 text-left border border-[#DFD8F3] shadow-clay-card bg-white">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-3xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white flex items-center justify-center font-black text-2xl shadow-lg shadow-blue-500/25">
+            <div className="w-16 h-16 rounded-3xl bg-gradient-to-br from-[#4136CA] to-[#A7AAE5] text-white flex items-center justify-center font-black text-2xl shadow-sm">
               <Code2 className="w-8 h-8" />
             </div>
             <div>
-              <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+              <h2 className="text-xl sm:text-2xl font-black text-[#1C1938] tracking-tight">
                 {founderConfig.name}
               </h2>
-              <p className="text-xs font-bold text-blue-700 mt-0.5">{founderConfig.role}</p>
+              <p className="text-xs font-bold text-[#4136CA] mt-0.5">{founderConfig.role}</p>
               <p className="text-[11px] text-slate-400 mt-0.5">{founderConfig.location}</p>
             </div>
           </div>
 
-          <div className="pt-2 border-t border-slate-100">
+          <div className="pt-2 border-t border-[#DFD8F3]">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
               Mission & Background
             </h3>
@@ -46,16 +46,16 @@ export const DeveloperPage: React.FC = () => {
           </div>
 
           {/* Contact Placeholders */}
-          <div className="pt-2 border-t border-slate-100 space-y-2">
+          <div className="pt-2 border-t border-[#DFD8F3] space-y-2">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
               Contact & Links
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
               <a
                 href={`mailto:${founderConfig.emailPlaceholder}`}
-                className="p-3 rounded-2xl bg-white border border-slate-200 hover:border-blue-400 flex items-center gap-2.5 font-semibold text-slate-700 transition-colors shadow-sm"
+                className="p-3 rounded-2xl bg-white border border-[#DFD8F3] hover:border-[#A7AAE5] flex items-center gap-2.5 font-semibold text-[#1C1938] transition-colors shadow-sm"
               >
-                <Mail className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                <Mail className="w-4 h-4 text-[#4136CA] flex-shrink-0" />
                 <span className="truncate">{founderConfig.emailPlaceholder}</span>
               </a>
 
@@ -63,9 +63,9 @@ export const DeveloperPage: React.FC = () => {
                 href={founderConfig.githubPlaceholder}
                 target="_blank"
                 rel="noreferrer"
-                className="p-3 rounded-2xl bg-white border border-slate-200 hover:border-blue-400 flex items-center gap-2.5 font-semibold text-slate-700 transition-colors shadow-sm"
+                className="p-3 rounded-2xl bg-white border border-[#DFD8F3] hover:border-[#A7AAE5] flex items-center gap-2.5 font-semibold text-[#1C1938] transition-colors shadow-sm"
               >
-                <Github className="w-4 h-4 text-slate-800 flex-shrink-0" />
+                <Github className="w-4 h-4 text-[#1C1938] flex-shrink-0" />
                 <span>GitHub Profile</span>
               </a>
             </div>
@@ -73,32 +73,32 @@ export const DeveloperPage: React.FC = () => {
         </ClayCard>
 
         {/* Technical Stack Architecture */}
-        <ClayCard className="p-6 text-left space-y-3">
+        <ClayCard className="p-6 text-left space-y-3 border border-[#DFD8F3] shadow-clay-card bg-white">
           <div className="flex items-center gap-2">
-            <Terminal className="w-4 h-4 text-blue-600" />
-            <h3 className="font-extrabold text-sm text-slate-900">Architecture & Security</h3>
+            <Terminal className="w-4 h-4 text-[#4136CA]" />
+            <h3 className="font-extrabold text-sm text-[#1C1938]">Architecture & Security</h3>
           </div>
 
           <ul className="space-y-2 text-xs text-slate-600">
             <li className="flex items-start gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-600 mt-1.5 flex-shrink-0" />
+              <span className="w-1.5 h-1.5 rounded-full bg-[#4136CA] mt-1.5 flex-shrink-0" />
               <span><strong>Frontend:</strong> React 18, TypeScript, Vite, Responsive Mobile-First Claymorphism.</span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-600 mt-1.5 flex-shrink-0" />
-              <span><strong>Edge Hosting:</strong> Cloudflare Pages static edge network.</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-[#4136CA] mt-1.5 flex-shrink-0" />
+              <span><strong>Android App:</strong> Capacitor native shell with hardware back button and keyboard padding.</span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-600 mt-1.5 flex-shrink-0" />
+              <span className="w-1.5 h-1.5 rounded-full bg-[#4136CA] mt-1.5 flex-shrink-0" />
               <span><strong>Authentication:</strong> Supabase Auth with encrypted password hashing.</span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-600 mt-1.5 flex-shrink-0" />
+              <span className="w-1.5 h-1.5 rounded-full bg-[#4136CA] mt-1.5 flex-shrink-0" />
               <span><strong>Database & Access Control:</strong> Supabase PostgreSQL with strict Row Level Security (RLS) policies.</span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-600 mt-1.5 flex-shrink-0" />
-              <span><strong>Private Storage:</strong> Private encrypted bucket for academic marksheets with time-limited signed URLs.</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-[#4136CA] mt-1.5 flex-shrink-0" />
+              <span><strong>Quality Assurance:</strong> 100% passing Vitest automated suites and Gradle APK validation.</span>
             </li>
           </ul>
         </ClayCard>

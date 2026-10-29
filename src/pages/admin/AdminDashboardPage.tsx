@@ -290,21 +290,21 @@ export const AdminDashboardPage: React.FC = () => {
   });
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#EEF4FA]">
+    <div className="min-h-screen flex flex-col bg-[#F7F6FC]">
       <Header title="Founder Review Area" subtitle="Manual Tutor Assessment & Verification" />
 
-      <main className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 py-6 space-y-6">
+      <main className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 py-6 pb-24 space-y-6">
         {/* Top Overview Banner */}
-        <ClayCard className="p-6 text-left flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <ClayCard className="p-6 text-left flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border border-[#DFD8F3] shadow-clay-card bg-white">
           <div>
             <div className="flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5 text-purple-600" />
-              <h2 className="text-xl font-black text-slate-900">
+              <ShieldCheck className="w-5 h-5 text-[#4136CA]" />
+              <h2 className="text-xl font-black text-[#1C1938]">
                 Tutor Eligibility Review Desk
               </h2>
             </div>
             <p className="text-xs text-slate-600 mt-1 max-w-xl">
-              Manual assessment model: applications remain pending until the founder or trusted teachers review academic marksheets and verify teaching suitability.
+              Manual assessment model: applications remain pending until the founder or trusted educators review qualifications and verify teaching suitability outside the app.
             </p>
           </div>
 
@@ -328,8 +328,8 @@ export const AdminDashboardPage: React.FC = () => {
               onClick={() => setActiveTab(tab)}
               className={`px-4 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all ${
                 activeTab === tab
-                  ? 'bg-blue-600 text-white shadow-md'
-                  : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                  ? 'bg-[#4136CA] text-white shadow-clay-button border border-[#4136CA]'
+                  : 'bg-white text-[#1C1938] hover:bg-[#F4F1FA] border border-[#DFD8F3]'
               }`}
             >
               {tab === 'pending_review'
@@ -352,11 +352,11 @@ export const AdminDashboardPage: React.FC = () => {
             </h3>
 
             {isLoading ? (
-              <ClayCard className="p-6 text-center text-xs text-slate-500">
+              <ClayCard className="p-6 text-center text-xs text-slate-500 border border-[#DFD8F3] bg-white">
                 Loading applications...
               </ClayCard>
             ) : filteredApps.length === 0 ? (
-              <ClayCard className="p-6 text-center text-xs text-slate-500">
+              <ClayCard className="p-6 text-center text-xs text-slate-500 border border-[#DFD8F3] bg-white">
                 No applications matching this filter.
               </ClayCard>
             ) : (
@@ -369,13 +369,13 @@ export const AdminDashboardPage: React.FC = () => {
                     onClick={() => setSelectedApp(app)}
                     className={`p-4 text-left transition-all ${
                       isSelected
-                        ? 'border-2 border-blue-500 bg-blue-50/50 shadow-md ring-2 ring-blue-100'
-                        : 'border border-slate-200/80 hover:border-slate-300'
+                        ? 'border-2 border-[#4136CA] bg-[#F4F1FA] shadow-md ring-2 ring-[#DFD8F3]'
+                        : 'border border-[#DFD8F3] hover:border-[#A7AAE5] bg-white'
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <h4 className="font-extrabold text-sm text-slate-900">
+                        <h4 className="font-extrabold text-sm text-[#1C1938]">
                           {app.tutor_profile?.name || 'Tutor Applicant'}
                         </h4>
                         <p className="text-[11px] text-slate-500 truncate">{app.tutor_profile?.email}</p>
@@ -383,9 +383,9 @@ export const AdminDashboardPage: React.FC = () => {
                       <StatusBadge status={app.status} size="sm" />
                     </div>
 
-                    <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-600">
+                    <div className="mt-2.5 pt-2 border-t border-[#DFD8F3]/60 flex items-center justify-between text-[11px] text-slate-600">
                       <span>{app.hours_per_day || 2} hr/day</span>
-                      <span className="font-semibold text-slate-800">
+                      <span className="font-semibold text-[#4136CA]">
                         {app.fee_amount ? `₹${app.fee_amount}` : app.proposed_rate ? `₹${app.proposed_rate}` : 'N/A'}
                       </span>
                     </div>
@@ -398,11 +398,11 @@ export const AdminDashboardPage: React.FC = () => {
           {/* Selected Application Inspector */}
           <div className="lg:col-span-7">
             {selectedApp ? (
-              <ClayCard className="p-6 text-left space-y-6">
+              <ClayCard className="p-6 text-left space-y-6 border border-[#DFD8F3] shadow-clay-card bg-white">
                 {/* Header Info */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#DFD8F3]">
                   <div>
-                    <h3 className="text-xl font-black text-slate-900">
+                    <h3 className="text-xl font-black text-[#1C1938]">
                       {selectedApp.tutor_profile?.name || 'Applicant'}
                     </h3>
                     <p className="text-xs text-slate-500 mt-0.5">
@@ -416,7 +416,7 @@ export const AdminDashboardPage: React.FC = () => {
                 </div>
 
                 {statusMessage && (
-                  <div className="p-3 rounded-2xl bg-blue-50 border border-blue-200 text-blue-900 text-xs flex items-center gap-2">
+                  <div className="p-3 rounded-2xl bg-[#F4F1FA] border border-[#DFD8F3] text-[#4136CA] text-xs flex items-center gap-2">
                     <AlertCircle className="w-4 h-4 flex-shrink-0" />
                     <span>{statusMessage}</span>
                   </div>
@@ -428,22 +428,22 @@ export const AdminDashboardPage: React.FC = () => {
                     Academic Qualifications & Teaching Proposal
                   </h4>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs bg-[#F4F1FA] p-4 rounded-2xl border border-[#DFD8F3]">
                     <div>
                       <span className="text-slate-400 block text-[11px]">Education Level</span>
-                      <span className="font-semibold text-slate-800">{selectedApp.education_level}</span>
+                      <span className="font-semibold text-[#1C1938]">{selectedApp.education_level}</span>
                     </div>
 
                     <div>
                       <span className="text-slate-400 block text-[11px]">Course & Institution</span>
-                      <span className="font-semibold text-slate-800">
+                      <span className="font-semibold text-[#1C1938]">
                         {selectedApp.course_qualification || 'N/A'} {selectedApp.institution_name ? `(${selectedApp.institution_name})` : ''}
                       </span>
                     </div>
 
                     <div>
                       <span className="text-slate-400 block text-[11px]">Proposed Subjects</span>
-                      <span className="font-semibold text-slate-800 capitalize">
+                      <span className="font-semibold text-[#1C1938] capitalize">
                         {selectedApp.subjects?.join(', ')}
                       </span>
                     </div>

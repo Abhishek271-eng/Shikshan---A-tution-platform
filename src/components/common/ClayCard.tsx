@@ -18,27 +18,27 @@ export const ClayCard: React.FC<ClayCardProps> = ({
     switch (variant) {
       case 'accent':
         return {
-          background: 'linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)',
-          border: '1.5px solid rgba(191, 219, 254, 0.8)',
+          background: 'linear-gradient(135deg, #F5F1FD 0%, #DFD8F3 100%)',
+          border: '1.5px solid rgba(199, 187, 234, 0.85)',
           boxShadow: 'var(--shadow-clay)',
         };
       case 'inset':
         return {
-          background: '#F1F6FB',
-          border: '1px solid #D9E6F2',
+          background: '#F4F1FA',
+          border: '1.5px solid #DFD8F3',
           boxShadow: 'var(--shadow-clay-inset)',
         };
       case 'subtle':
         return {
-          background: '#FAFCFE',
-          border: '1px solid #E2E8F0',
+          background: '#FDFCFF',
+          border: '1.5px solid #ECE7FA',
           boxShadow: 'var(--shadow-clay-sm)',
         };
       case 'default':
       default:
         return {
-          background: 'linear-gradient(145deg, #FFFFFF 0%, #F5F9FD 100%)',
-          border: '1px solid rgba(255, 255, 255, 0.9)',
+          background: 'linear-gradient(160deg, #FFFFFF 0%, #F9F7FD 100%)',
+          border: '1.5px solid rgba(223, 216, 243, 0.75)',
           boxShadow: 'var(--shadow-clay)',
         };
     }

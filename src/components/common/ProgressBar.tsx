@@ -26,13 +26,13 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
         {/* Connecting Background Line */}
         <div
           className="absolute left-0 top-1/2 -translate-y-1/2 h-1.5 w-full rounded-full"
-          style={{ background: '#E2E8F0' }}
+          style={{ background: '#DFD8F3' }}
         />
         {/* Active Progress Line */}
         <div
           className="absolute left-0 top-1/2 -translate-y-1/2 h-1.5 rounded-full transition-all duration-300"
           style={{
-            background: 'linear-gradient(90deg, #3B82F6 0%, #2563EB 100%)',
+            background: 'linear-gradient(90deg, #A7AAE5 0%, #4136CA 100%)',
             width: `${(currentStep / (steps.length - 1)) * 100}%`,
           }}
         />
@@ -56,10 +56,10 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
               <div
                 className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-200 ${
                   isCompleted
-                    ? 'bg-blue-600 text-white shadow-md'
+                    ? 'bg-[#4136CA] text-white shadow-md'
                     : isCurrent
-                    ? 'bg-white text-blue-600 border-2 border-blue-600 shadow-md ring-4 ring-blue-100 scale-110'
-                    : 'bg-slate-200 text-slate-500 border border-slate-300'
+                    ? 'bg-white text-[#4136CA] border-2 border-[#4136CA] shadow-md ring-4 ring-[#DFD8F3] scale-110'
+                    : 'bg-[#F4F1FA] text-[#A29EBE] border border-[#DFD8F3]'
                 }`}
               >
                 {isCompleted ? <Check className="w-5 h-5 stroke-[2.5]" /> : index + 1}
@@ -69,10 +69,10 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
               <span
                 className={`text-xs mt-1.5 font-medium whitespace-nowrap transition-colors duration-200 ${
                   isCurrent
-                    ? 'text-blue-700 font-bold'
+                    ? 'text-[#4136CA] font-bold'
                     : isCompleted
-                    ? 'text-slate-700'
-                    : 'text-slate-400'
+                    ? 'text-[#1C1938]'
+                    : 'text-[#A29EBE]'
                 }`}
               >
                 <span className="hidden sm:inline">{step.label}</span>
