@@ -17,14 +17,50 @@ describe('Navigation and Usability Tests', () => {
 
     // Brand and tagline
     expect(screen.getByRole('heading', { level: 1, name: /shikshan/i })).toBeInTheDocument();
-    expect(screen.getByText(/learn with confidence\. grow with guidance\./i)).toBeInTheDocument();
-    expect(screen.getByText(/your learning journey starts here\./i)).toBeInTheDocument();
+    expect(screen.getByText(/namaskara! 👋/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: /what do you want to learn today\?/i })).toBeInTheDocument();
 
     // Primary role actions
-    expect(screen.getByRole('heading', { level: 2, name: /^tutor$/i })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 2, name: /^student$/i })).toBeInTheDocument();
+    expect(screen.getByText(/i'm a student/i)).toBeInTheDocument();
+    expect(screen.getByText(/browse subjects, practise questions, track progress\./i)).toBeInTheDocument();
+    expect(screen.getByText(/i'm a tutor/i)).toBeInTheDocument();
+    expect(screen.getByText(/teach students and manage learning sessions\./i)).toBeInTheDocument();
+    expect(screen.getByText(/parent \/ guardian/i)).toBeInTheDocument();
+    expect(screen.getByText(/help children learn and track progress\./i)).toBeInTheDocument();
+
+    // Action affordances
     expect(screen.getByText(/apply as tutor/i)).toBeInTheDocument();
     expect(screen.getByText(/register as student/i)).toBeInTheDocument();
+
+    // Learning preview section
+    expect(screen.getByText(/explore learning/i)).toBeInTheDocument();
+    expect(screen.getByText(/mathematics/i)).toBeInTheDocument();
+  });
+
+  it('supports toggling language between English and Kannada in welcome banner', () => {
+    render(
+      <AuthProvider>
+        <MemoryRouter>
+          <HomePage />
+        </MemoryRouter>
+      </AuthProvider>
+    );
+
+    // Switch to Kannada
+    const kannadaBtn = screen.getByRole('button', { name: /switch to kannada/i });
+    fireEvent.click(kannadaBtn);
+
+    expect(screen.getByText(/ನಮಸ್ಕಾರ! 👋/i)).toBeInTheDocument();
+    expect(screen.getByText(/ಇಂದು ನೀವು ಏನನ್ನು ಕಲಿಯಲು ಬಯಸುತ್ತೀರಿ\?/i)).toBeInTheDocument();
+    expect(screen.getByText(/ನಾನು ವಿದ್ಯಾರ್ಥಿ/i)).toBeInTheDocument();
+    expect(screen.getByText(/ನಾನು ಶಿಕ್ಷಕ \/ ಬೋಧಕ/i)).toBeInTheDocument();
+
+    // Switch back to English
+    const englishBtn = screen.getByRole('button', { name: /switch to english/i });
+    fireEvent.click(englishBtn);
+
+    expect(screen.getByText(/namaskara! 👋/i)).toBeInTheDocument();
+    expect(screen.getByText(/what do you want to learn today\?/i)).toBeInTheDocument();
   });
 
   it('opens navigation drawer when hamburger menu icon is clicked', () => {
