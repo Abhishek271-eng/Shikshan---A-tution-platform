@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { ArrowLeft, Menu, GraduationCap } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useLocation, Link } from 'react-router-dom';
+import { ArrowLeft, Menu } from 'lucide-react';
+import { ShikshanLogo } from './ShikshanLogo';
 import { NavigationDrawer } from './NavigationDrawer';
+import { useNavigation } from '../../context/NavigationContext';
 
 interface HeaderProps {
   title?: string;
@@ -18,26 +20,35 @@ export const Header: React.FC<HeaderProps> = ({
   subtitle,
   customRight,
 }) => {
-  const navigate = useNavigate();
   const location = useLocation();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const { triggerBack, registerBackHandler } = useNavigation();
+
+  // Root screen check: on root screens, don't show the back button by default
+  const rootPaths = ['/', '/login', '/student/dashboard', '/tutor/dashboard', '/tutor/status', '/admin'];
+  const isRootScreen = rootPaths.includes(location.pathname);
 
   // Auto-detect whether back arrow should be visible:
-  // Visible on any screen deeper than the root landing page ('/')
-  const shouldShowBack = showBack !== undefined ? showBack : location.pathname !== '/';
+  // Visible on any screen deeper than root
+  const shouldShowBack = showBack !== undefined ? showBack : !isRootScreen;
 
   const handleBack = () => {
     if (onBack) {
       onBack();
     } else {
-      // Sensible browser/device back navigation
-      if (window.history.length > 1) {
-        navigate(-1);
-      } else {
-        navigate('/');
-      }
+      triggerBack();
     }
   };
+
+  // Register drawer back handler
+  useEffect(() => {
+    if (isDrawerOpen) {
+      return registerBackHandler(() => {
+        setIsDrawerOpen(false);
+        return true;
+      });
+    }
+  }, [isDrawerOpen, registerBackHandler]);
 
   return (
     <>
@@ -45,45 +56,32 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="max-w-4xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
           {/* Left: Back Arrow or Brand Mark */}
           <div className="flex items-center gap-2.5">
-            {shouldShowBack ? (
+            {shouldShowBack && (
               <button
                 onClick={handleBack}
                 aria-label="Go back to previous screen"
-                className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white border border-[#DFD8F3] shadow-xs flex items-center justify-center text-[#1C1938] hover:text-[#3730A3] hover:bg-[#EEECFB] active:scale-95 transition-all"
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white border border-purple-100 shadow-sm flex items-center justify-center text-slate-700 hover:text-[#7C3AED] hover:bg-purple-50 active:scale-95 transition-all cursor-pointer"
               >
                 <ArrowLeft className="w-5 h-5 stroke-[2.2]" />
               </button>
-            ) : (
-              <Link
-                to="/"
-                className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[#3730A3] text-white shadow-xs flex items-center justify-center hover:opacity-95 transition-all flex-shrink-0"
-                aria-label="Shikshan Home"
-              >
-                <GraduationCap className="w-5 h-5 sm:w-6 sm:h-6" />
-              </Link>
             )}
 
             {/* Title / Brand Text */}
             <div className="flex flex-col text-left">
               {title ? (
                 <>
-                  <h1 className="text-base sm:text-lg font-extrabold text-[#1C1938] leading-tight truncate max-w-[200px] sm:max-w-xs">
+                  <h1 className="text-base sm:text-lg font-extrabold text-slate-800 leading-tight truncate max-w-[200px] sm:max-w-xs">
                     {title}
                   </h1>
                   {subtitle && (
-                    <span className="text-[11px] text-[#686487] font-medium truncate">
+                    <span className="text-[11px] text-slate-500 font-medium truncate">
                       {subtitle}
                     </span>
                   )}
                 </>
               ) : (
-                <Link to="/" className="text-left flex flex-col">
-                  <h1 className="text-lg sm:text-xl font-black text-[#312E81] tracking-tight leading-none">
-                    Shikshan
-                  </h1>
-                  <span className="text-[10px] text-[#575375] font-semibold tracking-tight mt-0.5">
-                    Learn with confidence. Grow with guidance.
-                  </span>
+                <Link to="/" className="text-left flex items-center">
+                  <ShikshanLogo size="md" showText={true} showSubtitle={false} />
                 </Link>
               )}
             </div>
@@ -96,7 +94,7 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               onClick={() => setIsDrawerOpen(true)}
               aria-label="Open menu"
-              className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white border border-[#DFD8F3] shadow-xs flex items-center justify-center text-[#1C1938] hover:text-[#3730A3] hover:bg-[#EEECFB] active:scale-95 transition-all"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white border border-purple-100 shadow-sm flex items-center justify-center text-slate-700 hover:text-[#7C3AED] hover:bg-purple-50 active:scale-95 transition-all cursor-pointer"
             >
               <Menu className="w-5 h-5 stroke-[2.2]" />
             </button>

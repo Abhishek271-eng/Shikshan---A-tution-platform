@@ -1,6 +1,6 @@
 export type UserRole = 'tutor' | 'student' | 'admin';
 
-export type TutorApplicationStatus = 'pending_review' | 'approved' | 'rejected' | 'needs_info';
+export type TutorApplicationStatus = 'pending' | 'pending_review' | 'approved' | 'rejected' | 'needs_info';
 
 export type FeeUnit = 'per_hour' | 'per_session' | 'per_month';
 
@@ -12,6 +12,7 @@ export interface UserProfile {
   name: string;
   email: string;
   phone?: string;
+  photo_url?: string;
   created_at: string;
   updated_at: string;
 }
@@ -42,8 +43,13 @@ export interface TutorApplication {
   proposed_rate?: number;
   fee_amount?: number;
   fee_unit?: FeeUnit;
+  photo_url?: string;
   status: TutorApplicationStatus;
   applicant_message?: string;
+  is_phone_revealed?: boolean;
+  approved_fee?: number;
+  requested_fee?: number;
+  approval_acknowledged?: number | boolean;
   submitted_at: string;
   reviewed_at?: string;
   created_at: string;
@@ -62,6 +68,7 @@ export interface StudentProfile {
   learning_goals?: string;
   guardian_phone?: string;
   guardian_consent: boolean;
+  photo_url?: string;
   created_at: string;
   updated_at: string;
   student_profile?: UserProfile;
@@ -76,10 +83,20 @@ export interface TutorRequest {
   learning_needs: string;
   preferred_schedule?: string;
   guardian_phone?: string;
+  batch_id?: string;
+  batch_name?: string;
+  batch_time?: string;
+  fee?: number;
   status: TutorRequestStatus;
   response_message?: string;
   created_at: string;
   updated_at: string;
+  student_name?: string;
+  student_email?: string;
+  student_phone?: string;
+  tutor_name?: string;
+  tutor_email?: string;
+  tutor_phone?: string;
   tutor_profile?: UserProfile;
   tutor_application?: TutorApplication;
   student_profile?: UserProfile;
@@ -118,11 +135,12 @@ export interface AdminReviewHistory {
 }
 
 export interface AuthState {
-  user: { id: string; email: string } | null;
+  user: { id: string; email: string; role?: UserRole; name?: string; phone?: string; photo_url?: string } | null;
   profile: UserProfile | null;
   tutorApplication: TutorApplication | null;
   studentProfile: StudentProfile | null;
   isLoading: boolean;
-  isConfigured: boolean;
-  error: string | null;
+  isConfigured?: boolean;
+  isAuthenticated?: boolean;
+  error?: string | null;
 }

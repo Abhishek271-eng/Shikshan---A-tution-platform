@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, Check, X, Lock } from 'lucide-react';
+import { Eye, EyeOff, Lock, Check } from 'lucide-react';
 
 interface PasswordRequirement {
   id: string;
@@ -10,10 +10,12 @@ interface PasswordRequirement {
 interface PasswordInputProps {
   id?: string;
   label?: string;
+  kannadaLabel?: string;
   value: string;
   onChange: (value: string) => void;
   required?: boolean;
   showRequirements?: boolean;
+  showStrengthIndicator?: boolean;
   error?: string | null;
   placeholder?: string;
   autoComplete?: string;
@@ -46,12 +48,14 @@ export function validatePasswordStrength(password: string): {
 export const PasswordInput: React.FC<PasswordInputProps> = ({
   id = 'password-input',
   label = 'Password',
+  kannadaLabel,
   value,
   onChange,
   required = true,
-  showRequirements = true,
+  showRequirements = false,
+  showStrengthIndicator,
   error,
-  placeholder = 'Enter secure password',
+  placeholder,
   autoComplete = 'new-password',
   className = '',
 }) => {
@@ -68,14 +72,20 @@ export const PasswordInput: React.FC<PasswordInputProps> = ({
 
   return (
     <div className={`flex flex-col gap-1.5 w-full text-left ${className}`}>
+      {/* Persistent Label */}
       {label && (
-        <label htmlFor={id} className="text-sm font-semibold text-slate-800 flex items-center justify-between">
+        <label htmlFor={id} className="text-xs font-bold text-[#1C1938] flex items-center justify-between">
           <span>
             {label} {required && <span className="text-red-500 font-bold">*</span>}
           </span>
+          {kannadaLabel && (
+            <span className="text-[11px] font-normal text-[#686487] font-kannada">
+              {kannadaLabel}
+            </span>
+          )}
           {value.length > 0 && showRequirements && (
             <span
-              className={`text-xs font-semibold ${
+              className={`text-[10px] font-bold ${
                 isValid ? 'text-emerald-600' : metCount >= 3 ? 'text-amber-600' : 'text-red-500'
               }`}
             >
@@ -85,8 +95,15 @@ export const PasswordInput: React.FC<PasswordInputProps> = ({
         </label>
       )}
 
-      <div className="relative w-full">
-        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+      {/* Non-overlapping Flexbox Container */}
+      <div
+        className={`flex items-center w-full rounded-2xl bg-white border transition-all shadow-xs ${
+          error
+            ? 'border-red-500 bg-red-50/20 ring-1 ring-red-200'
+            : 'border-[#DFD8F3] focus-within:border-[#4136CA] focus-within:ring-2 focus-within:ring-[#EDE9FE]'
+        }`}
+      >
+        <div className="pl-3.5 pr-1 flex items-center pointer-events-none text-[#6D28D9] flex-shrink-0">
           <Lock className="w-4 h-4" />
         </div>
 
@@ -95,11 +112,11 @@ export const PasswordInput: React.FC<PasswordInputProps> = ({
           type={showPassword ? 'text' : 'password'}
           autoComplete={autoComplete}
           required={required}
-          placeholder={placeholder}
+          placeholder={placeholder || undefined}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onFocus={() => setIsFocused(true)}
-          className={`clay-input pl-11 pr-12 ${error ? 'clay-input-error' : ''}`}
+          className="flex-1 min-w-0 bg-transparent px-3 py-3 text-xs sm:text-sm font-semibold text-[#1C1938] placeholder:text-[#9CA3AF] focus:outline-none"
           aria-invalid={Boolean(error)}
           aria-describedby={`${id}-requirements`}
         />
@@ -108,56 +125,58 @@ export const PasswordInput: React.FC<PasswordInputProps> = ({
           type="button"
           tabIndex={-1}
           onClick={() => setShowPassword(!showPassword)}
-          className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 focus:outline-none"
+          className="pr-3.5 pl-1 flex items-center text-[#8B5CF6] hover:text-[#6D28D9] focus:outline-none cursor-pointer flex-shrink-0"
           aria-label={showPassword ? 'Hide password' : 'Show password'}
         >
           {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
         </button>
       </div>
 
-      {/* Strength Progress Bar */}
-      {showRequirements && value.length > 0 && (
-        <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden mt-0.5">
-          <div
-            className={`h-full transition-all duration-300 ${getStrengthBarColor()}`}
-            style={{ width: `${(metCount / 5) * 100}%` }}
-          />
-        </div>
-      )}
-
-      {/* Interactive Requirements Checklist */}
-      {showRequirements && (isFocused || value.length > 0) && (
-        <div
-          id={`${id}-requirements`}
-          className="p-3 rounded-2xl bg-slate-50/90 border border-slate-200/80 mt-1 space-y-1.5 text-xs select-none"
-        >
-          <p className="font-bold text-[11px] text-slate-500 uppercase tracking-wider">
-            Password Must Contain:
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
-            {requirements.map((req) => (
-              <div
-                key={req.id}
-                className={`flex items-center gap-1.5 transition-colors ${
-                  req.met ? 'text-emerald-700 font-semibold' : 'text-slate-500'
-                }`}
-              >
-                {req.met ? (
-                  <Check className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0 stroke-[3]" />
-                ) : (
-                  <span className="w-3.5 h-3.5 flex items-center justify-center text-slate-300 flex-shrink-0">
-                    <X className="w-3 h-3 stroke-[2]" />
-                  </span>
-                )}
-                <span className="text-[11px] leading-tight">{req.label}</span>
-              </div>
-            ))}
+      {/* Strength Bar */}
+      {value.length > 0 && (showStrengthIndicator || showRequirements) && (
+        <div className="space-y-1.5 pt-1">
+          <div className="w-full bg-[#E6E1F7] rounded-full h-1.5 overflow-hidden">
+            <div
+              className={`h-full transition-all duration-300 ${getStrengthBarColor()}`}
+              style={{ width: `${(metCount / 5) * 100}%` }}
+            />
           </div>
+
+          {/* Detailed requirements checklist if focused or weak */}
+          {(isFocused || (!isValid && value.length > 0)) && showRequirements && (
+            <div
+              id={`${id}-requirements`}
+              className="p-3 rounded-2xl bg-[#F4F1FA] border border-[#DFD8F3] space-y-1 animate-fadeIn"
+            >
+              <p className="text-[10px] font-bold text-[#4A4668] uppercase tracking-wider">
+                Password Security Checklist
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-[11px]">
+                {requirements.map((req) => (
+                  <div
+                    key={req.id}
+                    className={`flex items-center gap-1.5 ${
+                      req.met ? 'text-emerald-700 font-semibold' : 'text-slate-500'
+                    }`}
+                  >
+                    <span
+                      className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] flex-shrink-0 ${
+                        req.met ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-400'
+                      }`}
+                    >
+                      {req.met ? <Check className="w-2.5 h-2.5 stroke-[3]" /> : '•'}
+                    </span>
+                    <span>{req.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
       {error && (
-        <p className="text-xs font-medium text-red-600 mt-0.5 flex items-center gap-1">
+        <p className="text-[11px] font-medium text-red-600 flex items-center gap-1">
           <span>•</span> {error}
         </p>
       )}

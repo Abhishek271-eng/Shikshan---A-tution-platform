@@ -12,20 +12,15 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
   allowedRoles,
 }) => {
-  const { user, profile, isLoading, isConfigured } = useAuth();
+  const { user, profile, isLoading } = useAuth();
   const location = useLocation();
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#EEF4FA]">
-        <div className="w-10 h-10 rounded-full border-4 border-blue-600 border-t-transparent animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-[#F8F7FD]">
+        <div className="w-10 h-10 rounded-full border-4 border-[#312E81] border-t-transparent animate-spin" />
       </div>
     );
-  }
-
-  // If Supabase is unconfigured, allow previewing routes for local test/demo inspection
-  if (!isConfigured) {
-    return <>{children}</>;
   }
 
   if (!user) {
@@ -34,7 +29,6 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   // Role validation
   if (allowedRoles && profile && !allowedRoles.includes(profile.role)) {
-    // If user has a different role, send them to their role home
     if (profile.role === 'admin') return <Navigate to="/admin" replace />;
     if (profile.role === 'student') return <Navigate to="/student/dashboard" replace />;
     if (profile.role === 'tutor') return <Navigate to="/tutor/status" replace />;

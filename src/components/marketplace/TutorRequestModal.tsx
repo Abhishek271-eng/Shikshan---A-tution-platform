@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Send, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
 import { ClayButton } from '../common/ClayButton';
 import { ClayInput } from '../common/ClayInput';
@@ -6,6 +6,8 @@ import { PhoneInput } from '../common/PhoneInput';
 import { TutorApplication } from '../../types';
 import { SCHOOL_SUBJECTS, INDIVIDUAL_CLASSES } from '../../config/options';
 import { useAuth } from '../../context/AuthContext';
+import { useNavigation } from '../../context/NavigationContext';
+import { api } from '../../lib/api';
 
 interface TutorRequestModalProps {
   tutor: TutorApplication | null;
@@ -21,18 +23,63 @@ export const TutorRequestModal: React.FC<TutorRequestModalProps> = ({
   onSuccess,
 }) => {
   const { createTutorRequest, studentProfile } = useAuth();
+  const { pushBackHandler } = useNavigation();
 
   const [subject, setSubject] = useState(tutor?.subjects[0] || 'mathematics');
   const [classLevel, setClassLevel] = useState(studentProfile?.class_level || 'Class 8');
   const [learningNeeds, setLearningNeeds] = useState(studentProfile?.learning_goals || '');
-  const [preferredSchedule, setPreferredSchedule] = useState('Evening (5:00 PM – 7:00 PM)');
+  const [preferredSchedule, setPreferredSchedule] = useState('Evening (5:00 PM – 8:00 PM)');
   const [guardianPhone, setGuardianPhone] = useState(
     studentProfile?.guardian_phone?.replace('+91', '').trim() || ''
   );
 
+  const [batches, setBatches] = useState<any[]>([]);
+  const [selectedBatchId, setSelectedBatchId] = useState<string>('');
+  const [isLoadingBatches, setIsLoadingBatches] = useState(false);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
+
+  // Register hardware/global back handler when modal is open
+  useEffect(() => {
+    if (!isOpen) return;
+    const unregister = pushBackHandler(() => {
+      onClose();
+      return true;
+    });
+    return unregister;
+  }, [isOpen, pushBackHandler, onClose]);
+
+  // Load batches for this tutor
+  useEffect(() => {
+    if (!isOpen || !tutor) return;
+    let isMounted = true;
+    setIsLoadingBatches(true);
+
+    api.getPublicTutorBatches(tutor.tutor_id)
+      .then((res) => {
+        if (isMounted) {
+          const list = res.batches || [];
+          setBatches(list);
+          // Pre-select first batch with available seats if any
+          const available = list.find((b: any) => (b.current_enrolled || 0) < (b.max_students || 4));
+          if (available) {
+            setSelectedBatchId(available.id);
+          }
+        }
+      })
+      .catch((err) => {
+        console.warn('Could not load tutor batches:', err);
+      })
+      .finally(() => {
+        if (isMounted) setIsLoadingBatches(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen, tutor]);
 
   if (!isOpen || !tutor) return null;
 
@@ -42,8 +89,9 @@ export const TutorRequestModal: React.FC<TutorRequestModalProps> = ({
     e.preventDefault();
     setError(null);
 
-    if (!learningNeeds.trim() || learningNeeds.trim().length < 10) {
-      setError('Please provide a brief description of your learning needs or doubts (at least 10 characters).');
+    // Rule: Allow short topic/learning needs (min 2 chars)
+    if (!learningNeeds.trim() || learningNeeds.trim().length < 2) {
+      setError('Please specify what you would like to learn (at least 2 characters).');
       return;
     }
 
@@ -52,15 +100,28 @@ export const TutorRequestModal: React.FC<TutorRequestModalProps> = ({
       return;
     }
 
+    const selectedBatch = batches.find((b) => b.id === selectedBatchId);
+    if (selectedBatch && (selectedBatch.current_enrolled || 0) >= (selectedBatch.max_students || 4)) {
+      setError('This batch is already at full capacity (4/4 students). Please select another batch or inquire for flexible timing.');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
       const { request, error: reqErr } = await createTutorRequest({
         tutorId: tutor.tutor_id,
+        batchId: selectedBatch?.id,
+        batchName: selectedBatch?.batch_name,
+        batchTime: selectedBatch
+          ? `${selectedBatch.start_time} – ${selectedBatch.end_time} (${selectedBatch.days_of_week || 'Mon-Fri'})`
+          : undefined,
         subject,
         classLevel,
         learningNeeds: learningNeeds.trim(),
-        preferredSchedule: preferredSchedule.trim() || undefined,
+        preferredSchedule: selectedBatch
+          ? `${selectedBatch.batch_name}: ${selectedBatch.start_time} – ${selectedBatch.end_time}`
+          : preferredSchedule.trim() || undefined,
         guardianPhone: guardianPhone ? `+91 ${guardianPhone.trim()}` : undefined,
       });
 
@@ -100,7 +161,7 @@ export const TutorRequestModal: React.FC<TutorRequestModalProps> = ({
               Request Tutor: {tutorName}
             </h3>
             <p className="text-xs text-slate-500 font-medium">
-              Submit your learning request directly to this verified educator.
+              Submit your inquiry directly to this verified educator.
             </p>
           </div>
           <button
@@ -129,9 +190,9 @@ export const TutorRequestModal: React.FC<TutorRequestModalProps> = ({
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               {error && (
-                <div className="p-3 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-start gap-2">
+                <div className="p-3.5 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-start gap-2 shadow-sm animate-shake">
                   <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-red-600" />
-                  <span>{error}</span>
+                  <span className="font-medium">{error}</span>
                 </div>
               )}
 
@@ -176,6 +237,103 @@ export const TutorRequestModal: React.FC<TutorRequestModalProps> = ({
                 </select>
               </div>
 
+              {/* 3-Hour Fixed Batch Selection (Max 4 students) */}
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-[#1C1938] flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <Clock className="w-4 h-4 text-[#4136CA]" />
+                    Select Batch (3-Hour Fixed Session)
+                  </span>
+                  <span className="text-[11px] font-medium text-slate-500">Max 4 students</span>
+                </label>
+
+                {isLoadingBatches ? (
+                  <div className="p-3 text-xs text-slate-500 bg-[#F4F1FA] rounded-xl text-center">
+                    Loading tutor&apos;s available batches...
+                  </div>
+                ) : batches.length > 0 ? (
+                  <div className="space-y-2">
+                    {batches.map((b) => {
+                      const enrolled = b.current_enrolled || 0;
+                      const max = b.max_students || 4;
+                      const isFull = enrolled >= max;
+                      const isSelected = selectedBatchId === b.id;
+
+                      return (
+                        <div
+                          key={b.id}
+                          onClick={() => {
+                            if (!isFull) setSelectedBatchId(b.id);
+                          }}
+                          className={`p-3 rounded-2xl border transition-all text-left flex items-center justify-between cursor-pointer ${
+                            isFull
+                              ? 'bg-slate-50 border-slate-200 opacity-60 cursor-not-allowed'
+                              : isSelected
+                              ? 'bg-[#EFEAFF] border-[#4136CA] shadow-sm'
+                              : 'bg-white border-[#DFD8F3] hover:border-[#4136CA]/50'
+                          }`}
+                        >
+                          <div className="space-y-0.5">
+                            <div className="font-bold text-xs text-[#1C1938] flex items-center gap-2">
+                              <span>{b.batch_name}</span>
+                              {isSelected && !isFull && (
+                                <span className="text-[10px] bg-[#4136CA] text-white px-1.5 py-0.5 rounded-full font-bold">
+                                  Selected
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[11px] text-slate-600 flex items-center gap-2">
+                              <span>{b.start_time} – {b.end_time} (3 hrs)</span>
+                              <span>•</span>
+                              <span>{b.days_of_week || 'Regular'}</span>
+                            </div>
+                          </div>
+
+                          <div className="text-right">
+                            {isFull ? (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700">
+                                Batch Full (4/4)
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#EBF3E8] text-[#3B522F]">
+                                {max - enrolled} seat{max - enrolled === 1 ? '' : 's'} left ({enrolled}/{max})
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    <div
+                      onClick={() => setSelectedBatchId('')}
+                      className={`p-2.5 rounded-xl border text-xs cursor-pointer text-center transition-all ${
+                        selectedBatchId === ''
+                          ? 'bg-[#EFEAFF] border-[#4136CA] font-bold text-[#4136CA]'
+                          : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                      }`}
+                    >
+                      Other / Flexible Schedule (Discuss with Tutor)
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-3 text-xs text-slate-500 bg-[#F4F1FA] rounded-2xl border border-[#DFD8F3]">
+                    No fixed batches listed yet. Enter your preferred timing below.
+                  </div>
+                )}
+              </div>
+
+              {/* If no batch selected, show preferred schedule input */}
+              {selectedBatchId === '' && (
+                <ClayInput
+                  label="Preferred Days & Time"
+                  placeholder="e.g. Mon, Wed, Fri (5:00 PM – 8:00 PM)"
+                  value={preferredSchedule}
+                  onChange={(e) => setPreferredSchedule(e.target.value)}
+                  icon={<Clock className="w-4 h-4 text-[#4136CA]" />}
+                  hint="Tutor will review and confirm their 3-hour availability."
+                />
+              )}
+
               {/* Learning Needs */}
               <div className="space-y-1">
                 <label htmlFor="tutor-req-learning-needs" className="text-sm font-semibold text-[#1C1938] flex justify-between">
@@ -185,24 +343,17 @@ export const TutorRequestModal: React.FC<TutorRequestModalProps> = ({
                 <textarea
                   id="tutor-req-learning-needs"
                   required
-                  rows={3}
+                  rows={2}
                   maxLength={300}
-                  placeholder="e.g. Need assistance with Mathematics algebra and science physics formulas for SSLC exam preparation in Kannada medium..."
+                  placeholder="e.g. Maths algebra, science formulas, or English doubts"
                   value={learningNeeds}
                   onChange={(e) => setLearningNeeds(e.target.value)}
                   className="clay-input text-xs"
                 />
+                <p className="text-[11px] text-slate-500">
+                  Short topics or doubts are welcome (minimum 2 characters).
+                </p>
               </div>
-
-              {/* Preferred Schedule */}
-              <ClayInput
-                label="Preferred Days & Time"
-                placeholder="e.g. Mon, Wed, Fri (5:00 PM – 7:00 PM)"
-                value={preferredSchedule}
-                onChange={(e) => setPreferredSchedule(e.target.value)}
-                icon={<Clock className="w-4 h-4 text-[#4136CA]" />}
-                hint="Tutor will review and confirm their availability."
-              />
 
               {/* Guardian Phone */}
               <PhoneInput

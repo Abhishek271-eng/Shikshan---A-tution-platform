@@ -1,19 +1,23 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import {
   User,
   Mail,
   ShieldCheck,
   AlertCircle,
+  ArrowRight,
+  ArrowLeft,
+  Check,
 } from 'lucide-react';
 import { Header } from '../../components/common/Header';
 import { ClayCard } from '../../components/common/ClayCard';
 import { ClayInput } from '../../components/common/ClayInput';
 import { ClayButton } from '../../components/common/ClayButton';
+import { ClayBackground } from '../../components/common/ClayBackground';
+import { ClayUploadButton } from '../../components/common/ClayUploadButton';
 import { PhoneInput } from '../../components/common/PhoneInput';
 import { PasswordInput, validatePasswordStrength } from '../../components/common/PasswordInput';
 import { ProgressBar } from '../../components/common/ProgressBar';
-import { SetupNotice } from '../../components/common/SetupNotice';
 import { useAuth } from '../../context/AuthContext';
 import {
   INDIVIDUAL_CLASSES,
@@ -29,7 +33,7 @@ const STEPS = [
 
 export const StudentRegisterPage: React.FC = () => {
   const navigate = useNavigate();
-  const { signUp, createProfile, saveStudentProfile, user } = useAuth();
+  const { signUp, saveStudentProfile, uploadPhoto, user } = useAuth();
 
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -43,6 +47,7 @@ export const StudentRegisterPage: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [guardianPhone, setGuardianPhone] = useState('');
   const [guardianConsent, setGuardianConsent] = useState(true);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
 
   // Step 1: Academic Profile
   const [selectedClass, setSelectedClass] = useState(INDIVIDUAL_CLASSES[7].id); // default Class 8
@@ -53,7 +58,9 @@ export const StudentRegisterPage: React.FC = () => {
 
   const toggleSubject = (subId: string) => {
     if (selectedSubjects.includes(subId)) {
-      setSelectedSubjects(selectedSubjects.filter((s) => s !== subId));
+      if (selectedSubjects.length > 1) {
+        setSelectedSubjects(selectedSubjects.filter((s) => s !== subId));
+      }
     } else {
       setSelectedSubjects([...selectedSubjects, subId]);
     }
@@ -76,7 +83,7 @@ export const StudentRegisterPage: React.FC = () => {
       if (!user) {
         const { isValid } = validatePasswordStrength(password);
         if (!isValid) {
-          return setError('Please satisfy all 5 password requirements.');
+          return setError('Please satisfy all password requirements.');
         }
         if (password !== confirmPassword) {
           return setError('Passwords do not match.');
@@ -107,41 +114,35 @@ export const StudentRegisterPage: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      let activeUserId = user?.id;
+      if (!user) {
+        const { error: signUpErr } = await signUp(
+          email.trim().toLowerCase(),
+          password,
+          studentName.trim(),
+          studentPhone.trim(),
+          'student'
+        );
 
-      if (!activeUserId) {
-        const { userId, error: signUpErr } = await signUp(email.trim(), password);
         if (signUpErr) {
           setError(signUpErr);
           setIsSubmitting(false);
           return;
         }
-        activeUserId = userId!;
-      }
 
-      const { error: profErr } = await createProfile({
-        id: activeUserId,
-        role: 'student',
-        name: studentName.trim(),
-        email: email.trim(),
-        phone: `+91 ${studentPhone.trim()}`,
-      });
-
-      if (profErr) {
-        setError(profErr);
-        setIsSubmitting(false);
-        return;
+        if (photoUrl) {
+          await uploadPhoto(photoUrl).catch(() => {});
+        }
+      } else if (photoUrl) {
+        await uploadPhoto(photoUrl).catch(() => {});
       }
 
       const { error: studentErr } = await saveStudentProfile({
-        student_id: activeUserId,
         class_level: INDIVIDUAL_CLASSES.find((c) => c.id === selectedClass)?.label || selectedClass,
         board: EDUCATION_BOARDS.find((b) => b.id === selectedBoard)?.label || selectedBoard,
         learning_language: TEACHING_LANGUAGES.find((l) => l.id === preferredLanguage)?.label || preferredLanguage,
         subjects: selectedSubjects,
         learning_goals: learningGoals.trim() || undefined,
         guardian_phone: guardianPhone ? `+91 ${guardianPhone.trim()}` : undefined,
-        guardian_consent: guardianConsent,
       });
 
       if (studentErr) {
@@ -152,292 +153,309 @@ export const StudentRegisterPage: React.FC = () => {
 
       navigate('/student/dashboard', { replace: true });
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Registration failed. Please try again.');
+      setError(err instanceof Error ? err.message : 'Registration failed. Please check server connection.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F7F6FC]">
+    <ClayBackground>
       <Header
         title="Student Registration"
         subtitle={`Step ${currentStep + 1} of ${STEPS.length}: ${STEPS[currentStep].label}`}
         onBack={handlePrev}
       />
-      <SetupNotice />
 
-      <main className="flex-1 max-w-xl mx-auto w-full px-4 sm:px-6 py-6 flex flex-col justify-between pb-24">
-        <div className="mb-4">
-          <ProgressBar
-            steps={STEPS}
-            currentStep={currentStep}
-            onStepClick={(idx) => setCurrentStep(idx)}
-            allowStepClick={true}
-          />
+      <main className="flex-1 max-w-lg mx-auto w-full px-4 sm:px-6 py-6 pb-36">
+        {/* Step Indicator */}
+        <div className="mb-6">
+          <ProgressBar currentStep={currentStep} steps={STEPS} />
         </div>
 
-        <ClayCard className="p-6 sm:p-8 space-y-6 flex-1 flex flex-col justify-between shadow-clay border border-[#DFD8F3]">
-          {error && (
-            <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-start gap-2.5">
-              <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-rose-600" />
-              <span>{error}</span>
-            </div>
-          )}
+        {/* Error Alert */}
+        {error && (
+          <div
+            role="alert"
+            className="mb-6 p-4 rounded-2xl bg-[#FEF2F2] border border-[#FECACA] flex items-start gap-3 text-xs text-[#991B1B] font-medium"
+          >
+            <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-[#DC2626]" />
+            <p className="leading-relaxed">{error}</p>
+          </div>
+        )}
 
-          {/* STEP 0: Student Account & Guardian Consent */}
+        <ClayCard className="p-6 sm:p-8 space-y-6 shadow-clay border border-[#DFD8F3]">
+          {/* STEP 0: Account Details */}
           {currentStep === 0 && (
-            <div className="space-y-4 animate-fade-in text-left">
-              <div>
-                <h3 className="text-xl font-extrabold text-[#1C1938]">Student Account</h3>
-                <p className="text-xs text-[#686487] font-kannada mt-0.5">
-                  ವಿದ್ಯಾರ್ಥಿಯ ವಿವರಗಳು • Safe and simple student registration
+            <div className="space-y-4">
+              <div className="border-b border-[#E6E1F7] pb-3 mb-2">
+                <h3 className="text-xl font-black text-[#1C1938] tracking-tight">Student Account</h3>
+                <p className="text-xs text-[#686487] mt-0.5">
+                  Child Privacy & Guardian Safeguards
                 </p>
               </div>
 
+              {/* Profile Photo Upload */}
+              <div className="p-3.5 rounded-2xl bg-[#FAF9FE] border border-[#E5DFF8]">
+                <ClayUploadButton
+                  currentPhotoUrl={photoUrl}
+                  onPhotoSelected={(url) => setPhotoUrl(url)}
+                  onPhotoRemoved={() => setPhotoUrl(null)}
+                  label="Student Photo (Optional)"
+                  subLabel="Add a photo to personalize student profile"
+                />
+              </div>
+
               <ClayInput
+                id="student-name"
                 label="Student's Full Name"
                 kannadaLabel="ವಿದ್ಯಾರ್ಥಿಯ ಪೂರ್ಣ ಹೆಸರು"
                 required
-                placeholder="e.g. Ananya Rao"
                 value={studentName}
                 onChange={(e) => setStudentName(e.target.value)}
-                icon={<User className="w-4 h-4 text-[#A7AAE5]" />}
+                icon={<User className="w-4 h-4" />}
               />
 
               <ClayInput
-                label="Email Address (Student or Guardian)"
+                id="student-email"
+                label="Email Address"
                 kannadaLabel="ಇಮೇಲ್ ವಿಳಾಸ"
                 type="email"
                 required
-                placeholder="student@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                icon={<Mail className="w-4 h-4 text-[#A7AAE5]" />}
-                hint="Used to sign in and receive tutor response notifications."
+                icon={<Mail className="w-4 h-4" />}
               />
 
               <PhoneInput
-                id="student-phone-input"
-                label="Student / Family Mobile Number"
-                kannadaLabel="ಸಂಪರ್ಕ ಸಂಖ್ಯೆ"
+                id="student-phone"
+                label="Mobile Number"
+                kannadaLabel="ಮೊಬೈಲ್ ಸಂಖ್ಯೆ"
                 required
                 value={studentPhone}
                 onChange={setStudentPhone}
-                hint="10-digit mobile number for communication."
               />
 
               {!user && (
                 <>
                   <PasswordInput
+                    id="student-password"
                     label="Account Password"
+                    kannadaLabel="ಪಾಸ್‌ವರ್ಡ್ ರಚಿಸಿ"
+                    required
                     value={password}
                     onChange={setPassword}
-                    required
                     showRequirements={true}
+                    showStrengthIndicator
                   />
 
-                  <ClayInput
+                  <PasswordInput
+                    id="student-confirm-password"
                     label="Confirm Password"
-                    type="password"
+                    kannadaLabel="ಪಾಸ್‌ವರ್ಡ್ ದೃಢೀಕರಿಸಿ"
                     required
-                    placeholder="Repeat password"
                     value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    onChange={setConfirmPassword}
+                    showRequirements={false}
                   />
                 </>
               )}
 
-              {/* Child Safety & Guardian Details */}
-              <div className="p-4 rounded-2xl bg-[#F3EEFB] border border-[#DFD8F3] space-y-3">
-                <div className="flex items-center gap-2 text-xs font-bold text-[#4136CA]">
-                  <ShieldCheck className="w-4 h-4 text-[#4136CA]" />
-                  <span>Child Privacy & Guardian Safeguards</span>
-                </div>
-                <p className="text-xs text-[#4A4668] leading-relaxed">
-                  Shikshan is designed for school-age students. We minimize data collection and do not expose children&apos;s contact numbers publicly.
-                </p>
+              <PhoneInput
+                id="guardian-phone"
+                label="Parent / Guardian Mobile (Optional)"
+                kannadaLabel="ಪೋಷಕರ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ"
+                value={guardianPhone}
+                onChange={setGuardianPhone}
+                hint="For SMS updates regarding tutor connections and sessions"
+              />
 
-                <PhoneInput
-                  id="guardian-phone-input"
-                  label="Parent / Guardian Alternate Mobile (Optional)"
-                  kannadaLabel="ಪಾಲಕರ ಮೊಬೈಲ್"
-                  required={false}
-                  value={guardianPhone}
-                  onChange={setGuardianPhone}
-                  hint="Optional secondary family phone for guardian updates."
-                />
-
-                <label className="flex items-start gap-2.5 pt-1 cursor-pointer">
+              <div className="pt-2">
+                <label className="flex items-start gap-3 p-3.5 rounded-2xl bg-[#F3EEFB] border border-[#DFD8F3] cursor-pointer">
                   <input
                     type="checkbox"
                     checked={guardianConsent}
                     onChange={(e) => setGuardianConsent(e.target.checked)}
-                    className="mt-1 w-4 h-4 rounded text-[#4136CA] focus:ring-0"
+                    className="mt-0.5 h-4 w-4 rounded text-[#4136CA] focus:ring-[#4136CA]"
                   />
-                  <span className="text-xs font-semibold text-[#1C1938] leading-snug">
-                    Parent / Guardian confirms consent for learning and tutor discovery on Shikshan.
+                  <span className="text-xs text-[#4A4668] leading-relaxed">
+                    Parent / Guardian confirms consent for school student enrollment.
                   </span>
                 </label>
               </div>
             </div>
           )}
 
-          {/* STEP 1: Academic Profile */}
+          {/* STEP 1: Academic Details */}
           {currentStep === 1 && (
-            <div className="space-y-5 animate-fade-in text-left">
-              <div>
-                <h3 className="text-xl font-extrabold text-[#1C1938]">Academic Details</h3>
-                <p className="text-xs text-[#686487] font-kannada mt-0.5">
-                  ತರಗತಿ ಮತ್ತು ಪಠ್ಯಕ್ರಮ • Tell us what you want to learn
+            <div className="space-y-5">
+              <div className="border-b border-[#E6E1F7] pb-3 mb-2">
+                <h3 className="text-xl font-black text-[#1C1938] tracking-tight">Academic Details</h3>
+                <p className="text-xs text-[#686487] mt-0.5">
+                  Select your current school class and subjects to discover matched tutors
                 </p>
               </div>
 
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="student-class-select" className="text-sm font-semibold text-[#1C1938] flex justify-between">
-                  <span>Current Class (Classes 1–10) <span className="text-red-500">*</span></span>
-                  <span className="text-xs font-normal text-[#686487] font-kannada">ತರಗತಿ</span>
+              {/* Class Selection Chips */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-[#1C1938] mb-2.5">
+                  Select Current Class <span className="text-red-500">*</span>
                 </label>
-                <select
-                  id="student-class-select"
-                  value={selectedClass}
-                  onChange={(e) => setSelectedClass(e.target.value)}
-                  className="clay-input"
-                >
-                  {INDIVIDUAL_CLASSES.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="student-board-select" className="text-sm font-semibold text-[#1C1938] flex justify-between">
-                  <span>School Board / Curriculum <span className="text-red-500">*</span></span>
-                  <span className="text-xs font-normal text-[#686487] font-kannada">ಪಠ್ಯಕ್ರಮ ಮಂಡಳಿ</span>
-                </label>
-                <select
-                  id="student-board-select"
-                  value={selectedBoard}
-                  onChange={(e) => setSelectedBoard(e.target.value)}
-                  className="clay-input"
-                >
-                  {EDUCATION_BOARDS.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="student-lang-select" className="text-sm font-semibold text-[#1C1938] flex justify-between">
-                  <span>Preferred Learning Language <span className="text-red-500">*</span></span>
-                  <span className="text-xs font-normal text-[#686487] font-kannada">ಕಲಿಕೆಯ ಮಾಧ್ಯಮ</span>
-                </label>
-                <select
-                  id="student-lang-select"
-                  value={preferredLanguage}
-                  onChange={(e) => setPreferredLanguage(e.target.value)}
-                  className="clay-input"
-                >
-                  {TEACHING_LANGUAGES.map((l) => (
-                    <option key={l.id} value={l.id}>
-                      {l.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Subjects requiring support */}
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-[#1C1938] flex justify-between">
-                  <span>Subjects You Need Help With <span className="text-red-500">*</span></span>
-                  <span className="text-xs font-normal text-[#686487] font-kannada">ಸಹಾಯ ಬೇಕಿರುವ ವಿಷಯಗಳು</span>
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {SCHOOL_SUBJECTS.map((sub) => {
-                    const isSelected = selectedSubjects.includes(sub.id);
+                <div className="grid grid-cols-5 gap-2">
+                  {INDIVIDUAL_CLASSES.map((cls) => {
+                    const isSelected = selectedClass === cls.id;
                     return (
-                      <div
-                        key={sub.id}
-                        onClick={() => toggleSubject(sub.id)}
-                        className={`p-3 rounded-2xl border text-xs font-semibold cursor-pointer select-none transition-all flex items-center justify-between ${
+                      <button
+                        key={cls.id}
+                        type="button"
+                        onClick={() => setSelectedClass(cls.id)}
+                        className={`py-2 px-1 rounded-xl text-xs font-bold transition-all text-center border ${
                           isSelected
-                            ? 'bg-[#F3EEFB] border-[#4136CA] text-[#4136CA] shadow-sm'
-                            : 'bg-white border-[#DFD8F3] text-[#1C1938] hover:bg-[#FAF9FE]'
+                            ? 'bg-[#312E81] text-white border-[#312E81] shadow-xs'
+                            : 'bg-white text-[#4A4668] border-[#DFD8F3] hover:border-[#A7AAE5]'
                         }`}
                       >
-                        <div>
-                          <p>{sub.label}</p>
-                          {sub.kannadaLabel && (
-                            <p className="text-[11px] text-[#686487] font-normal font-kannada">
-                              {sub.kannadaLabel}
-                            </p>
-                          )}
-                        </div>
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          readOnly
-                          className="rounded text-[#4136CA] focus:ring-0 ml-2"
-                        />
-                      </div>
+                        {cls.label.replace('Class ', 'C-')}
+                      </button>
                     );
                   })}
                 </div>
               </div>
 
-              {/* Optional Learning Goals */}
-              <div className="space-y-1">
-                <label htmlFor="student-goals-input" className="text-sm font-semibold text-[#1C1938] block">
-                  Learning Goals & Specific Difficulties (Optional)
+              {/* Education Board & Language */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div>
+                  <label htmlFor="board-select" className="block text-xs font-bold uppercase tracking-wider text-[#1C1938] mb-1.5">
+                    School Board / Curriculum
+                  </label>
+                  <select
+                    id="board-select"
+                    value={selectedBoard}
+                    onChange={(e) => setSelectedBoard(e.target.value)}
+                    className="w-full h-11 px-3 rounded-xl bg-white border border-[#DFD8F3] text-xs font-bold text-[#1C1938] focus:outline-none focus:ring-2 focus:ring-[#4136CA]"
+                  >
+                    {EDUCATION_BOARDS.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="language-select" className="block text-xs font-bold uppercase tracking-wider text-[#1C1938] mb-1.5">
+                    Preferred Learning Language / Medium
+                  </label>
+                  <select
+                    id="language-select"
+                    value={preferredLanguage}
+                    onChange={(e) => setPreferredLanguage(e.target.value)}
+                    className="w-full h-11 px-3 rounded-xl bg-white border border-[#DFD8F3] text-xs font-bold text-[#1C1938] focus:outline-none focus:ring-2 focus:ring-[#4136CA]"
+                  >
+                    {TEACHING_LANGUAGES.map((l) => (
+                      <option key={l.id} value={l.id}>
+                        {l.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Subjects to Learn */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-[#1C1938] mb-2.5">
+                  Subjects You Need Help With <span className="text-red-500">*</span>
                 </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {SCHOOL_SUBJECTS.map((sub) => {
+                    const isSelected = selectedSubjects.includes(sub.id);
+                    return (
+                      <button
+                        key={sub.id}
+                        type="button"
+                        onClick={() => toggleSubject(sub.id)}
+                        className={`p-2.5 rounded-xl text-left border flex items-center justify-between text-xs font-bold transition-all ${
+                          isSelected
+                            ? 'bg-[#EEECFB] text-[#312E81] border-[#A7AAE5]'
+                            : 'bg-white text-[#4A4668] border-[#DFD8F3] hover:border-[#A7AAE5]'
+                        }`}
+                      >
+                        <span className="truncate">{sub.label}</span>
+                        {isSelected && <Check className="w-3.5 h-3.5 text-[#312E81] flex-shrink-0" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Learning Goals (Optional) */}
+              <div>
+                <label htmlFor="learning-goals" className="block text-xs font-bold uppercase tracking-wider text-[#1C1938] mb-1">
+                  Specific Learning Goals (Optional)
+                </label>
+                <p className="text-[11px] text-[#686487] mb-1.5">
+                  Describe what you want to achieve or improve in school (e.g. board exam preparation or topic mastery)
+                </p>
                 <textarea
-                  id="student-goals-input"
+                  id="learning-goals"
                   rows={2}
-                  maxLength={300}
-                  placeholder="e.g. Need help with SSLC algebra formulas, geometry theorems, and English grammar..."
                   value={learningGoals}
                   onChange={(e) => setLearningGoals(e.target.value)}
-                  className="clay-input text-xs"
+                  className="w-full p-3 rounded-xl bg-white border border-[#DFD8F3] text-xs text-[#1C1938] focus:outline-none focus:ring-2 focus:ring-[#4136CA]"
                 />
               </div>
             </div>
           )}
 
-          {/* Navigation Controls */}
-          <div className="pt-6 border-t border-[#E6E1F7] flex items-center justify-between gap-3">
-            <ClayButton
-              type="button"
-              variant="secondary"
-              onClick={handlePrev}
-            >
-              Back
-            </ClayButton>
+          {/* Bottom Actions */}
+          <div className="pt-4 border-t border-[#E6E1F7] flex items-center justify-between gap-3">
+            {currentStep > 0 ? (
+              <ClayButton
+                type="button"
+                variant="secondary"
+                size="md"
+                onClick={handlePrev}
+                className="flex items-center gap-1.5 rounded-full px-5 py-2.5 text-xs font-bold"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                Previous
+              </ClayButton>
+            ) : (
+              <Link
+                to="/login"
+                className="text-xs font-bold text-[#4136CA] hover:text-[#3128A3] py-2"
+              >
+                Already registered? Sign in
+              </Link>
+            )}
 
             {currentStep < STEPS.length - 1 ? (
               <ClayButton
                 type="button"
                 variant="primary"
+                size="md"
                 onClick={handleNext}
+                className="ml-auto flex items-center gap-2 rounded-full px-6 py-2.5 text-xs font-bold shadow-button-primary"
               >
-                Continue &rarr;
+                Continue
+                <ArrowRight className="w-4 h-4" />
               </ClayButton>
             ) : (
               <ClayButton
                 type="button"
                 variant="primary"
+                size="md"
                 isLoading={isSubmitting}
                 onClick={handleSubmit}
+                className="ml-auto flex items-center gap-2 rounded-full px-7 py-2.5 text-xs font-bold shadow-button-primary"
               >
+                <ShieldCheck className="w-4 h-4" />
                 Complete Registration
               </ClayButton>
             )}
           </div>
         </ClayCard>
       </main>
-    </div>
+    </ClayBackground>
   );
 };

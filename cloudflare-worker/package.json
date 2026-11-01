@@ -1,0 +1,22 @@
+{
+  "name": "shikshan-cloudflare-worker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:migrate:local": "wrangler d1 execute shikshan_db --local --file=./schema.sql",
+    "db:migrate:remote": "wrangler d1 execute shikshan_db --remote --file=./schema.sql"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "hono": "^4.7.1"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261031.1",
+    "@types/bcryptjs": "^2.4.6",
+    "typescript": "^5.5.0",
+    "wrangler": "^4.156.0"
+  }
+}

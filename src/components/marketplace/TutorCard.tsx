@@ -1,16 +1,8 @@
 import React from 'react';
-import {
-  BookOpen,
-  Languages,
-  Clock,
-  Heart,
-  ShieldCheck,
-  ArrowRight,
-} from 'lucide-react';
-import { ClayCard } from '../common/ClayCard';
-import { ClayButton } from '../common/ClayButton';
+import { ShieldCheck, Heart, ArrowRight, Clock, Globe2, GraduationCap, Award } from 'lucide-react';
 import { TutorApplication } from '../../types';
-import { SCHOOL_SUBJECTS, FEE_UNITS } from '../../config/options';
+import { SCHOOL_SUBJECTS, INDIVIDUAL_CLASSES, TEACHING_LANGUAGES } from '../../config/options';
+import { ClayAvatar } from '../common/ClayAvatar';
 
 interface TutorCardProps {
   tutor: TutorApplication;
@@ -27,136 +19,167 @@ export const TutorCard: React.FC<TutorCardProps> = ({
   onViewProfile,
   onRequestTutor,
 }) => {
-  const tutorName = tutor.tutor_profile?.name || 'Verified Educator';
-  const feeUnitLabel = FEE_UNITS.find((u) => u.id === tutor.fee_unit)?.shortLabel || '/mo';
-  const feeDisplay = tutor.fee_amount || tutor.proposed_rate || 300;
+  const tutorName = tutor.tutor_profile?.name || (tutor as any).name || 'Verified Educator';
+  const feeDisplay = tutor.fee_amount || tutor.proposed_rate || 3000;
+  const hoursDisplay = tutor.hours_per_day
+    ? tutor.hours_per_day === 5
+      ? '5+ hrs/day'
+      : `${tutor.hours_per_day} hrs/day`
+    : '2 hrs/day';
 
-  // Initials for avatar
-  const initials = tutorName
-    .split(' ')
-    .filter(Boolean)
-    .map((n) => n[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase() || 'TR';
+  // Format subjects with readable labels
+  const subjectLabels = (tutor.subjects || []).map(
+    (s) => SCHOOL_SUBJECTS.find((sub) => sub.id === s)?.label.split(' ')[0] || s
+  );
 
-  // Format subjects
-  const subjectLabels = tutor.subjects
-    .map((s) => SCHOOL_SUBJECTS.find((sub) => sub.id === s)?.label.split(' ')[0] || s)
-    .slice(0, 3);
+  // Format classes taught (e.g. "C-6 to C-10" or "Classes 6–10")
+  const classLabels = (tutor.class_levels || []).map(
+    (c) => INDIVIDUAL_CLASSES.find((cl) => cl.id === c)?.label.replace('Class ', '') || c
+  );
+  const classesTaughtDisplay =
+    classLabels.length > 0 ? `Classes ${classLabels.join(', ')}` : 'Classes 1–10';
+
+  // Format teaching languages
+  const languageLabels = (tutor.teaching_languages || []).map(
+    (l) => TEACHING_LANGUAGES.find((lang) => lang.id === l)?.label.split(' ')[0] || l
+  );
+  const languagesDisplay = languageLabels.length > 0 ? languageLabels.join(', ') : 'Kannada & English';
+
+  // Numerical experience check: only show if > 0 (never show "0 years")
+  const expNum = tutor.teaching_experience ? parseInt(tutor.teaching_experience.toString(), 10) : 0;
+  const hasExperience = !isNaN(expNum) && expNum > 0;
 
   return (
-    <ClayCard className="p-5 text-left border border-[#DFD8F3] hover:border-[#A7AAE5] transition-all flex flex-col justify-between space-y-4 shadow-clay-card bg-white">
-      {/* Top Header: Avatar, Name, Verification, Favorite */}
+    <div className="bg-white rounded-[28px] p-5 sm:p-6 border border-purple-100 shadow-clay hover:shadow-clay-lg transition-all flex flex-col justify-between space-y-4 relative overflow-hidden group text-left">
+      {/* Top Section: Avatar, Tutor Details, Verification Badge & Favorite Heart */}
       <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#4136CA] to-[#A7AAE5] text-white flex items-center justify-center font-bold text-base shadow-sm flex-shrink-0">
-            {initials}
-          </div>
-          <div className="min-w-0">
+        <div className="flex items-center gap-3.5 min-w-0">
+          {/* Avatar with Clay styling */}
+          <ClayAvatar
+            name={tutorName}
+            photoUrl={tutor.photo_url || tutor.tutor_profile?.photo_url}
+            size="lg"
+            isVerified={tutor.status === 'approved'}
+          />
+
+          {/* Tutor Info */}
+          <div className="min-w-0 space-y-1 text-left">
             <div className="flex items-center gap-1.5 flex-wrap">
-              <h4 className="font-extrabold text-base text-[#1C1938] leading-snug truncate">
+              <h4 className="font-black text-base text-slate-800 leading-tight truncate">
                 {tutorName}
               </h4>
-              {tutor.status === 'approved' && (
-                <span
-                  title="Verified by Shikshan team"
-                  className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-[#EBF3E8] text-[#3B522F] border border-[#3B522F]/20 text-[10px] font-bold"
-                >
-                  <ShieldCheck className="w-3 h-3 text-[#3B522F]" />
-                  Verified
+              <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-black">
+                <ShieldCheck className="w-3 h-3 text-emerald-600" />
+                Verified
+              </span>
+              {hasExperience && (
+                <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-black">
+                  <Award className="w-3 h-3 text-amber-600" />
+                  {expNum}+ yrs exp
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-500 truncate mt-0.5 font-medium">
-              {tutor.course_qualification || tutor.education_level}
+
+            <p className="text-xs text-slate-500 font-semibold truncate flex items-center gap-1">
+              <GraduationCap className="w-3.5 h-3.5 text-[#7C3AED] flex-shrink-0" />
+              <span>{tutor.course_qualification || tutor.education_level || 'Academic Mentor'}</span>
+              <span>•</span>
+              <span className="truncate">{tutor.institution_name || 'Karnataka'}</span>
             </p>
+
+            {/* Classes & Language Metadata (Real Data) */}
+            <div className="flex items-center gap-2 pt-0.5 text-[11px] font-medium text-slate-500 flex-wrap">
+              <span className="inline-flex items-center gap-1 text-slate-700 font-bold">
+                <Clock className="w-3 h-3 text-[#7C3AED]" />
+                {classesTaughtDisplay}
+              </span>
+              <span>•</span>
+              <span className="inline-flex items-center gap-1 text-slate-600">
+                <Globe2 className="w-3 h-3 text-emerald-600" />
+                {languagesDisplay}
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* Favorite Shortlist Button */}
+        {/* Favorite Heart Button */}
         <button
           type="button"
-          onClick={() => onToggleFavorite(tutor.tutor_id)}
-          className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
+          onClick={() => onToggleFavorite(tutor.tutor_id || tutor.id)}
+          className={`w-10 h-10 rounded-full flex items-center justify-center transition-all flex-shrink-0 cursor-pointer ${
             isFavorite
-              ? 'bg-[#DFD8F3] text-rose-600 border border-rose-200'
-              : 'text-slate-400 hover:text-rose-500 hover:bg-[#F4F1FA]'
+              ? 'bg-rose-50 text-rose-600 border border-rose-200'
+              : 'bg-purple-50/60 text-slate-400 hover:text-rose-500 hover:bg-rose-50 border border-purple-100'
           }`}
           aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
         >
-          <Heart className={`w-4 h-4 ${isFavorite ? 'fill-rose-500 text-rose-500' : ''}`} />
+          <Heart className={`w-4 h-4 ${isFavorite ? 'fill-rose-600 text-rose-600' : ''}`} />
         </button>
       </div>
 
-      {/* Bio / Teaching Approach Snippet */}
+      {/* Teaching Bio Snippet */}
       {tutor.bio_intro && (
-        <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
-          {tutor.bio_intro}
+        <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed text-left bg-purple-50/40 p-3 rounded-2xl border border-purple-100/70 font-medium">
+          "{tutor.bio_intro}"
         </p>
       )}
 
-      {/* Badges: Subjects & Languages */}
-      <div className="space-y-2 pt-1 border-t border-[#DFD8F3]/60">
-        <div className="flex items-center gap-1.5 flex-wrap">
-          {subjectLabels.map((sub, idx) => (
+      {/* Subject Pills (Real Data) */}
+      <div className="flex items-center justify-between gap-2 pt-1 border-t border-purple-100/70 flex-wrap">
+        <div className="flex flex-wrap gap-1.5">
+          {subjectLabels.slice(0, 3).map((sub, i) => (
             <span
-              key={idx}
-              className="px-2.5 py-1 rounded-xl bg-[#F4F1FA] text-[#4136CA] border border-[#DFD8F3] text-[11px] font-semibold flex items-center gap-1"
+              key={i}
+              className="px-2.5 py-0.5 rounded-full bg-purple-100 text-[#6D28D9] font-bold text-[11px] border border-purple-200"
             >
-              <BookOpen className="w-3 h-3 text-[#4136CA]" />
               {sub}
             </span>
           ))}
-          {tutor.subjects.length > 3 && (
-            <span className="text-[10px] font-bold text-slate-400">
-              +{tutor.subjects.length - 3} more
+          {subjectLabels.length > 3 && (
+            <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-bold text-[10px]">
+              +{subjectLabels.length - 3} more
             </span>
           )}
         </div>
 
-        <div className="flex items-center justify-between text-xs text-slate-500">
-          <span className="flex items-center gap-1 truncate max-w-[180px]">
-            <Languages className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-            <span className="truncate">{tutor.teaching_languages.join(', ')}</span>
-          </span>
-          <span className="flex items-center gap-1 font-semibold text-[#1C1938]">
-            <Clock className="w-3.5 h-3.5 text-slate-400" />
-            {tutor.hours_per_day} hr/day
-          </span>
-        </div>
+        <span className="text-[11px] font-bold text-[#7C3AED] bg-purple-50 px-2.5 py-0.5 rounded-full border border-purple-200">
+          Max 4 students/batch
+        </span>
       </div>
 
-      {/* Bottom Bar: Fee & Action Buttons */}
-      <div className="pt-2 border-t border-[#DFD8F3]/60 flex items-center justify-between gap-2">
-        <div>
-          <span className="text-[10px] text-slate-400 uppercase font-bold block">Proposed Fee</span>
-          <div className="flex items-baseline gap-0.5 font-extrabold text-[#4136CA] text-base">
-            <span className="text-sm">₹</span>
-            <span>{feeDisplay}</span>
-            <span className="text-xs font-normal text-slate-500">{feeUnitLabel}</span>
-          </div>
+      {/* Pricing & Primary Action Controls */}
+      <div className="flex items-center justify-between gap-3 pt-2">
+        {/* Monthly Fee Display (Strictly Monthly, Max ₹3,000) */}
+        <div className="text-left">
+          <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold block">
+            Monthly Fee • {hoursDisplay}
+          </span>
+          <span className="text-base font-black text-[#7C3AED]">
+            ₹{Number(feeDisplay).toLocaleString('en-IN')}{' '}
+            <span className="text-xs font-semibold text-slate-600">/ month</span>
+          </span>
         </div>
 
+        {/* Buttons: Details and Request */}
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => onViewProfile(tutor)}
-            className="px-3 py-2 rounded-xl text-xs font-bold text-[#1C1938] hover:bg-[#F4F1FA] transition-colors"
+            className="px-4 py-2.5 rounded-full bg-purple-50/80 hover:bg-purple-100 text-[#7C3AED] border border-purple-200 text-xs font-bold transition-all active:scale-95 cursor-pointer shadow-sm"
           >
             Details
           </button>
-          <ClayButton
+
+          <button
             type="button"
-            size="sm"
-            variant="primary"
             onClick={() => onRequestTutor(tutor)}
-            icon={<ArrowRight className="w-3.5 h-3.5" />}
+            className="px-5 py-2.5 rounded-full bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] text-white text-xs font-bold shadow-clay-button hover:opacity-95 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
           >
-            Request
-          </ClayButton>
+            <span>Request</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
         </div>
       </div>
-    </ClayCard>
+    </div>
   );
 };

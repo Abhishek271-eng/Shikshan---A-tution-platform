@@ -16,76 +16,10 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { Header } from '../components/common/Header';
+import { ClayBackground } from '../components/common/ClayBackground';
+import { ClayStudentReading } from '../components/common/Clay3DIllustrations';
 import { useAuth } from '../context/AuthContext';
 import { SCHOOL_SUBJECTS, INDIVIDUAL_CLASSES } from '../config/options';
-
-// Compact SVG illustration of books, notebook, pencil and sparkles
-const LearningIllustration: React.FC = () => (
-  <svg
-    viewBox="0 0 120 100"
-    className="w-24 h-20 sm:w-28 sm:h-24 flex-shrink-0 drop-shadow-sm select-none"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    aria-hidden="true"
-  >
-    {/* Base book shadow / glow */}
-    <ellipse cx="60" cy="88" rx="46" ry="7" fill="#DFD8F3" fillOpacity="0.75" />
-
-    {/* Bottom Book (Deep Indigo) */}
-    <path
-      d="M18 74 C34 70 54 70 60 74 C66 70 86 70 102 74 L100 84 C86 80 66 80 60 84 C54 80 34 80 20 84 Z"
-      fill="#312E81"
-    />
-    <path
-      d="M20 72 C34 68 54 68 60 72 C66 68 86 68 100 72 L98 76 C86 72 66 72 60 76 C54 72 34 72 22 76 Z"
-      fill="#EEECFB"
-    />
-
-    {/* Middle Book (Periwinkle) */}
-    <path
-      d="M22 61 C36 57 54 57 60 61 C66 57 84 57 98 61 L96 70 C84 66 66 66 60 70 C54 66 36 66 24 70 Z"
-      fill="#4338CA"
-    />
-    <path
-      d="M24 59 C36 55 54 55 60 59 C66 55 84 55 96 59 L94 63 C84 59 66 59 60 63 C54 59 36 59 26 63 Z"
-      fill="#F5F3FF"
-    />
-
-    {/* Top Open Book */}
-    <path
-      d="M22 45 C36 40 54 41 60 46 C66 41 84 40 98 45 L95 54 C82 50 66 50 60 55 C54 50 38 50 25 54 Z"
-      fill="#1E1B4B"
-    />
-    {/* Open Left Page */}
-    <path
-      d="M24 43 C37 38 54 39 60 44 L60 52 C54 48 38 48 26 52 Z"
-      fill="#FFFFFF"
-    />
-    <line x1="30" y1="44" x2="52" y2="44" stroke="#818CF8" strokeWidth="1.5" strokeLinecap="round" />
-    <line x1="30" y1="47.5" x2="48" y2="47.5" stroke="#CBD5E1" strokeWidth="1.2" strokeLinecap="round" />
-
-    {/* Open Right Page */}
-    <path
-      d="M60 44 C66 39 83 38 96 43 L94 52 C82 48 66 48 60 52 Z"
-      fill="#F8FAFC"
-    />
-    <line x1="68" y1="44" x2="90" y2="44" stroke="#818CF8" strokeWidth="1.5" strokeLinecap="round" />
-    <line x1="68" y1="47.5" x2="86" y2="47.5" stroke="#CBD5E1" strokeWidth="1.2" strokeLinecap="round" />
-
-    {/* Pencil */}
-    <g transform="rotate(28 68 28)">
-      <rect x="66" y="16" width="6" height="24" rx="1.5" fill="#F59E0B" />
-      <polygon points="66,40 72,40 69,46" fill="#FDE68A" />
-      <polygon points="68,44 70,44 69,46" fill="#1E293B" />
-      <rect x="66" y="16" width="6" height="4" fill="#F43F5E" />
-    </g>
-
-    {/* Sparkles */}
-    <circle cx="18" cy="32" r="2" fill="#F59E0B" />
-    <circle cx="104" cy="34" r="2" fill="#6366F1" />
-    <path d="M58 20 L60 25 L65 27 L60 29 L58 34 L56 29 L51 27 L56 25 Z" fill="#FBBF24" />
-  </svg>
-);
 
 export const HomePage: React.FC = () => {
   const navigate = useNavigate();
@@ -140,7 +74,7 @@ export const HomePage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FBFBFC]">
+    <ClayBackground>
       <Header />
 
       <main className="flex-1 max-w-xl mx-auto w-full px-4 sm:px-6 py-4 pb-16 space-y-5">
@@ -195,8 +129,8 @@ export const HomePage: React.FC = () => {
               </div>
             </div>
 
-            {/* Compact vector illustration */}
-            <LearningIllustration />
+            {/* 3D Clay Student Reading Illustration */}
+            <ClayStudentReading size={96} />
           </div>
         </section>
 
@@ -503,6 +437,6 @@ export const HomePage: React.FC = () => {
           </div>
         </div>
       )}
-    </div>
+    </ClayBackground>
   );
 };

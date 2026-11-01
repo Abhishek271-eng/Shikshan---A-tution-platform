@@ -36,7 +36,7 @@ describe('Tutor Multi-Step Registration Journey', () => {
     fireEvent.change(screen.getByLabelText(/email address/i), { target: { value: 'suresh@example.com' } });
 
     // Invalid phone (only 6 digits)
-    const phoneInput = screen.getByPlaceholderText(/98765 43210/i);
+    const phoneInput = screen.getByLabelText(/mobile number/i);
     fireEvent.change(phoneInput, { target: { value: '984501' } });
 
     // Password lacking special character & uppercase
@@ -68,7 +68,7 @@ describe('Tutor Multi-Step Registration Journey', () => {
 
     fireEvent.change(screen.getByLabelText(/full name/i), { target: { value: 'Basavaraj Patil' } });
     fireEvent.change(screen.getByLabelText(/email address/i), { target: { value: 'basavaraj@example.com' } });
-    fireEvent.change(screen.getByPlaceholderText(/98765 43210/i), { target: { value: '9845012345' } });
+    fireEvent.change(screen.getByLabelText(/mobile number/i), { target: { value: '9845012345' } });
     fireEvent.change(screen.getByLabelText(/^create password/i), { target: { value: 'TutorPass@123' } });
     fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'TutorPass@123' } });
 
@@ -100,7 +100,7 @@ describe('Tutor Multi-Step Registration Journey', () => {
     // Step 0: Fill Account Details
     fireEvent.change(screen.getByLabelText(/full name/i), { target: { value: 'Asha Hegde' } });
     fireEvent.change(screen.getByLabelText(/email address/i), { target: { value: 'asha@example.com' } });
-    fireEvent.change(screen.getByPlaceholderText(/98765 43210/i), { target: { value: '9880011223' } });
+    fireEvent.change(screen.getByLabelText(/mobile number/i), { target: { value: '9880011223' } });
     fireEvent.change(screen.getByLabelText(/^create password/i), { target: { value: 'AshaPass@123' } });
     fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'AshaPass@123' } });
     fireEvent.click(screen.getByRole('button', { name: /continue/i }));
@@ -109,20 +109,21 @@ describe('Tutor Multi-Step Registration Journey', () => {
     expect(screen.getByText(/teaching profile & expertise/i)).toBeInTheDocument();
 
     // Fill bio
-    const bioTextarea = screen.getByPlaceholderText(/describe how you help students understand tough concepts/i);
+    const bioTextarea = screen.getByLabelText(/brief bio/i);
     fireEvent.change(bioTextarea, {
       target: { value: 'Passionate educator providing patient bilingual science and math guidance for rural students.' }
     });
     fireEvent.click(screen.getByRole('button', { name: /continue/i }));
 
-    // Step 2: Fees & Schedule (NO 3/6-month commitment, NO marksheet upload!)
-    expect(screen.getByText(/proposed fees & schedule/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/amount \(₹\)/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/fee unit/i)).toBeInTheDocument();
+    // Step 2: Fees & Availability (NO 3/6-month commitment, NO marksheet upload!)
+    expect(screen.getByText(/proposed monthly fees & availability/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/proposed monthly fees/i)).toBeInTheDocument();
+    expect(screen.getByText(/daily availability/i)).toBeInTheDocument();
 
-    // Verify there is NO documents upload tab or forced commitment
+    // Verify there is NO documents upload tab or forced commitment or fee unit dropdown
     expect(screen.queryByText(/documents & marksheets/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/mandatory 3 months commitment/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/fee unit/i)).not.toBeInTheDocument();
 
     // Advance to Step 3: Review & Submit
     fireEvent.click(screen.getByRole('button', { name: /continue/i }));

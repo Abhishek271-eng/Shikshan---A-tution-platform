@@ -1,19 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
-  Calendar,
-  BookOpen,
-  IndianRupee,
   RefreshCw,
   ArrowRight,
   GraduationCap,
+  Clock,
+  CheckCircle2,
+  XCircle,
 } from 'lucide-react';
 import { Header } from '../../components/common/Header';
 import { ClayCard } from '../../components/common/ClayCard';
 import { ClayButton } from '../../components/common/ClayButton';
-import { StatusBadge } from '../../components/common/StatusBadge';
+import { ClayBackground } from '../../components/common/ClayBackground';
 import { useAuth } from '../../context/AuthContext';
-import { supabase, isSupabaseConfigured } from '../../lib/supabase';
+import { api } from '../../lib/api';
 import { TutorApplication } from '../../types';
 
 export const TutorStatusPage: React.FC = () => {
@@ -30,49 +30,18 @@ export const TutorStatusPage: React.FC = () => {
       return;
     }
 
-    if (!isSupabaseConfigured) {
-      // Demo preview status for unconfigured state
-      setApplication({
-        id: 'demo-app-1',
-        tutor_id: user.id,
-        education_level: 'College Student (B.Sc Mathematics)',
-        subjects: ['mathematics', 'science'],
-        class_levels: ['class_6', 'class_7', 'class_8'],
-        subject_class_pairs: [{ subject: 'Mathematics', classLevelRange: 'Classes 6–8' }],
-        teaching_languages: ['Kannada', 'English'],
-        available_days: ['mon', 'tue', 'wed', 'thu', 'fri'],
-        time_windows: ['evening_prime'],
-        hours_per_day: 2,
-        fee_amount: 350,
-        fee_unit: 'per_hour',
-        proposed_rate: 350,
-        status: 'pending_review',
-        submitted_at: new Date().toISOString(),
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      });
-      setIsLoading(false);
-      return;
-    }
-
     try {
-      const { data, error } = await supabase
-        .from('tutor_applications')
-        .select('*')
-        .eq('tutor_id', user.id)
-        .order('submitted_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (error) {
-        console.error('Error fetching application status:', error);
-      }
-
-      if (data) {
-        setApplication(data as TutorApplication);
+      const res = await api.getTutorMyStatus();
+      if (res.application) {
+        setApplication({
+          ...res.application,
+          status: res.application.status === 'pending' ? 'pending_review' : res.application.status,
+        });
+      } else {
+        setApplication(null);
       }
     } catch (err) {
-      console.error('Failed to fetch status:', err);
+      console.error('Failed to fetch tutor status from MySQL:', err);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -88,8 +57,11 @@ export const TutorStatusPage: React.FC = () => {
     await fetchStatus();
   };
 
+  const isApproved = application?.status === 'approved';
+  const isRejected = application?.status === 'rejected';
+
   return (
-    <div className="min-h-screen flex flex-col bg-[#F7F6FC]">
+    <ClayBackground>
       <Header
         title="Application Status"
         subtitle="Tutor Verification Tracking"
@@ -97,171 +69,142 @@ export const TutorStatusPage: React.FC = () => {
           <button
             onClick={handleRefresh}
             disabled={isRefreshing}
-            className="w-10 h-10 rounded-2xl bg-white border border-[#DFD8F3] shadow-sm flex items-center justify-center text-[#1C1938] hover:text-[#4136CA] hover:bg-[#F4F1FA] active:scale-95 transition-all"
-            title="Refresh Status"
+            className="w-10 h-10 rounded-2xl bg-white border border-[#DFD8F3] shadow-xs flex items-center justify-center text-[#1C1938] hover:text-[#4136CA] hover:bg-[#EEECFB] active:scale-95 transition-all cursor-pointer"
+            aria-label="Refresh status"
           >
-            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-[#4136CA]' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-[#7C3AED]' : ''}`} />
           </button>
         }
       />
 
-      <main className="flex-1 max-w-xl mx-auto w-full px-4 sm:px-6 py-6 pb-24 flex flex-col justify-center">
+      <main className="flex-1 max-w-lg mx-auto w-full px-4 sm:px-6 py-6 pb-28 space-y-6">
         {isLoading ? (
-          <ClayCard className="p-8 text-center space-y-3 border-[#DFD8F3] shadow-clay-card bg-white">
-            <div className="w-12 h-12 rounded-full border-4 border-[#4136CA] border-t-transparent animate-spin mx-auto" />
-            <p className="text-sm font-semibold text-[#1C1938]">Checking your application status...</p>
-          </ClayCard>
+          <div className="p-12 text-center text-xs text-[#686487]">Loading application status from MySQL...</div>
         ) : !application ? (
-          <ClayCard className="p-8 text-center space-y-4 border-[#DFD8F3] shadow-clay-card bg-white">
-            <div className="w-14 h-14 rounded-3xl bg-[#DFD8F3]/60 text-[#4136CA] flex items-center justify-center mx-auto shadow-inner border border-[#DFD8F3]">
+          <ClayCard className="p-8 text-center space-y-4 border border-[#DFD8F3]">
+            <div className="w-16 h-16 rounded-full bg-[#EEECFB] text-[#312E81] flex items-center justify-center mx-auto">
               <GraduationCap className="w-8 h-8" />
             </div>
-            <div>
-              <h2 className="text-xl font-black text-[#1C1938]">No Tutor Application Found</h2>
-              <p className="text-xs text-slate-600 mt-1.5">
-                You have not submitted a tutor application yet, or your application is linked to another email.
-              </p>
-            </div>
+            <h3 className="text-xl font-black text-[#1C1938]">No Tutor Profile Found</h3>
+            <p className="text-xs text-[#686487] leading-relaxed">
+              You haven&apos;t submitted a tutor application yet. Create your teaching profile to start mentoring students.
+            </p>
             <div className="pt-2">
               <ClayButton
                 variant="primary"
+                size="md"
                 onClick={() => navigate('/tutor/register')}
-                icon={<ArrowRight className="w-4 h-4" />}
+                className="w-full rounded-full py-3 text-xs font-bold shadow-button-primary"
               >
-                Start Tutor Application
+                Complete Tutor Registration
               </ClayButton>
             </div>
           </ClayCard>
         ) : (
-          <div className="space-y-4 animate-fade-in">
-            {/* Main Status Hero Card */}
-            <ClayCard className="p-6 sm:p-8 space-y-5 text-center border-[#DFD8F3] shadow-clay-card bg-white">
-              <div className="flex justify-center">
-                <StatusBadge status={application.status} size="lg" />
+          <>
+            {/* Status Hero Card */}
+            <ClayCard className="p-6 text-center space-y-4 border border-[#DFD8F3] shadow-clay bg-white">
+              <div className="mx-auto flex justify-center">
+                {isApproved ? (
+                  <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                    <CheckCircle2 className="w-10 h-10" />
+                  </div>
+                ) : isRejected ? (
+                  <div className="w-16 h-16 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center">
+                    <XCircle className="w-10 h-10" />
+                  </div>
+                ) : (
+                  <div className="w-16 h-16 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center">
+                    <Clock className="w-10 h-10" />
+                  </div>
+                )}
               </div>
 
-              {/* Status Specific Message */}
-              {application.status === 'pending_review' && (
-                <div className="space-y-2">
-                  <h2 className="text-xl sm:text-2xl font-black text-[#1C1938]">
-                    Application Under Review
-                  </h2>
-                  <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-md mx-auto">
-                    “Your application is under review. You can return later to check your status.”
-                  </p>
-                  <p className="text-xs text-slate-500 font-medium">
-                    Our founder and trusted educators review tutor applications manually outside the app before profile approval.
-                  </p>
-                </div>
-              )}
-
-              {application.status === 'approved' && (
-                <div className="space-y-2">
-                  <h2 className="text-xl sm:text-2xl font-black text-[#3B522F]">
-                    Congratulations! You Are Approved
-                  </h2>
-                  <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-md mx-auto">
-                    Your tutor application has been verified and approved by the Shikshan team. Your profile is now visible in student discovery.
-                  </p>
-                  <div className="pt-3">
-                    <ClayButton
-                      variant="primary"
-                      fullWidth
-                      onClick={() => navigate('/tutor/dashboard')}
-                      icon={<ArrowRight className="w-4 h-4" />}
-                    >
-                      Open Tutor Dashboard
-                    </ClayButton>
-                  </div>
-                </div>
-              )}
-
-              {application.status === 'rejected' && (
-                <div className="space-y-2">
-                  <h2 className="text-xl sm:text-2xl font-black text-rose-900">
-                    Application Status: Closed
-                  </h2>
-                  <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-md mx-auto">
-                    Thank you for your interest in teaching with Shikshan. After reviewing your submission, we are currently unable to proceed with your tutor profile at this time.
-                  </p>
-                  {application.applicant_message && (
-                    <div className="p-3 rounded-2xl bg-[#F4F1FA] border border-[#DFD8F3] text-slate-800 text-xs text-left">
-                      <strong>Reviewer Note:</strong> {application.applicant_message}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {application.status === 'needs_info' && (
-                <div className="space-y-2">
-                  <h2 className="text-xl sm:text-2xl font-black text-[#4136CA]">
-                    More Information Required
-                  </h2>
-                  <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-md mx-auto">
-                    Our reviewers need additional details to complete your application.
-                  </p>
-                  {application.applicant_message && (
-                    <div className="p-3 rounded-2xl bg-[#F4F1FA] border border-[#DFD8F3] text-[#4136CA] text-xs text-left">
-                      <strong>Message from Reviewer:</strong> {application.applicant_message}
-                    </div>
-                  )}
-                </div>
-              )}
-            </ClayCard>
-
-            {/* Application Summary Card */}
-            <ClayCard className="p-6 space-y-4 text-left border-[#DFD8F3] shadow-clay-card bg-white">
-              <div className="flex items-center justify-between pb-3 border-b border-[#DFD8F3]">
-                <h3 className="font-extrabold text-sm text-[#1C1938]">Submitted Application Summary</h3>
-                <span className="text-[11px] text-slate-400">
-                  {new Date(application.submitted_at).toLocaleDateString()}
+              <div>
+                <span
+                  className={`text-xs font-extrabold uppercase tracking-wider px-3 py-1 rounded-full ${
+                    isApproved
+                      ? 'bg-emerald-100 text-emerald-800'
+                      : isRejected
+                      ? 'bg-rose-100 text-rose-800'
+                      : 'bg-amber-100 text-amber-800'
+                  }`}
+                >
+                  {isApproved ? 'Approved Educator' : isRejected ? 'Application Not Approved' : 'Under Review'}
                 </span>
+
+                <h2 className="text-xl font-black text-[#1C1938] mt-3">
+                  {isApproved
+                    ? 'Congratulations! You are Approved'
+                    : isRejected
+                    ? 'Application Review Completed'
+                    : 'Application is Under Review'}
+                </h2>
+
+                <p className="text-xs text-[#686487] mt-1 max-w-sm mx-auto leading-relaxed">
+                  {isApproved
+                    ? 'Your tutor profile is now public! Karnataka school students can discover you and submit learning requests.'
+                    : isRejected
+                    ? 'Thank you for your interest. Unfortunately, your application does not meet current verification criteria.'
+                    : 'The Shikshan founder and trusted teachers review each application manually. Your profile will be approved soon.'}
+                </p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-slate-700">
-                <div className="flex items-start gap-2.5">
-                  <GraduationCap className="w-4 h-4 text-[#4136CA] flex-shrink-0 mt-0.5" />
-                  <div>
-                    <span className="text-slate-400 block text-[11px]">Education Level</span>
-                    <span className="font-semibold text-[#1C1938]">{application.education_level}</span>
-                  </div>
+              {isApproved && (
+                <div className="pt-2">
+                  <ClayButton
+                    variant="primary"
+                    size="lg"
+                    onClick={() => navigate('/tutor/dashboard')}
+                    className="w-full flex items-center justify-center gap-2 rounded-full py-3.5 text-xs font-bold shadow-button-primary"
+                  >
+                    Go to Tutor Dashboard
+                    <ArrowRight className="w-4 h-4" />
+                  </ClayButton>
                 </div>
+              )}
+            </ClayCard>
 
-                <div className="flex items-start gap-2.5">
-                  <Calendar className="w-4 h-4 text-[#4136CA] flex-shrink-0 mt-0.5" />
-                  <div>
-                    <span className="text-slate-400 block text-[11px]">Daily Availability</span>
-                    <span className="font-semibold text-[#1C1938]">{application.hours_per_day} hrs/day ({application.available_days?.map((d) => d.toUpperCase()).join(', ')})</span>
-                  </div>
+            {/* Submitted Information Card */}
+            <ClayCard className="p-6 text-left space-y-4 border border-[#DFD8F3] bg-white">
+              <h3 className="font-extrabold text-sm text-[#1C1938]">Submitted Profile Overview</h3>
+
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div className="p-3 rounded-xl bg-[#F8F7FD] border border-[#DFD8F3]">
+                  <span className="text-[#686487] block text-[10px] font-bold uppercase">Qualification</span>
+                  <span className="font-bold text-[#1C1938] truncate block">{application.course_qualification}</span>
                 </div>
-
-                <div className="flex items-start gap-2.5">
-                  <BookOpen className="w-4 h-4 text-[#4136CA] flex-shrink-0 mt-0.5" />
-                  <div>
-                    <span className="text-slate-400 block text-[11px]">Teaching Subjects</span>
-                    <span className="font-semibold text-[#1C1938] capitalize">{application.subjects?.join(', ')}</span>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-2.5">
-                  <IndianRupee className="w-4 h-4 text-[#4136CA] flex-shrink-0 mt-0.5" />
-                  <div>
-                    <span className="text-slate-400 block text-[11px]">Proposed Rate</span>
-                    <span className="font-semibold text-[#1C1938]">₹{application.fee_amount || application.proposed_rate || '350'} / {application.fee_unit || 'hr'}</span>
-                  </div>
+                <div className="p-3 rounded-xl bg-[#F8F7FD] border border-[#DFD8F3]">
+                  <span className="text-[#686487] block text-[10px] font-bold uppercase">Proposed Fee</span>
+                  <span className="font-bold text-[#312E81]">₹{application.fee_amount || application.proposed_rate || 350} / hr</span>
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-[#DFD8F3] flex items-center justify-between text-xs text-slate-500">
-                <span>Manual founder review protocol active</span>
-                <Link to="/help" className="text-[#4136CA] font-semibold hover:underline">
-                  Need Help?
-                </Link>
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#686487] block mb-1">
+                  Teaching Subjects
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {(application.subjects || []).map((sub) => (
+                    <span key={sub} className="px-2.5 py-1 rounded-lg bg-[#EEECFB] text-[#312E81] text-xs font-bold">
+                      {sub}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#686487] block mb-1">
+                  Bio / Approach
+                </span>
+                <p className="text-xs text-[#4A4668] leading-relaxed p-3 rounded-xl bg-[#F8F7FD] border border-[#DFD8F3]">
+                  {application.bio_intro}
+                </p>
               </div>
             </ClayCard>
-          </div>
+          </>
         )}
       </main>
-    </div>
+    </ClayBackground>
   );
 };

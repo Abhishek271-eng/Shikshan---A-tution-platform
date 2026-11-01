@@ -1,0 +1,16 @@
+name = "shikshan-api"
+main = "src/index.ts"
+compatibility_date = "2024-10-01"
+compatibility_flags = ["nodejs_compat"]
+account_id = "3a71b0611520ec2df891e2b29e9546e4"
+
+[vars]
+JWT_SECRET = "shikshan-secure-jwt-secret-key-prod-2026"
+ADMIN_EMAIL = "abhishekdevanagaon2712005@gmail.com"
+ADMIN_PHONE = "9019394446"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "shikshan_db"
+database_id = "31ed720e-fe6b-43cc-abca-b112b650a056"
+migrations_dir = "./"

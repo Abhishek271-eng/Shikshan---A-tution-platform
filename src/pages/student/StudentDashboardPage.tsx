@@ -1,24 +1,33 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import {
-  BookOpen,
-  Clock,
-  Heart,
+  Compass,
   Send,
-  SlidersHorizontal,
+  Heart,
   RefreshCw,
-  User,
-  CheckCircle,
-  XCircle,
+  LogOut,
+  Sparkles,
+  ArrowRight,
+  Phone,
+  ShieldCheck,
+  CheckCircle2,
+  Clock,
 } from 'lucide-react';
 import { Header } from '../../components/common/Header';
-import { ClayCard } from '../../components/common/ClayCard';
-import { ClayButton } from '../../components/common/ClayButton';
 import { SetupNotice } from '../../components/common/SetupNotice';
 import { TutorCard } from '../../components/marketplace/TutorCard';
 import { TutorFilterBar, TutorFilters } from '../../components/marketplace/TutorFilterBar';
 import { TutorProfileModal } from '../../components/marketplace/TutorProfileModal';
 import { TutorRequestModal } from '../../components/marketplace/TutorRequestModal';
+import { ClayWelcomeMascot, ClaySubjectIcon } from '../../components/common/Clay3DIllustrations';
+import { ClayBottomNavigation, BottomNavTab } from '../../components/common/ClayBottomNavigation';
+import { ClayEmptyState } from '../../components/common/ClayEmptyState';
+import { ClayButton } from '../../components/common/ClayButton';
+import { ClayCard } from '../../components/common/ClayCard';
+import { ClaySearchBar } from '../../components/common/ClaySearchBar';
+import { ClayUploadButton } from '../../components/common/ClayUploadButton';
 import { useAuth } from '../../context/AuthContext';
+import { useNavigation } from '../../context/NavigationContext';
+import { api } from '../../lib/api';
 import { TutorApplication, TutorRequest } from '../../types';
 import { SCHOOL_SUBJECTS } from '../../config/options';
 
@@ -32,18 +41,37 @@ export const StudentDashboardPage: React.FC = () => {
     toggleFavoriteTutor,
     getFavoriteTutorIds,
     updateTutorRequestStatus,
+    uploadPhoto,
+    removePhoto,
+    signOut,
   } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<'discover' | 'requests' | 'saved' | 'profile'>('discover');
+  const { pushBackHandler } = useNavigation();
+
+  const [activeTab, setActiveTab] = useState<BottomNavTab>('home');
   const [tutors, setTutors] = useState<TutorApplication[]>([]);
   const [myRequests, setMyRequests] = useState<TutorRequest[]>([]);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
+  const [paymentRecords, setPaymentRecords] = useState<any[]>([]);
+  const [submittingPaymentForReq, setSubmittingPaymentForReq] = useState<string | null>(null);
+  const [paymentSuccessMessage, setPaymentSuccessMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Modals state
   const [selectedTutorForProfile, setSelectedTutorForProfile] = useState<TutorApplication | null>(null);
   const [selectedTutorForRequest, setSelectedTutorForRequest] = useState<TutorApplication | null>(null);
+
+  // Hardware/Global Back Interceptor for Tabs
+  useEffect(() => {
+    if (activeTab !== 'home') {
+      const unregister = pushBackHandler(() => {
+        setActiveTab('home');
+        return true;
+      });
+      return unregister;
+    }
+  }, [activeTab, pushBackHandler]);
 
   // Filters State
   const [filters, setFilters] = useState<TutorFilters>({
@@ -57,15 +85,17 @@ export const StudentDashboardPage: React.FC = () => {
 
   const loadData = async () => {
     try {
-      const [fetchedTutors, fetchedRequests, fetchedFavs] = await Promise.all([
+      const [fetchedTutors, fetchedRequests, fetchedFavs, fetchedPayments] = await Promise.all([
         getApprovedTutors(),
         getStudentRequests(),
         getFavoriteTutorIds(),
+        api.getStudentPaymentCoordinations().catch(() => ({ payments: [] })),
       ]);
 
       setTutors(fetchedTutors);
       setMyRequests(fetchedRequests);
       setFavoriteIds(fetchedFavs);
+      setPaymentRecords(fetchedPayments.payments || []);
     } catch (err) {
       console.error('Failed to load marketplace data:', err);
     } finally {
@@ -92,6 +122,28 @@ export const StudentDashboardPage: React.FC = () => {
     }
   };
 
+  const handleExpressPaymentInterest = async (req: TutorRequest) => {
+    setSubmittingPaymentForReq(req.id);
+    try {
+      const res = await api.recordPaymentInterest({
+        requestId: req.id,
+        tutorId: req.tutor_id,
+        batchId: (req as any).batch_id,
+      });
+      if (res.success) {
+        setPaymentSuccessMessage(
+          `Your interest for ${req.tutor_name || 'this tutor'} has been registered! Shikshan admin will coordinate enrollment & payment verification.`
+        );
+        const payRes = await api.getStudentPaymentCoordinations();
+        setPaymentRecords(payRes.payments || []);
+      }
+    } catch (err: any) {
+      alert(err?.message || 'Failed to record payment interest');
+    } finally {
+      setSubmittingPaymentForReq(null);
+    }
+  };
+
   const handleCancelRequest = async (requestId: string) => {
     if (!confirm('Are you sure you want to cancel this tutor request?')) return;
     await updateTutorRequestStatus(requestId, 'cancelled');
@@ -103,27 +155,26 @@ export const StudentDashboardPage: React.FC = () => {
   // Filter logic
   const filteredTutors = useMemo(() => {
     return tutors.filter((tutor) => {
-      // Must be approved
       if (tutor.status !== 'approved') return false;
 
-      // Search query
+      // Search query filter
       if (filters.searchQuery) {
         const query = filters.searchQuery.toLowerCase();
-        const tutorName = tutor.tutor_profile?.name?.toLowerCase() || '';
+        const tutorName = tutor.tutor_profile?.name?.toLowerCase() || (tutor as any).name?.toLowerCase() || '';
         const bio = tutor.bio_intro?.toLowerCase() || '';
-        const subjects = tutor.subjects.join(' ').toLowerCase();
+        const subjects = (tutor.subjects || []).join(' ').toLowerCase();
         if (!tutorName.includes(query) && !bio.includes(query) && !subjects.includes(query)) {
           return false;
         }
       }
 
       // Subject filter
-      if (filters.selectedSubject && !tutor.subjects.includes(filters.selectedSubject)) {
+      if (filters.selectedSubject && !tutor.subjects?.includes(filters.selectedSubject)) {
         return false;
       }
 
       // Class level filter
-      if (filters.selectedClass && !tutor.class_levels.includes(filters.selectedClass)) {
+      if (filters.selectedClass && !tutor.class_levels?.includes(filters.selectedClass)) {
         return false;
       }
 
@@ -139,10 +190,16 @@ export const StudentDashboardPage: React.FC = () => {
       // Language filter
       if (
         filters.selectedLanguage &&
-        !tutor.teaching_languages.some((l) =>
+        !tutor.teaching_languages?.some((l) =>
           l.toLowerCase().includes(filters.selectedLanguage.toLowerCase())
         )
       ) {
+        return false;
+      }
+
+      // Price filter
+      const fee = tutor.fee_amount || tutor.proposed_rate || 0;
+      if (fee > filters.maxPrice) {
         return false;
       }
 
@@ -151,147 +208,283 @@ export const StudentDashboardPage: React.FC = () => {
   }, [tutors, filters]);
 
   const savedTutorsList = useMemo(() => {
-    return tutors.filter((t) => favoriteIds.includes(t.tutor_id));
+    return tutors.filter((t) => favoriteIds.includes(t.tutor_id || t.id));
   }, [tutors, favoriteIds]);
 
+  const studentDisplayName =
+    profile?.name || (user as any)?.name || (profile as any)?.student_name || 'Student';
+
   return (
-    <div className="min-h-screen flex flex-col bg-[#F7F6FC]">
+    <div className="min-h-screen flex flex-col bg-[#F7F5FC] select-none pb-28">
+      {/* Header with Title & Refresh */}
       <Header
-        title="Student Portal"
-        subtitle={profile?.name ? `Namaskara, ${profile.name}` : 'Shikshan Learning Platform'}
+        title="Shikshan"
+        subtitle={`Namaskara, ${studentDisplayName}!`}
         customRight={
-          <button
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            className="w-10 h-10 rounded-2xl bg-white border border-[#DFD8F3] shadow-sm flex items-center justify-center text-[#1C1938] hover:text-[#4136CA] hover:bg-[#F4F1FA] active:scale-95 transition-all"
-            title="Refresh Data"
-          >
-            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-[#4136CA]' : ''}`} />
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="w-9 h-9 rounded-full bg-white border border-[#E5DFF8] shadow-clay-sm flex items-center justify-center text-[#1C1938] hover:text-[#7C3AED] active:scale-95 transition-all cursor-pointer"
+              title="Refresh Data"
+              aria-label="Refresh Data"
+            >
+              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-[#7C3AED]' : ''}`} />
+            </button>
+            <button
+              onClick={() => signOut()}
+              className="w-9 h-9 rounded-full bg-white border border-[#E5DFF8] shadow-clay-sm flex items-center justify-center text-[#9CA3AF] hover:text-[#EF4444] active:scale-95 transition-all cursor-pointer"
+              title="Sign Out"
+              aria-label="Sign Out"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
         }
       />
       <SetupNotice />
 
-      <main className="flex-1 max-w-4xl mx-auto w-full px-4 sm:px-6 py-6 pb-24 space-y-6">
-        {/* Welcoming Academic Snapshot Banner */}
-        <ClayCard className="p-5 sm:p-6 text-left border border-[#DFD8F3] shadow-clay-card bg-gradient-to-br from-white to-[#F4F1FA]">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#DFD8F3]">
-            <div>
-              <span className="text-[11px] font-bold text-[#4136CA] uppercase tracking-wider">
-                Student Learning Dashboard
-              </span>
-              <h2 className="text-xl sm:text-2xl font-black text-[#1C1938] mt-0.5">
-                Namaskara, {profile?.name || user?.email}!
-              </h2>
-              <p className="text-xs text-slate-500 font-kannada">
-                ನಿಮ್ಮ ತರಗತಿಗೆ ಸೂಕ್ತವಾದ ಪರಿಶೀಲಿಸಿದ ಬೋಧಕರನ್ನು ಹುಡುಕಿ.
-              </p>
+      <main className="flex-1 max-w-4xl mx-auto w-full px-4 sm:px-6 py-5 space-y-6">
+        {/* ========================================================================= */}
+        {/* VIEW 1: STUDENT HOME (Complete Redesign with Compact Welcome & Sections) */}
+        {/* ========================================================================= */}
+        {activeTab === 'home' && (
+          <div className="space-y-6 animate-fade-in">
+            {/* 1. Compact Welcome Section (Replaces the oversized promotional banner) */}
+            <div className="relative overflow-hidden rounded-[32px] p-5 sm:p-6 bg-gradient-to-br from-[#FFFFFF] via-[#FAF9FE] to-[#F1EDFB] border border-[#E5DFF8] shadow-clay text-left flex items-center justify-between gap-4">
+              <div className="space-y-1.5 max-w-md">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#EDE9FE] text-[#6D28D9] text-[11px] font-black">
+                  <Sparkles className="w-3.5 h-3.5 text-[#7C3AED]" />
+                  <span>Karnataka State Syllabus • Classes 1–10</span>
+                </div>
+
+                <h2 className="text-xl sm:text-2xl font-black text-[#1C1938] tracking-tight">
+                  Namaskara, {studentDisplayName}! 👋
+                </h2>
+
+                <p className="text-xs sm:text-sm text-[#4A4668] font-medium leading-relaxed">
+                  Ready to learn something new today?
+                </p>
+
+                {/* Prominent but elegant Find Tutors button */}
+                <div className="pt-2">
+                  <ClayButton
+                    variant="primary"
+                    size="sm"
+                    onClick={() => setActiveTab('discover')}
+                    icon={<Compass className="w-4 h-4" />}
+                    aria-label="Browse Mentors"
+                  >
+                    Browse Mentors
+                  </ClayButton>
+                </div>
+              </div>
+
+              {/* Compact 3D Clay Educational Illustration */}
+              <div className="hidden xs:flex flex-shrink-0">
+                <ClayWelcomeMascot size={90} />
+              </div>
             </div>
 
-            <div className="flex items-center gap-2 self-start sm:self-auto">
-              <span className="px-3 py-1 rounded-full bg-[#DFD8F3]/60 text-[#4136CA] border border-[#A7AAE5]/50 text-xs font-bold">
-                {studentProfile?.class_level || 'Class 8'} • {studentProfile?.board?.split(' ')[0] || 'KSEAB'}
-              </span>
+            {/* 2. Find Tutors Discovery Card (Quick Search & Class Selector) */}
+            <ClayCard className="space-y-3 p-5 sm:p-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5 text-left">
+                  <h3 className="text-sm font-black text-[#1C1938] tracking-tight">
+                    Search Mentors & Topics
+                  </h3>
+                  <p className="text-xs text-[#686487]">
+                    Find bilingual educators across Karnataka
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('discover')}
+                  className="text-xs font-bold text-[#7C3AED] hover:underline flex items-center gap-1 cursor-pointer"
+                >
+                  <span>All Filters</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              <ClaySearchBar
+                value={filters.searchQuery}
+                onChange={(query) => {
+                  setFilters({ ...filters, searchQuery: query });
+                }}
+                placeholder="Search by tutor name, subject, or keyword..."
+                onFilterClick={() => setActiveTab('discover')}
+              />
+            </ClayCard>
+
+            {/* 3. Subject Categories (Interactive Clay Cards) */}
+            <div className="space-y-3 text-left">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-black text-[#1C1938] tracking-tight">
+                    Explore Subjects
+                  </h3>
+                  <p className="text-[11px] text-[#686487] font-kannada">
+                    ವಿಷಯವಾರು ಶಿಕ್ಷಕರನ್ನು ಹುಡುಕಿ
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFilters({ ...filters, selectedSubject: '' });
+                    setActiveTab('discover');
+                  }}
+                  className="text-xs font-bold text-[#7C3AED] hover:underline"
+                >
+                  View All
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                {SCHOOL_SUBJECTS.map((sub) => {
+                  const isSelected = filters.selectedSubject === sub.id;
+                  return (
+                    <button
+                      key={sub.id}
+                      type="button"
+                      onClick={() => {
+                        setFilters({ ...filters, selectedSubject: sub.id });
+                        setActiveTab('discover');
+                      }}
+                      className={`p-3 rounded-2xl border text-left flex items-center gap-3 transition-all active:scale-95 cursor-pointer shadow-clay-sm ${
+                        isSelected
+                          ? 'bg-[#EDE9FE] border-[#7C3AED] text-[#6D28D9]'
+                          : 'bg-white hover:bg-[#FAF9FE] border-[#E5DFF8] text-[#1C1938]'
+                      }`}
+                    >
+                      <ClaySubjectIcon subject={sub.id} size={36} />
+                      <div className="min-w-0">
+                        <span className="text-xs font-black block truncate">
+                          {sub.label.split(' ')[0]}
+                        </span>
+                        <span className="text-[10px] text-[#686487] block font-kannada truncate">
+                          {sub.kannadaLabel?.split(' ')[0]}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 4. Recommended / Available Tutors from Real Backend Data */}
+            <div className="space-y-3 text-left">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-black text-[#1C1938] tracking-tight">
+                    Verified Mentors Online
+                  </h3>
+                  <p className="text-[11px] text-[#686487]">
+                    Approved academic tutors ready for 3 or 6-month guidance
+                  </p>
+                </div>
+                {tutors.length > 2 && (
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('discover')}
+                    className="text-xs font-bold text-[#7C3AED] hover:underline flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>See All ({tutors.length})</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {isLoading ? (
+                <div className="py-8 text-center">
+                  <div className="w-8 h-8 rounded-full border-2 border-[#7C3AED] border-t-transparent animate-spin mx-auto mb-2" />
+                  <p className="text-xs text-[#686487] font-semibold">Loading verified educators...</p>
+                </div>
+              ) : filteredTutors.length === 0 ? (
+                <ClayEmptyState
+                  onExploreAll={() => {
+                    setFilters({ ...filters, selectedSubject: '', searchQuery: '', selectedClass: '' });
+                    setActiveTab('discover');
+                  }}
+                  onClearFilters={() => {
+                    setFilters({
+                      searchQuery: '',
+                      selectedSubject: '',
+                      selectedClass: '',
+                      selectedBoard: '',
+                      selectedLanguage: '',
+                      maxPrice: 5000,
+                    });
+                  }}
+                  onRefresh={handleRefresh}
+                />
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {filteredTutors.slice(0, 4).map((tutor) => (
+                    <TutorCard
+                      key={tutor.id}
+                      tutor={tutor}
+                      isFavorite={favoriteIds.includes(tutor.tutor_id || tutor.id)}
+                      onToggleFavorite={handleToggleFavorite}
+                      onViewProfile={(t) => setSelectedTutorForProfile(t)}
+                      onRequestTutor={(t) => setSelectedTutorForRequest(t)}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 5. My Activity Status Card (Requests & Shortlist Preview) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <button
+                type="button"
+                onClick={() => setActiveTab('requests')}
+                aria-label="View learning requests"
+                className="p-4 rounded-2xl bg-white border border-[#E5DFF8] shadow-clay-sm flex items-center justify-between text-left hover:border-[#C4B5FD] transition-all active:scale-95 cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center">
+                    <Send className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-[#1C1938]">Learning Requests</h4>
+                    <p className="text-[11px] text-[#686487]">
+                      {myRequests.length === 0 ? 'No active requests' : `${myRequests.length} inquiries sent`}
+                    </p>
+                  </div>
+                </div>
+                <ArrowRight className="w-4 h-4 text-[#7C3AED]" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('saved')}
+                aria-label="View saved mentors"
+                className="p-4 rounded-2xl bg-white border border-[#E5DFF8] shadow-clay-sm flex items-center justify-between text-left hover:border-[#C4B5FD] transition-all active:scale-95 cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-[#FEE2E2] text-[#EF4444] flex items-center justify-center">
+                    <Heart className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-[#1C1938]">Saved Mentors</h4>
+                    <p className="text-[11px] text-[#686487]">
+                      {favoriteIds.length === 0 ? 'No mentors saved' : `${favoriteIds.length} saved mentors`}
+                    </p>
+                  </div>
+                </div>
+                <ArrowRight className="w-4 h-4 text-[#EF4444]" />
+              </button>
             </div>
           </div>
+        )}
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-3 text-xs">
-            <div className="p-2.5 rounded-2xl bg-white border border-[#DFD8F3] shadow-sm">
-              <span className="text-[10px] text-slate-400 font-bold uppercase block">Current Class</span>
-              <span className="font-extrabold text-[#1C1938] text-sm">
-                {studentProfile?.class_level || 'Class 8'}
-              </span>
-            </div>
-
-            <div className="p-2.5 rounded-2xl bg-white border border-[#DFD8F3] shadow-sm">
-              <span className="text-[10px] text-slate-400 font-bold uppercase block">Medium</span>
-              <span className="font-extrabold text-[#1C1938] text-sm truncate block">
-                {studentProfile?.learning_language || 'Kannada'}
-              </span>
-            </div>
-
-            <div className="p-2.5 rounded-2xl bg-white border border-[#DFD8F3] shadow-sm">
-              <span className="text-[10px] text-slate-400 font-bold uppercase block">Active Requests</span>
-              <span className="font-extrabold text-[#4136CA] text-sm">
-                {myRequests.filter((r) => r.status === 'pending').length} Pending
-              </span>
-            </div>
-
-            <div className="p-2.5 rounded-2xl bg-white border border-[#DFD8F3] shadow-sm">
-              <span className="text-[10px] text-slate-400 font-bold uppercase block">Shortlist</span>
-              <span className="font-extrabold text-rose-600 text-sm">
-                {favoriteIds.length} Saved
-              </span>
-            </div>
-          </div>
-        </ClayCard>
-
-        {/* Navigation Tabs: Find Tutors, My Requests, Saved Tutors */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 select-none">
-          <button
-            onClick={() => setActiveTab('discover')}
-            className={`px-4 py-2.5 rounded-2xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
-              activeTab === 'discover'
-                ? 'bg-[#4136CA] text-white shadow-clay-button border border-[#4136CA]'
-                : 'bg-white text-[#1C1938] hover:bg-[#F4F1FA] border border-[#DFD8F3]'
-            }`}
-          >
-            <BookOpen className="w-4 h-4" />
-            <span>Find Tutors</span>
-            <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${
-              activeTab === 'discover' ? 'bg-white/20 text-white' : 'bg-[#DFD8F3] text-[#4136CA]'
-            }`}>
-              {filteredTutors.length}
-            </span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('requests')}
-            className={`px-4 py-2.5 rounded-2xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
-              activeTab === 'requests'
-                ? 'bg-[#4136CA] text-white shadow-clay-button border border-[#4136CA]'
-                : 'bg-white text-[#1C1938] hover:bg-[#F4F1FA] border border-[#DFD8F3]'
-            }`}
-          >
-            <Send className="w-4 h-4" />
-            <span>My Requests</span>
-            {myRequests.length > 0 && (
-              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
-                activeTab === 'requests' ? 'bg-white/20 text-white' : 'bg-[#DFD8F3] text-[#4136CA]'
-              }`}>
-                {myRequests.length}
-              </span>
-            )}
-          </button>
-
-          <button
-            onClick={() => setActiveTab('saved')}
-            className={`px-4 py-2.5 rounded-2xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
-              activeTab === 'saved'
-                ? 'bg-[#4136CA] text-white shadow-clay-button border border-[#4136CA]'
-                : 'bg-white text-[#1C1938] hover:bg-[#F4F1FA] border border-[#DFD8F3]'
-            }`}
-          >
-            <Heart className="w-4 h-4" />
-            <span>Shortlist ({favoriteIds.length})</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('profile')}
-            className={`px-4 py-2.5 rounded-2xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
-              activeTab === 'profile'
-                ? 'bg-[#4136CA] text-white shadow-clay-button border border-[#4136CA]'
-                : 'bg-white text-[#1C1938] hover:bg-[#F4F1FA] border border-[#DFD8F3]'
-            }`}
-          >
-            <User className="w-4 h-4" />
-            <span>My Profile</span>
-          </button>
-        </div>
-
-        {/* TAB 1: DISCOVER TUTORS */}
+        {/* ========================================================================= */}
+        {/* VIEW 2: DISCOVER TUTORS (Full Marketplace Experience)                     */}
+        {/* ========================================================================= */}
         {activeTab === 'discover' && (
-          <div className="space-y-4">
+          <div className="space-y-5 animate-fade-in">
+            {/* Filter Bar with Pill Search and Subject Chips */}
             <TutorFilterBar
               filters={filters}
               onChange={setFilters}
@@ -308,51 +501,39 @@ export const StudentDashboardPage: React.FC = () => {
               resultCount={filteredTutors.length}
             />
 
+            {/* Tutor Cards List */}
             {isLoading ? (
-              <ClayCard className="p-12 text-center space-y-3 border-[#DFD8F3] shadow-clay-card bg-white">
-                <div className="w-10 h-10 rounded-full border-4 border-[#4136CA] border-t-transparent animate-spin mx-auto" />
-                <p className="text-xs font-semibold text-slate-600">Discovering verified tutors...</p>
-              </ClayCard>
+              <div className="py-12 text-center space-y-3">
+                <div className="w-8 h-8 rounded-full border-2 border-[#7C3AED] border-t-transparent animate-spin mx-auto" />
+                <p className="text-xs text-[#686487] font-semibold">Loading verified educators...</p>
+              </div>
             ) : filteredTutors.length === 0 ? (
-              <ClayCard className="p-8 text-center space-y-3 border-[#DFD8F3] shadow-clay-card bg-white">
-                <div className="w-14 h-14 rounded-3xl bg-[#DFD8F3]/60 text-[#4136CA] flex items-center justify-center mx-auto border border-[#DFD8F3]">
-                  <SlidersHorizontal className="w-7 h-7" />
-                </div>
-                <h3 className="font-extrabold text-base text-[#1C1938]">
-                  No Tutors Matching Your Current Filters
-                </h3>
-                <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
-                  We only display tutors whose qualifications have been manually reviewed and approved. Try clearing filters or searching for another subject.
-                </p>
-                <div className="pt-2">
-                  <ClayButton
-                    size="sm"
-                    variant="secondary"
-                    onClick={() =>
-                      setFilters({
-                        searchQuery: '',
-                        selectedSubject: '',
-                        selectedClass: '',
-                        selectedBoard: '',
-                        selectedLanguage: '',
-                        maxPrice: 5000,
-                      })
-                    }
-                  >
-                    Reset All Filters
-                  </ClayButton>
-                </div>
-              </ClayCard>
+              <ClayEmptyState
+                onExploreAll={() =>
+                  setFilters({ ...filters, selectedSubject: '', searchQuery: '', selectedClass: '' })
+                }
+                onClearFilters={() =>
+                  setFilters({
+                    searchQuery: '',
+                    selectedSubject: '',
+                    selectedClass: '',
+                    selectedBoard: '',
+                    selectedLanguage: '',
+                    maxPrice: 5000,
+                  })
+                }
+                onRefresh={handleRefresh}
+              />
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {filteredTutors.map((tutor) => (
                   <TutorCard
                     key={tutor.id}
                     tutor={tutor}
-                    isFavorite={favoriteIds.includes(tutor.tutor_id)}
+                    isFavorite={favoriteIds.includes(tutor.tutor_id || tutor.id)}
                     onToggleFavorite={handleToggleFavorite}
-                    onViewProfile={setSelectedTutorForProfile}
-                    onRequestTutor={setSelectedTutorForRequest}
+                    onViewProfile={(t) => setSelectedTutorForProfile(t)}
+                    onRequestTutor={(t) => setSelectedTutorForRequest(t)}
                   />
                 ))}
               </div>
@@ -360,97 +541,197 @@ export const StudentDashboardPage: React.FC = () => {
           </div>
         )}
 
-        {/* TAB 2: MY TUTOR REQUESTS */}
+        {/* ========================================================================= */}
+        {/* VIEW 3: MY REQUESTS (Learning Inquiries)                                  */}
+        {/* ========================================================================= */}
         {activeTab === 'requests' && (
-          <div className="space-y-3 text-left">
-            <div className="flex items-center justify-between px-1">
-              <h3 className="font-extrabold text-sm text-[#1C1938]">
-                Your Submitted Tutor Requests ({myRequests.length})
-              </h3>
-              <span className="text-[11px] text-slate-500">Track acceptance status in real time</span>
+          <div className="space-y-4 animate-fade-in">
+            <div className="flex items-center justify-between text-left">
+              <div>
+                <h3 className="text-base font-black text-[#1C1938]">Learning Inquiries</h3>
+                <p className="text-xs text-[#686487]">Track status of requests sent to mentors</p>
+              </div>
+              <span className="text-xs font-bold text-[#7C3AED] bg-[#EDE9FE] px-3 py-1 rounded-full">
+                {myRequests.length} Total
+              </span>
             </div>
 
+            {paymentSuccessMessage && (
+              <div className="p-3.5 rounded-2xl bg-[#ECFDF5] border border-[#A7F3D0] text-[#065F46] text-xs flex items-center justify-between gap-2 shadow-sm animate-fade-in">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-[#059669] flex-shrink-0" />
+                  <span className="font-semibold">{paymentSuccessMessage}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPaymentSuccessMessage(null)}
+                  className="text-xs font-bold text-[#065F46] hover:underline"
+                >
+                  Dismiss
+                </button>
+              </div>
+            )}
+
             {myRequests.length === 0 ? (
-              <ClayCard className="p-8 text-center space-y-3 border-[#DFD8F3] shadow-clay-card bg-white">
-                <div className="w-14 h-14 rounded-3xl bg-[#DFD8F3]/60 text-[#4136CA] flex items-center justify-center mx-auto border border-[#DFD8F3]">
+              <div className="bg-white rounded-[32px] p-8 text-center border border-[#E5DFF8] shadow-clay space-y-3 max-w-md mx-auto my-6">
+                <div className="w-12 h-12 rounded-full bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center mx-auto">
                   <Send className="w-6 h-6" />
                 </div>
-                <h4 className="font-extrabold text-base text-[#1C1938]">No Tutor Requests Yet</h4>
-                <p className="text-xs text-slate-500 max-w-xs mx-auto">
-                  Browse our approved educators and tap &apos;Request&apos; to arrange learning sessions.
+                <h3 className="text-base font-black text-[#1C1938]">No Requests Sent Yet</h3>
+                <p className="text-xs text-[#686487] max-w-sm mx-auto leading-relaxed">
+                  Browse verified educators in the Find Tutors tab and click "Request" to arrange long-term learning support.
                 </p>
                 <div className="pt-2">
-                  <ClayButton size="sm" variant="primary" onClick={() => setActiveTab('discover')}>
-                    Browse Approved Tutors
+                  <ClayButton
+                    variant="primary"
+                    size="sm"
+                    onClick={() => setActiveTab('discover')}
+                  >
+                    Browse Mentors
                   </ClayButton>
                 </div>
-              </ClayCard>
+              </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-3 text-left">
                 {myRequests.map((req) => {
-                  const tutorName = req.tutor_profile?.name || req.tutor_application?.tutor_profile?.name || 'Assigned Tutor';
-                  const subjectName = SCHOOL_SUBJECTS.find((s) => s.id === req.subject)?.label || req.subject;
+                  const payCoord = paymentRecords.find((p) => p.request_id === req.id);
 
                   return (
-                    <ClayCard key={req.id} className="p-4 sm:p-5 text-left space-y-3 bg-white border-[#DFD8F3] shadow-clay-card">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h4 className="font-extrabold text-base text-[#1C1938]">{tutorName}</h4>
-                            <span
-                              className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold capitalize flex items-center gap-1 ${
-                                req.status === 'accepted'
-                                  ? 'bg-[#EBF3E8] text-[#3B522F] border border-[#3B522F]/20'
-                                  : req.status === 'declined'
-                                  ? 'bg-rose-50 text-rose-800 border border-rose-200'
-                                  : req.status === 'cancelled'
-                                  ? 'bg-slate-100 text-slate-600'
-                                  : 'bg-[#DFD8F3]/70 text-[#4136CA] border border-[#A7AAE5]/50'
-                              }`}
-                            >
-                              {req.status === 'accepted' && <CheckCircle className="w-3 h-3 text-[#3B522F]" />}
-                              {req.status === 'declined' && <XCircle className="w-3 h-3 text-rose-600" />}
-                              {req.status === 'pending' && <Clock className="w-3 h-3 text-[#4136CA]" />}
-                              {req.status}
-                            </span>
-                          </div>
-                          <p className="text-xs text-slate-500 mt-0.5">
-                            Subject: <strong className="text-[#1C1938]">{subjectName}</strong> ({req.class_level})
-                          </p>
+                    <div
+                      key={req.id}
+                      className="p-5 rounded-[28px] bg-white border border-[#E5DFF8] shadow-clay flex flex-col gap-3"
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-black text-[#1C1938]">
+                            {req.tutor_name || 'Verified Educator'}
+                          </span>
+                          <span
+                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                              req.status === 'accepted'
+                                ? 'bg-[#ECFDF5] text-[#065F46] border border-[#A7F3D0]'
+                                : req.status === 'declined'
+                                ? 'bg-[#FEF2F2] text-[#991B1B] border border-[#FECACA]'
+                                : req.status === 'cancelled'
+                                ? 'bg-[#F3F4F6] text-[#4B5563] border border-[#E5E7EB]'
+                                : 'bg-[#FEF3C7] text-[#92400E] border border-[#FDE68A]'
+                            }`}
+                          >
+                            {req.status}
+                          </span>
                         </div>
-                        <span className="text-[11px] text-slate-400">
-                          {new Date(req.created_at).toLocaleDateString()}
-                        </span>
-                      </div>
 
-                      <div className="p-3 rounded-2xl bg-[#F4F1FA] border border-[#DFD8F3] text-xs space-y-1">
-                        <p className="text-slate-700">
-                          <strong>Your Learning Note:</strong> {req.learning_needs}
-                        </p>
-                        {req.preferred_schedule && (
-                          <p className="text-slate-500 text-[11px]">
-                            <strong>Preferred Schedule:</strong> {req.preferred_schedule}
-                          </p>
-                        )}
-                        {req.response_message && (
-                          <p className="pt-1.5 border-t border-[#DFD8F3] font-semibold text-[#4136CA]">
-                            <strong>Tutor Reply:</strong> {req.response_message}
-                          </p>
-                        )}
-                      </div>
-
-                      {req.status === 'pending' && (
-                        <div className="flex justify-end pt-1">
+                        {req.status === 'pending' && (
                           <button
                             type="button"
                             onClick={() => handleCancelRequest(req.id)}
-                            className="text-xs font-bold text-red-600 hover:underline"
+                            className="px-3.5 py-1.5 rounded-full border border-[#FECACA] text-[#DC2626] hover:bg-[#FEF2F2] text-xs font-bold transition-all self-start sm:self-auto cursor-pointer"
                           >
                             Cancel Request
                           </button>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2 flex-wrap text-xs text-[#686487]">
+                        <span>
+                          Subject:{' '}
+                          <strong className="text-[#1C1938]">
+                            {SCHOOL_SUBJECTS.find((s) => s.id === req.subject)?.label || req.subject}
+                          </strong>
+                        </span>
+                        <span>•</span>
+                        <span>
+                          Class: <strong className="text-[#1C1938]">{req.class_level?.toUpperCase()}</strong>
+                        </span>
+                        {(req as any).batch_name && (
+                          <>
+                            <span>•</span>
+                            <span className="inline-flex items-center gap-1 text-[#4136CA] font-bold bg-[#EFEAFF] px-2 py-0.5 rounded-lg">
+                              <Clock className="w-3 h-3" />
+                              {(req as any).batch_name} ({(req as any).batch_time || '3 hrs'})
+                            </span>
+                          </>
+                        )}
+                      </div>
+
+                      <p className="text-xs text-[#4A4668] bg-[#FAF9FE] p-2.5 rounded-xl border border-[#EFEBF8]">
+                        &quot;{req.learning_needs}&quot;
+                      </p>
+
+                      {/* TUTOR CONTACT PHONE (Revealed strictly on request acceptance) */}
+                      {req.status === 'accepted' && (
+                        <div className="mt-1 p-3.5 rounded-2xl bg-[#F0FDF4] border border-[#BBF7D0] flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fade-in">
+                          <div>
+                            <span className="text-[10px] font-bold text-[#166534] uppercase tracking-wider block">
+                              Verified Mentor Contact
+                            </span>
+                            <span className="text-sm font-black text-[#14532D]">
+                              {req.tutor_phone || 'Phone verified with Shikshan'}
+                            </span>
+                            <p className="text-[11px] text-[#166534]">
+                              Contact your tutor directly to align on batch schedule and learning targets.
+                            </p>
+                          </div>
+                          {req.tutor_phone && (
+                            <a
+                              href={`tel:${req.tutor_phone}`}
+                              className="px-4 py-2 rounded-xl bg-[#16A34A] text-white font-bold text-xs flex items-center justify-center gap-2 hover:bg-[#15803D] transition-colors shadow-sm self-start sm:self-auto"
+                            >
+                              <Phone className="w-4 h-4" />
+                              Call Tutor
+                            </a>
+                          )}
                         </div>
                       )}
-                    </ClayCard>
+
+                      {/* MANUAL PAYMENT COORDINATION DESK */}
+                      {req.status === 'accepted' && (
+                        payCoord ? (
+                          <div className="p-3.5 rounded-2xl bg-[#EDE9FE] border border-[#DDD6FE] text-xs">
+                            <div className="flex items-center justify-between">
+                              <span className="font-bold text-[#5B21B6] flex items-center gap-1.5">
+                                <ShieldCheck className="w-4 h-4 text-[#7C3AED]" />
+                                Payment Coordination Status:
+                              </span>
+                              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-[#7C3AED] text-white">
+                                {payCoord.status === 'paid_verified'
+                                  ? 'Enrollment Confirmed'
+                                  : payCoord.status === 'contacted'
+                                  ? 'Admin Contacting'
+                                  : 'Interest Registered'}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-[#6D28D9] mt-1.5">
+                              {payCoord.status === 'paid_verified'
+                                ? `Fee of ₹${payCoord.amount_collected || req.fee || 0} verified by Shikshan Admin. Your 3-hour batch seat is officially confirmed.`
+                                : 'Shikshan team is coordinating direct fee verification with your guardian. No payment gateways required.'}
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="p-3.5 rounded-2xl bg-[#F4F1FA] border border-[#DFD8F3] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div>
+                              <p className="text-xs font-bold text-[#1C1938]">
+                                Ready to confirm your batch seat with {req.tutor_name || 'this tutor'}?
+                              </p>
+                              <p className="text-[11px] text-slate-500">
+                                Shikshan admin will coordinate manual fee payment and batch seat allocation.
+                              </p>
+                            </div>
+                            <ClayButton
+                              size="sm"
+                              variant="primary"
+                              disabled={submittingPaymentForReq === req.id}
+                              onClick={() => handleExpressPaymentInterest(req)}
+                              icon={<ShieldCheck className="w-4 h-4" />}
+                            >
+                              {submittingPaymentForReq === req.id
+                                ? 'Registering...'
+                                : "I'm Interested in Proceeding with Payment"}
+                            </ClayButton>
+                          </div>
+                        )
+                      )}
+                    </div>
                   );
                 })}
               </div>
@@ -458,28 +739,40 @@ export const StudentDashboardPage: React.FC = () => {
           </div>
         )}
 
-        {/* TAB 3: SAVED TUTORS */}
+        {/* ========================================================================= */}
+        {/* VIEW 4: SHORTLIST (Saved Tutors)                                          */}
+        {/* ========================================================================= */}
         {activeTab === 'saved' && (
-          <div className="space-y-3 text-left">
-            <h3 className="font-extrabold text-sm text-slate-900 px-1">
-              Shortlisted Tutors ({savedTutorsList.length})
-            </h3>
+          <div className="space-y-4 animate-fade-in">
+            <div className="flex items-center justify-between text-left">
+              <div>
+                <h3 className="text-base font-black text-[#1C1938]">Shortlisted Tutors</h3>
+                <p className="text-xs text-[#686487]">Your bookmarked educators</p>
+              </div>
+              <span className="text-xs font-bold text-[#EF4444] bg-[#FEE2E2] px-3 py-1 rounded-full">
+                {savedTutorsList.length} Saved
+              </span>
+            </div>
 
             {savedTutorsList.length === 0 ? (
-              <ClayCard className="p-8 text-center space-y-3">
-                <div className="w-14 h-14 rounded-3xl bg-rose-50 text-rose-500 flex items-center justify-center mx-auto">
+              <div className="bg-white rounded-[32px] p-8 text-center border border-[#E5DFF8] shadow-clay space-y-3 max-w-md mx-auto my-6">
+                <div className="w-12 h-12 rounded-full bg-[#FEE2E2] text-[#EF4444] flex items-center justify-center mx-auto">
                   <Heart className="w-6 h-6" />
                 </div>
-                <h4 className="font-extrabold text-base text-slate-900">No Shortlisted Tutors</h4>
-                <p className="text-xs text-slate-500 max-w-xs mx-auto">
-                  Tap the heart icon on any tutor card to save them here for easy comparison.
+                <h3 className="text-base font-black text-[#1C1938]">No Tutors Shortlisted</h3>
+                <p className="text-xs text-[#686487] max-w-sm mx-auto leading-relaxed">
+                  Click the heart icon on any tutor card to save them to your shortlist for easy access later.
                 </p>
                 <div className="pt-2">
-                  <ClayButton size="sm" variant="primary" onClick={() => setActiveTab('discover')}>
-                    Explore Tutors
+                  <ClayButton
+                    variant="primary"
+                    size="sm"
+                    onClick={() => setActiveTab('discover')}
+                  >
+                    Find Tutors
                   </ClayButton>
                 </div>
-              </ClayCard>
+              </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {savedTutorsList.map((tutor) => (
@@ -488,8 +781,8 @@ export const StudentDashboardPage: React.FC = () => {
                     tutor={tutor}
                     isFavorite={true}
                     onToggleFavorite={handleToggleFavorite}
-                    onViewProfile={setSelectedTutorForProfile}
-                    onRequestTutor={setSelectedTutorForRequest}
+                    onViewProfile={(t) => setSelectedTutorForProfile(t)}
+                    onRequestTutor={(t) => setSelectedTutorForRequest(t)}
                   />
                 ))}
               </div>
@@ -497,59 +790,98 @@ export const StudentDashboardPage: React.FC = () => {
           </div>
         )}
 
-        {/* TAB 4: MY ACADEMIC PROFILE */}
+        {/* ========================================================================= */}
+        {/* VIEW 5: STUDENT PROFILE OVERVIEW                                          */}
+        {/* ========================================================================= */}
         {activeTab === 'profile' && (
-          <ClayCard className="p-6 text-left space-y-4">
-            <div className="pb-3 border-b border-slate-100 flex items-center justify-between">
+          <div className="space-y-5 text-left animate-fade-in">
+            <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-extrabold text-base text-slate-900">My Academic Settings</h3>
-                <p className="text-xs text-slate-500">Your registered curriculum and subject preferences</p>
+                <h3 className="text-base font-black text-[#1C1938]">Student Profile</h3>
+                <p className="text-xs text-[#686487]">Your academic details and preferences</p>
               </div>
+              <span className="px-3 py-1 rounded-full bg-[#EDE9FE] text-[#7C3AED] text-xs font-black">
+                {studentProfile?.class_level || 'Class 1–10'}
+              </span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-              <div className="p-3.5 rounded-2xl bg-slate-50 space-y-1">
-                <span className="text-slate-400 font-bold block text-[10px] uppercase">Student Name</span>
-                <span className="font-extrabold text-slate-900 text-sm">{profile?.name || user?.email}</span>
+            {/* Profile Information & Photo Card */}
+            <ClayCard className="space-y-4">
+              <div className="pb-3 border-b border-[#EFEBF8]">
+                <ClayUploadButton
+                  currentPhotoUrl={user?.photo_url || profile?.photo_url || studentProfile?.photo_url}
+                  onPhotoSelected={async (data) => {
+                    await uploadPhoto(data);
+                  }}
+                  onPhotoRemoved={async () => {
+                    await removePhoto();
+                  }}
+                  label={studentDisplayName}
+                  subLabel={user?.email || 'Student Account'}
+                />
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-slate-50 space-y-1">
-                <span className="text-slate-400 font-bold block text-[10px] uppercase">Registered Class</span>
-                <span className="font-extrabold text-slate-900 text-sm">{studentProfile?.class_level || 'Class 8'}</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div className="p-3 rounded-xl bg-[#FAF9FE] border border-[#EFEBF8]">
+                  <span className="text-[#686487] block mb-0.5">Education Board</span>
+                  <strong className="text-[#1C1938] font-bold">
+                    {studentProfile?.board || 'Karnataka State Board'}
+                  </strong>
+                </div>
+                <div className="p-3 rounded-xl bg-[#FAF9FE] border border-[#EFEBF8]">
+                  <span className="text-[#686487] block mb-0.5">Learning Medium</span>
+                  <strong className="text-[#1C1938] font-bold">
+                    {studentProfile?.learning_language || 'Kannada & English'}
+                  </strong>
+                </div>
+                <div className="p-3 rounded-xl bg-[#FAF9FE] border border-[#EFEBF8]">
+                  <span className="text-[#686487] block mb-0.5">Student Mobile</span>
+                  <strong className="text-[#1C1938] font-bold">
+                    {user?.phone || 'Not provided'}
+                  </strong>
+                </div>
+                <div className="p-3 rounded-xl bg-[#FAF9FE] border border-[#EFEBF8]">
+                  <span className="text-[#686487] block mb-0.5">Guardian Contact</span>
+                  <strong className="text-[#1C1938] font-bold">
+                    {studentProfile?.guardian_phone || 'Verified by Parent'}
+                  </strong>
+                </div>
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-slate-50 space-y-1">
-                <span className="text-slate-400 font-bold block text-[10px] uppercase">School Curriculum</span>
-                <span className="font-extrabold text-slate-900 text-sm">{studentProfile?.board || 'Karnataka State Board'}</span>
-              </div>
+              {studentProfile?.learning_goals && (
+                <div className="pt-2">
+                  <span className="text-xs font-bold text-[#1C1938] block mb-1">Learning Goals:</span>
+                  <p className="text-xs text-[#4A4668] bg-[#FAF9FE] p-3 rounded-xl border border-[#EFEBF8] leading-relaxed">
+                    "{studentProfile.learning_goals}"
+                  </p>
+                </div>
+              )}
+            </ClayCard>
 
-              <div className="p-3.5 rounded-2xl bg-slate-50 space-y-1">
-                <span className="text-slate-400 font-bold block text-[10px] uppercase">Learning Medium</span>
-                <span className="font-extrabold text-slate-900 text-sm">{studentProfile?.learning_language || 'Kannada'}</span>
-              </div>
+            {/* Quick Actions */}
+            <div className="pt-2 flex flex-col sm:flex-row items-center gap-3">
+              <button
+                type="button"
+                onClick={() => signOut()}
+                className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-[#FEE2E2] border border-[#FECACA] text-xs font-bold text-[#DC2626] hover:bg-red-100 flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Sign Out of Shikshan</span>
+              </button>
             </div>
-
-            <div className="pt-2">
-              <span className="text-xs font-bold text-slate-700 block mb-2">Subjects Needing Support:</span>
-              <div className="flex flex-wrap gap-1.5">
-                {studentProfile?.subjects?.map((subId) => {
-                  const sObj = SCHOOL_SUBJECTS.find((s) => s.id === subId);
-                  return (
-                    <span
-                      key={subId}
-                      className="px-3 py-1.5 rounded-xl bg-blue-50 border border-blue-100 text-blue-900 font-semibold text-xs"
-                    >
-                      {sObj?.label || subId}
-                    </span>
-                  );
-                })}
-              </div>
-            </div>
-          </ClayCard>
+          </div>
         )}
       </main>
 
-      {/* Full Tutor Profile Modal */}
+      {/* Mobile-First Bottom Navigation Dock */}
+      <ClayBottomNavigation
+        activeTab={activeTab}
+        onChangeTab={(tab) => setActiveTab(tab)}
+        requestsCount={myRequests.length}
+        savedCount={favoriteIds.length}
+      />
+
+      {/* Tutor Profile Modal */}
       <TutorProfileModal
         tutor={selectedTutorForProfile}
         isOpen={Boolean(selectedTutorForProfile)}
@@ -558,11 +890,14 @@ export const StudentDashboardPage: React.FC = () => {
           setSelectedTutorForProfile(null);
           setSelectedTutorForRequest(t);
         }}
-        isFavorite={selectedTutorForProfile ? favoriteIds.includes(selectedTutorForProfile.tutor_id) : false}
+        isFavorite={Boolean(
+          selectedTutorForProfile &&
+            favoriteIds.includes(selectedTutorForProfile.tutor_id || selectedTutorForProfile.id)
+        )}
         onToggleFavorite={handleToggleFavorite}
       />
 
-      {/* Tutor Request Submission Modal */}
+      {/* Tutor Request Modal */}
       <TutorRequestModal
         tutor={selectedTutorForRequest}
         isOpen={Boolean(selectedTutorForRequest)}

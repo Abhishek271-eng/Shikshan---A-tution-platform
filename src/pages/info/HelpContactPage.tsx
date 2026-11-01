@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { HelpCircle, MessageSquare, ChevronDown, ChevronUp, Send, CheckCircle2 } from 'lucide-react';
+import { MessageSquare, ChevronDown, ChevronUp, Send, CheckCircle2 } from 'lucide-react';
 import { Header } from '../../components/common/Header';
 import { ClayCard } from '../../components/common/ClayCard';
 import { ClayInput } from '../../components/common/ClayInput';
 import { ClayButton } from '../../components/common/ClayButton';
+import { ClayBackground } from '../../components/common/ClayBackground';
+import { ClayIdeaBulb } from '../../components/common/Clay3DIllustrations';
 
 interface FAQItem {
   question: string;
@@ -57,24 +59,24 @@ export const HelpContactPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F7F6FC]">
+    <ClayBackground className="min-h-screen flex flex-col">
       <Header title="Help & Contact" subtitle="Student & Tutor Support" />
 
       <main className="flex-1 max-w-2xl mx-auto w-full px-4 sm:px-6 py-6 pb-24 space-y-6 text-left">
         {/* Support Overview */}
-        <ClayCard className="p-6 sm:p-8 space-y-3 border border-[#DFD8F3] shadow-clay-card bg-white">
-          <div className="w-12 h-12 rounded-2xl bg-[#DFD8F3] text-[#4136CA] flex items-center justify-center shadow-sm border border-[#A7AAE5]/50">
-            <HelpCircle className="w-7 h-7" />
+        <ClayCard className="p-6 sm:p-8 space-y-3 border border-white/80 shadow-clay-card bg-white/90 backdrop-blur-md">
+          <div className="flex items-center gap-4">
+            <ClayIdeaBulb size={56} className="flex-shrink-0" />
+            <div>
+              <h2 className="text-xl sm:text-2xl font-black text-slate-800">
+                Help & Support Center
+              </h2>
+              <p className="text-xs text-slate-500 font-kannada mt-0.5">
+                ಸಹಾಯ ಕೇಂದ್ರ • We are here to support your learning journey.
+              </p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-xl sm:text-2xl font-black text-[#1C1938]">
-              Help & Support Center
-            </h2>
-            <p className="text-xs text-slate-500 font-kannada mt-0.5">
-              ಸಹಾಯ ಕೇಂದ್ರ • We are here to support your learning journey.
-            </p>
-          </div>
-          <p className="text-xs text-slate-600 leading-relaxed">
+          <p className="text-xs text-slate-600 leading-relaxed font-medium">
             Have questions about student registration, tutor verification, or discovery? Browse the frequently asked questions below or contact our team directly.
           </p>
         </ClayCard>
@@ -93,11 +95,11 @@ export const HelpContactPage: React.FC = () => {
                   key={index}
                   interactive
                   onClick={() => toggleFaq(index)}
-                  className="p-4 transition-all border border-[#DFD8F3] shadow-clay-card bg-white"
+                  className="p-4 transition-all border border-white/80 shadow-clay-card bg-white/90 backdrop-blur-md"
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <h4 className="font-extrabold text-sm text-[#1C1938] leading-snug">
+                      <h4 className="font-extrabold text-sm text-slate-800 leading-snug">
                         {faq.question}
                       </h4>
                       {faq.kannadaQuestion && (
@@ -107,14 +109,14 @@ export const HelpContactPage: React.FC = () => {
                       )}
                     </div>
                     {isOpen ? (
-                      <ChevronUp className="w-4 h-4 text-[#4136CA] flex-shrink-0" />
+                      <ChevronUp className="w-4 h-4 text-[#7C3AED] flex-shrink-0" />
                     ) : (
                       <ChevronDown className="w-4 h-4 text-slate-400 flex-shrink-0" />
                     )}
                   </div>
 
                   {isOpen && (
-                    <div className="mt-3 pt-3 border-t border-[#DFD8F3] text-xs text-slate-600 leading-relaxed">
+                    <div className="mt-3 pt-3 border-t border-purple-100 text-xs text-slate-600 leading-relaxed font-medium">
                       {faq.answer}
                     </div>
                   )}
@@ -125,17 +127,17 @@ export const HelpContactPage: React.FC = () => {
         </div>
 
         {/* Contact Form */}
-        <ClayCard className="p-6 space-y-4 border border-[#DFD8F3] shadow-clay-card bg-white">
+        <ClayCard className="p-6 space-y-4 border border-white/80 shadow-clay-card bg-white/90 backdrop-blur-md">
           <div className="flex items-center gap-2">
-            <MessageSquare className="w-4 h-4 text-[#4136CA]" />
-            <h3 className="font-extrabold text-sm text-[#1C1938]">
+            <MessageSquare className="w-4 h-4 text-[#7C3AED]" />
+            <h3 className="font-extrabold text-sm text-slate-800">
               Send a Message to the Shikshan Team
             </h3>
           </div>
 
           {isSent ? (
-            <div className="p-4 rounded-2xl bg-[#EBF3E8] border border-[#3B522F]/20 text-[#3B522F] text-xs space-y-2 text-center">
-              <CheckCircle2 className="w-8 h-8 text-[#3B522F] mx-auto" />
+            <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs space-y-2 text-center">
+              <CheckCircle2 className="w-8 h-8 text-emerald-600 mx-auto" />
               <p className="font-bold text-sm">Thank You for Reaching Out!</p>
               <p>Your message has been received. Our team will respond to your email shortly.</p>
             </div>
@@ -159,8 +161,8 @@ export const HelpContactPage: React.FC = () => {
               />
 
               <div className="flex flex-col gap-1.5 text-left">
-                <label htmlFor="help-contact-message" className="text-sm font-semibold text-[#1C1938]">
-                  Message / Question <span className="text-red-500">*</span>
+                <label htmlFor="help-contact-message" className="text-xs font-bold text-slate-700 ml-1">
+                  Message / Question <span className="text-rose-500">*</span>
                 </label>
                 <textarea
                   id="help-contact-message"
@@ -169,7 +171,7 @@ export const HelpContactPage: React.FC = () => {
                   placeholder="Tell us what you need help with..."
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  className="clay-input text-xs"
+                  className="w-full px-4 py-3 bg-white/90 rounded-2xl text-xs text-slate-800 font-medium placeholder-slate-400 border border-purple-100 shadow-inner focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/30 transition-all resize-none"
                 />
               </div>
 
@@ -185,11 +187,11 @@ export const HelpContactPage: React.FC = () => {
             </form>
           )}
 
-          <div className="pt-3 border-t border-[#DFD8F3] text-center text-xs text-slate-500">
-            Official Support Email: <strong className="text-[#4136CA] font-mono">support@shikshan.org</strong>
+          <div className="pt-3 border-t border-purple-100 text-center text-xs text-slate-500 font-medium">
+            Official Support Email: <strong className="text-[#7C3AED] font-mono">support@shikshan.org</strong>
           </div>
         </ClayCard>
       </main>
-    </div>
+    </ClayBackground>
   );
 };

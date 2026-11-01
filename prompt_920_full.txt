@@ -1,0 +1,498 @@
+﻿<USER_REQUEST>
+# SHIKSHAN â€” COMPLETE UI REDESIGN, BRANDING & LOCAL DATABASE IMPLEMENTATION
+
+You are acting as a **Senior Mobile UI/UX Designer, Product Designer, React Native Engineer, Backend Engineer, and Software Architect**.
+
+Your task is to redesign and develop my existing Android application, **Shikshan**, into a polished, modern, mobile-first studentâ€“tutor discovery platform.
+
+This is an existing project. First inspect the project, understand its architecture, and examine the UI reference folder before making changes.
+
+## 1. MANDATORY UI REFERENCE FOLDER
+
+My UI design reference folder is:
+
+`C:\Users\Abhis\.gemini\antigravity\scratch\shikshan\UI design reference\app UI desgn reference`
+
+This folder contains the UI designs I personally selected.
+
+**You MUST inspect all images and design references inside this folder before designing or coding any screens.**
+
+Do not skip images. Do not rely on filenames alone. Open and visually analyse the actual designs.
+
+Study:
+
+- Overall visual identity and design language.
+- Mobile screen composition.
+- Navigation patterns.
+- Typography and font hierarchy.
+- Colour palette.
+- Spacing and alignment.
+- Buttons and interactive elements.
+- Input fields and form design.
+- Cards, lists, and profile layouts.
+- Icons and illustrations.
+- Bottom navigation and headers.
+- Screen transitions and user experience.
+- How the designs use available mobile screen space.
+
+### Critical design instruction
+
+Use these references as the **visual design direction for Shikshan**.
+
+Do not copy their content, text, business logic, branding, names, images, or unrelated features.
+
+Instead, understand their design philosophy and recreate a consistent visual experience appropriate for Shikshan.
+
+For example:
+- If a reference is an educational app, adapt its visual style to student and tutor discovery.
+- If a reference uses an elegant profile layout, adapt it for tutor profiles.
+- If a reference has an excellent onboarding experience, adapt it for Shikshan onboarding.
+
+Do not blindly reproduce reference screens.
+
+## 2. SHIKSHAN PRODUCT IDENTITY
+
+Shikshan is a studentâ€“tutor discovery platform.
+
+Its purpose is to connect students with suitable tutors.
+
+There are two primary user roles:
+
+1. Student
+2. Tutor
+
+The application should feel like a professionally designed, modern education marketplace.
+
+It must be:
+- Mobile-first.
+- Visually polished.
+- Easy to navigate.
+- Lightweight and responsive.
+- Intuitive for ordinary Indian students and tutors.
+- Consistent across all screens.
+
+### Absolutely avoid newspaper-style UI
+
+I do NOT want:
+- Newspaper or news portal layouts.
+- Editorial-style article feeds.
+- Dense text-heavy pages.
+- Long columns of content.
+- Excessively stacked information.
+- Desktop website layouts squeezed into a mobile screen.
+- Generic dashboard templates.
+- Random purple gradients.
+- Unnecessary empty spaces.
+- Excessive cards inside cards.
+- Unnecessary badges and decorative elements.
+
+The app should look and behave like a thoughtfully designed native mobile application.
+
+Use the UI reference folder to determine the actual design direction. Do not invent an unrelated design system.
+
+## 3. CREATE A NEW SHIKSHAN LOGO
+
+Remove the existing Shikshan logo and replace it with a completely new, professionally designed logo.
+
+Design a distinctive identity for Shikshan.
+
+Logo requirements:
+- Modern educational identity.
+- Simple and memorable.
+- Professional and trustworthy.
+- Suitable for students and tutors.
+- Recognisable at small mobile sizes.
+- Appropriate for app icon, splash screen, login, onboarding and navigation.
+- Must match the visual language extracted from my reference designs.
+
+Do not use a random book emoji, graduation cap emoji, generic icon, or an unmodified stock logo.
+
+Create an original logo concept and implement it consistently throughout the application.
+
+Also create a suitable Android launcher icon if the existing project supports it.
+
+## 4. STUDENT EXPERIENCE
+
+Students should be able to:
+
+- Register and log in.
+- Browse available tutors.
+- Discover tutors by subject.
+- View tutor profiles.
+- Check teaching experience and qualifications.
+- View teaching languages.
+- View fees where provided.
+- View availability where provided.
+- Contact or send an inquiry to a tutor.
+- Manage their own profile.
+
+The student home screen should prioritise tutor discovery.
+
+Make tutor listings visually attractive and easy to scan on a mobile screen.
+
+A student must only see tutors whose profiles have been approved.
+
+## 5. TUTOR EXPERIENCE
+
+Tutors should be able to:
+
+- Register and log in.
+- Create their professional tutor profile.
+- Add their name and contact information.
+- Select subjects they teach.
+- Add their teaching experience.
+- Add qualifications where applicable.
+- Select teaching languages.
+- Add fees where applicable.
+- Add availability where supported.
+- Write a short professional introduction.
+- Edit their own profile.
+- View their profile approval status.
+
+Tutor approval statuses:
+
+- Pending
+- Approved
+- Rejected
+
+Only approved tutors should appear in student search results.
+
+Do not add:
+- Mandatory 3-month or 6-month commitments.
+- A Documents tab.
+- Mandatory document uploads.
+- Mandatory in-app examinations.
+- Unnecessary registration questions.
+
+Keep registration focused and straightforward.
+
+## 6. SIGNUP AND LOGIN â€” VERY IMPORTANT
+
+The current signup UI has serious problems:
+
+- Fields overlap.
+- Some placeholders are unrelated.
+- Inputs look generic and poorly designed.
+- The forms are visually inconsistent.
+
+Completely redesign these screens using the reference designs.
+
+**I specifically do not want generic, meaningless placeholders.**
+
+Study the reference folder and use its actual input-field design approach.
+
+Do not fill every input with unnecessary placeholder text.
+
+Prefer:
+- Clear visible labels.
+- Properly grouped form sections.
+- Appropriate field descriptions only when necessary.
+- Consistent input heights.
+- Correct spacing.
+- Clear validation messages.
+- Appropriate keyboard types.
+- Proper password visibility controls.
+- Well-designed dropdowns and selectors.
+
+Never use unrelated sample text or fake information as placeholders.
+
+If a field needs an example, use a realistic example relevant to that exact field.
+
+Separate student registration and tutor registration logically.
+
+If a form requires multiple steps, implement a clean mobile-friendly step-by-step flow with progress indication.
+
+Ensure the keyboard never hides important form controls.
+
+## 7. LOCAL MYSQL DATABASE â€” NO SUPABASE
+
+I DO NOT WANT SUPABASE OR ANY CLOUD DATABASE AT THIS STAGE.
+
+I already have MySQL installed and will provide the database credentials.
+
+Use my own MySQL database for storing application data.
+
+### Mandatory requirements
+
+1. Ask me for the required MySQL connection details before attempting database configuration.
+2. Do not invent credentials.
+3. Do not assume a database name, username, password, host or port.
+4. Do not connect to Supabase, Firebase, or any cloud database.
+5. Do not silently substitute mock data for real database operations.
+6. Do not store application data in a cloud database.
+7. Do not expose MySQL credentials inside the Android application.
+8. Build a backend API that securely communicates with MySQL.
+9. Use proper database tables and relationships.
+10. Implement real registration, login, profile creation, profile updates, tutor listings and approval status persistence.
+
+Ask me for the connection information when you reach the database configuration stage.
+
+You will need to establish:
+- MySQL host.
+- Port.
+- Database name.
+- Username.
+- Password.
+- Whether the backend and MySQL are running on the same machine.
+
+If you need to create tables, first propose the schema and explain it briefly. Then implement it after confirming the database details.
+
+### Important architecture
+
+Use this architecture:
+
+Android application â†’ Backend API â†’ MySQL database
+
+The Android application must NEVER connect directly to MySQL.
+
+Use environment variables for backend credentials and provide a `.env.example` file containing placeholders, not actual secrets.
+
+Add appropriate authentication, password hashing, input validation, and server-side role authorization.
+
+Implement database migrations or a repeatable schema setup script.
+
+## 8. ONLINE TESTING REQUIREMENTS
+
+I want to give the application to my younger brother at home for testing.
+
+I will initially register approximately 5â€“6 real tutors whom I know.
+
+I want the following testing experience:
+
+- Tutors register through the same normal registration procedure.
+- Tutor information is submitted to my backend.
+- Their data is stored in my MySQL database.
+- I can approve or reject tutor registrations.
+- Approved tutors become visible in student listings.
+- My younger brother can open the app and browse the approved tutor listings.
+- Students should not see pending or rejected tutors.
+- Data entered by different users should be saved centrally in my own MySQL database.
+
+### Network and hosting clarification
+
+I want the app to work online, but I do not want cloud database storage.
+
+Explain the difference between:
+- Running MySQL locally.
+- Running the backend locally.
+- Accessing the backend over my home Wi-Fi.
+- Accessing the backend from outside my home network.
+
+Before implementation, ask me where the app will be tested:
+
+- Same home Wi-Fi network.
+- Different networks / mobile internet.
+
+Do not assume localhost will work on another phone.
+
+If remote access is required, explain secure backend hosting or secure private-network access options while keeping MySQL on my own machine.
+
+Do not expose MySQL directly to the public internet.
+
+Do not use unsafe port forwarding or disable security protections just to make the app work.
+
+Do not configure cloud hosting or purchase services without my explicit approval.
+
+## 9. ADMIN AND TUTOR APPROVAL
+
+Implement a basic admin approval workflow.
+
+Admin should be able to:
+
+- View tutor registrations.
+- Review tutor profile information.
+- Approve tutors.
+- Reject tutors.
+- View pending registrations.
+
+Approval must be enforced by the backend, not merely hidden in the frontend.
+
+Do not allow tutors to approve themselves.
+
+Do not expose admin functions to ordinary student accounts.
+
+Ask me how I want the initial admin account configured. Do not hardcode a public admin password.
+
+## 10. VISUAL QUALITY AND MOBILE OPTIMISATION
+
+The quality of the UI is a major priority.
+
+Every screen must be designed for actual mobile usage.
+
+Pay attention to:
+- Screen safe areas.
+- Status bar spacing.
+- Bottom navigation.
+- Scroll behaviour.
+- Touch target sizes.
+- Form keyboard behaviour.
+- Responsive layouts.
+- Android back navigation.
+- Loading states.
+- Empty states.
+- Error states.
+- Success feedback.
+
+Use consistent components and design tokens.
+
+Do not create a separate visual style for every screen.
+
+Do not add UI elements merely to make screens look full.
+
+Do not sacrifice usability for decoration.
+
+Use appropriate animations only where they improve the experience.
+
+Support English and ensure Kannada text can render correctly if localisation is implemented.
+
+## 11. TECHNICAL QUALITY
+
+First inspect the existing technology stack and project architecture.
+
+Do not replace the entire project or change frameworks without a strong technical reason.
+
+Preserve useful existing functionality.
+
+Use the existing architecture wherever possible.
+
+Before modifying files:
+- Identify the current app entry point.
+- Identify the actual screens being rendered.
+- Identify existing navigation.
+- Identify current signup and login implementations.
+- Identify existing database or API code.
+- Identify unused or duplicate components.
+
+Do not waste time editing components that are not used by the actual application.
+
+Do not create static mockup screens and claim the app is implemented.
+
+All important buttons and forms must perform real actions.
+
+Do not leave fake authentication, fake tutor listings or nonfunctional buttons in the final implementation.
+
+## 12. TESTING AND DELIVERY
+
+Test the actual application at mobile viewport sizes:
+
+- 360 px
+- 375 px
+- 390 px
+- 430 px
+
+Check:
+- No overlapping fields.
+- No clipped text.
+- No broken navigation.
+- No buttons hidden behind the keyboard.
+- No broken scrolling.
+- No incorrect role permissions.
+- No student access to unapproved tutors.
+- No tutor access to admin functions.
+- No duplicate registrations caused by repeated taps.
+- Correct data persistence after closing and reopening the app.
+
+Run the available tests and resolve errors.
+
+Build an installable Android APK when the application is ready.
+
+Do not claim the app is online or fully tested unless the backend, database and actual device connectivity have been verified.
+
+## 13. REQUIRED WORKFLOW â€” DO NOT SKIP
+
+Follow these stages in order.
+
+### STAGE 1 â€” INSPECT AND ANALYSE
+
+- Inspect the complete existing project.
+- Open and analyse every UI reference image in the specified folder.
+- Identify the current design problems.
+- Identify the actual technology stack.
+- Identify the screens and navigation.
+- Identify the current signup implementation.
+- Identify the existing backend and database situation.
+
+Do not start coding immediately.
+
+### STAGE 2 â€” PRESENT THE DESIGN PLAN
+
+Show me:
+
+1. Your understanding of the reference designs.
+2. The proposed Shikshan visual design system.
+3. The new logo concept.
+4. The redesigned student experience.
+5. The redesigned tutor experience.
+6. The signup and login structure.
+7. The screen-by-screen implementation plan.
+8. The proposed MySQL database schema.
+9. The backend architecture.
+10. Any missing information you need from me.
+
+Ask for my approval before beginning the main redesign.
+
+### STAGE 3 â€” ASK FOR DATABASE AND NETWORK DETAILS
+
+Ask me for MySQL credentials securely through the appropriate configuration process.
+
+Also clarify how my younger brother will access the application.
+
+Do not proceed with invented credentials or pretend the database is connected.
+
+### STAGE 4 â€” IMPLEMENT
+
+After approval:
+
+- Create the new Shikshan logo.
+- Implement the reference-inspired design system.
+- Redesign all actual application screens.
+- Fix signup and login.
+- Implement the backend API.
+- Connect the backend to my local MySQL database.
+- Implement role-based functionality.
+- Implement tutor approval.
+- Implement real tutor discovery.
+- Ensure data is persisted correctly.
+
+### STAGE 5 â€” VERIFY
+
+Test the actual application and backend.
+
+Fix all layout, navigation, database and functionality problems.
+
+### STAGE 6 â€” ANDROID APK
+
+Generate a working Android APK.
+
+Tell me:
+- Exact APK location.
+- How to install it.
+- How to run the backend.
+- How to start MySQL.
+- How to configure the database.
+- How my brother can connect to the application.
+- Any limitations of the current local-server setup.
+
+---
+
+# FINAL NON-NEGOTIABLE INSTRUCTIONS
+
+1. My UI reference folder is the primary visual design reference.
+2. Adapt its design language to Shikshan; never copy unrelated content.
+3. Build a mobile application, NOT a newspaper-style website.
+4. Remove the old logo and create a new original Shikshan identity.
+5. No random placeholders or unrelated signup fields.
+6. No Supabase, Firebase or cloud database.
+7. Use my own MySQL database through a secure backend API.
+8. Ask me for database credentials and network details.
+9. My brother must be able to browse approved tutor listings.
+10. Real tutor registration data must be stored in my MySQL database.
+11. Do not use fake data to pretend real functionality exists.
+12. Analyse first, present the plan, and obtain my approval before the main implementation.
+13. Do not stop after creating attractive screens. The actual application must work.
+
+**The goal is to build a professional, beautiful, mobile-first Shikshan application inspired by my selected UI references, with real backend functionality and my own MySQL database.**
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-10-30T16:06:38+05:30.
+</ADDITIONAL_METADATA>

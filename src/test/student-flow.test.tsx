@@ -46,8 +46,8 @@ describe('Student Registration Journey', () => {
     // Complete Step A with valid 10-digit phone and strong password
     fireEvent.change(screen.getByLabelText(/student's full name/i), { target: { value: 'Chidananda' } });
     fireEvent.change(screen.getByLabelText(/email address/i), { target: { value: 'chidu@example.com' } });
-    const mobileInputs = screen.getAllByPlaceholderText(/98765 43210/i);
-    fireEvent.change(mobileInputs[0], { target: { value: '9900112233' } });
+    const mobileInput = screen.getByLabelText(/^mobile number/i);
+    fireEvent.change(mobileInput, { target: { value: '9900112233' } });
     fireEvent.change(screen.getByLabelText(/^account password/i), { target: { value: 'Student@123' } });
     fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'Student@123' } });
 

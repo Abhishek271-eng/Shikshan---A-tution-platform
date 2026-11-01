@@ -14,20 +14,30 @@ export const ClayInput = React.forwardRef<HTMLInputElement, ClayInputProps>(
 
     return (
       <div className="flex flex-col gap-1.5 w-full text-left">
-        <label htmlFor={inputId} className="text-sm font-semibold text-slate-800 flex items-center justify-between">
-          <span>
-            {label} {required && <span className="text-red-500 font-bold">*</span>}
-          </span>
-          {kannadaLabel && (
-            <span className="text-xs font-normal text-slate-500 font-kannada">
-              {kannadaLabel}
+        {/* Persistent Label */}
+        {label && (
+          <label htmlFor={inputId} className="text-xs font-bold text-[#1C1938] flex items-center justify-between">
+            <span>
+              {label} {required && <span className="text-red-500 font-bold">*</span>}
             </span>
-          )}
-        </label>
+            {kannadaLabel && (
+              <span className="text-[11px] font-normal text-[#686487] font-kannada">
+                {kannadaLabel}
+              </span>
+            )}
+          </label>
+        )}
 
-        <div className="relative w-full">
+        {/* Unified Flexbox Input Container — Guaranteeing Zero Overlapping */}
+        <div
+          className={`flex items-center w-full rounded-2xl bg-white border transition-all shadow-xs ${
+            error
+              ? 'border-red-500 bg-red-50/20 ring-1 ring-red-200'
+              : 'border-[#DFD8F3] focus-within:border-[#4136CA] focus-within:ring-2 focus-within:ring-[#EDE9FE]'
+          }`}
+        >
           {icon && (
-            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+            <div className="pl-3.5 pr-1 flex items-center pointer-events-none text-[#6D28D9] flex-shrink-0">
               {icon}
             </div>
           )}
@@ -35,7 +45,7 @@ export const ClayInput = React.forwardRef<HTMLInputElement, ClayInputProps>(
             id={inputId}
             ref={ref}
             required={required}
-            className={`clay-input ${icon ? 'pl-11' : 'pl-4'} ${error ? 'clay-input-error' : ''} ${className}`}
+            className={`flex-1 min-w-0 bg-transparent px-3 py-3 text-xs sm:text-sm font-semibold text-[#1C1938] placeholder:text-[#9CA3AF] focus:outline-none disabled:bg-gray-100 disabled:cursor-not-allowed ${className}`}
             aria-invalid={Boolean(error)}
             aria-describedby={error ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined}
             {...props}
@@ -43,13 +53,13 @@ export const ClayInput = React.forwardRef<HTMLInputElement, ClayInputProps>(
         </div>
 
         {hint && !error && (
-          <p id={`${inputId}-hint`} className="text-xs text-slate-500 mt-0.5">
+          <p id={`${inputId}-hint`} className="text-[11px] text-[#686487]">
             {hint}
           </p>
         )}
 
         {error && (
-          <p id={`${inputId}-error`} className="text-xs font-medium text-red-600 mt-0.5 flex items-center gap-1">
+          <p id={`${inputId}-error`} className="text-[11px] font-medium text-red-600 flex items-center gap-1">
             <span>•</span> {error}
           </p>
         )}

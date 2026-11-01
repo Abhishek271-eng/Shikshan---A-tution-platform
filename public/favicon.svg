@@ -1,6 +1,44 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
-  <rect width="64" height="64" rx="20" fill="#3B82F6"/>
-  <path d="M16 44C20 40 28 40 32 44C36 40 44 40 48 44V22C44 18 36 18 32 22C28 18 20 18 16 22V44Z" fill="white" stroke="#1D4ED8" stroke-width="2.5" stroke-linejoin="round"/>
-  <path d="M32 22V44" stroke="#1D4ED8" stroke-width="2.5" stroke-linecap="round"/>
-  <circle cx="32" cy="14" r="4" fill="#FBBF24"/>
+  <!-- Rounded Clay Background -->
+  <rect width="64" height="64" rx="20" fill="url(#bgGrad)"/>
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stopColor="#2E1065"/>
+      <stop offset="50%" stopColor="#4338CA"/>
+      <stop offset="100%" stopColor="#6366F1"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Open Book Base -->
+  <path d="M8 48C16 43 26 43 32 46C38 43 48 43 56 48L53 53C46 49 38 49 32 52C26 49 18 49 11 53L8 48Z" fill="#1E1B4B"/>
+  <path d="M31 46.5V52C31.5 52.2 32.5 52.2 33 52V46.5C32.5 46.3 31.5 46.3 31 46.5Z" fill="#F59E0B"/>
+
+  <!-- Left Page -->
+  <path d="M10 46C17 41 26 41 32 45L32 38C26 34 17 34 10 39V46Z" fill="#FFFFFF"/>
+  <line x1="15" y1="40" x2="27" y2="39" stroke="#A5B4FC" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="15" y1="43" x2="25" y2="42" stroke="#CBD5E1" stroke-width="1" stroke-linecap="round"/>
+
+  <!-- Right Page -->
+  <path d="M32 45C38 41 47 41 54 46V39C47 34 38 34 32 38V45Z" fill="#F1F5F9"/>
+  <line x1="37" y1="39" x2="49" y2="40" stroke="#A5B4FC" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="39" y1="42" x2="49" y2="43" stroke="#CBD5E1" stroke-width="1" stroke-linecap="round"/>
+
+  <!-- Plant Stem -->
+  <path d="M32 41 C32 35 31.5 29 32 23" stroke="#10B981" stroke-width="3.2" stroke-linecap="round"/>
+  <path d="M32 38 C32 32 32 26 32 24" stroke="#34D399" stroke-width="1.4" stroke-linecap="round"/>
+
+  <!-- Left Leaf -->
+  <path d="M32 31 C25 29 20 22 23 16 C29 17 31 23 32 27 Z" fill="#10B981"/>
+  <path d="M30 28 C26 26 23 21 24 18 C28 19 30 23 31 26 Z" fill="#34D399"/>
+
+  <!-- Right Leaf -->
+  <path d="M32 28 C39 26 44 19 41 13 C35 14 33 20 32 24 Z" fill="#059669"/>
+  <path d="M32 26 C38 24 42 18 40 15 C35 16 33 20 32 23 Z" fill="#10B981"/>
+
+  <!-- Apex Leaf Bud -->
+  <path d="M32 22 C30 18 31 14 32 12 C33 14 34 18 32 22 Z" fill="#6EE7B7"/>
+
+  <!-- Guidance Star -->
+  <path d="M32 6 L33.2 9.5 L36.5 10.5 L33.2 11.5 L32 15 L30.8 11.5 L27.5 10.5 L30.8 9.5 Z" fill="#FBBF24"/>
+  <circle cx="32" cy="10.5" r="1.2" fill="#FFFBEB"/>
 </svg>

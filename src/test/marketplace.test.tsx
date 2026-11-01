@@ -26,7 +26,7 @@ describe('Tutor Discovery Marketplace Journey', () => {
 
     // Check fee display and verification badge
     expect(screen.getAllByText(/verified/i)[0]).toBeInTheDocument();
-    expect(screen.getAllByText(/proposed fee/i)[0]).toBeInTheDocument();
+    expect(screen.getAllByText(/monthly fee/i)[0]).toBeInTheDocument();
   });
 
   it('filters tutors by search query', async () => {
@@ -97,16 +97,16 @@ describe('Tutor Discovery Marketplace Journey', () => {
       expect(screen.getByRole('dialog', { name: /request tutor/i })).toBeInTheDocument();
     });
 
-    // Provide short learning needs to trigger validation error
-    const learningNeedsTextarea = screen.getByPlaceholderText(/need assistance with mathematics/i);
-    fireEvent.change(learningNeedsTextarea, { target: { value: 'Short' } });
+    // Provide short learning needs to trigger validation error (< 2 chars)
+    const learningNeedsTextarea = screen.getByPlaceholderText(/maths algebra, science formulas/i);
+    fireEvent.change(learningNeedsTextarea, { target: { value: 'M' } });
 
     const submitBtn = screen.getByRole('button', { name: /submit request/i });
     const form = submitBtn.closest('form')!;
     fireEvent.submit(form);
 
     await waitFor(() => {
-      expect(screen.getByText(/please provide a brief description of your learning needs/i)).toBeInTheDocument();
+      expect(screen.getByText(/please specify what you would like to learn/i)).toBeInTheDocument();
     });
   });
 });

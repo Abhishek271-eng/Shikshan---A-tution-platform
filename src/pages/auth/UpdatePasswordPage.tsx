@@ -5,6 +5,7 @@ import { Header } from '../../components/common/Header';
 import { ClayCard } from '../../components/common/ClayCard';
 import { ClayInput } from '../../components/common/ClayInput';
 import { ClayButton } from '../../components/common/ClayButton';
+import { ClayBackground } from '../../components/common/ClayBackground';
 import { useAuth } from '../../context/AuthContext';
 
 export const UpdatePasswordPage: React.FC = () => {
@@ -49,7 +50,7 @@ export const UpdatePasswordPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F7F6FC]">
+    <ClayBackground>
       <Header title="Set New Password" subtitle="Security update" />
 
       <main className="flex-1 max-w-md mx-auto w-full px-5 py-8 flex flex-col justify-center pb-24">
@@ -128,6 +129,6 @@ export const UpdatePasswordPage: React.FC = () => {
           )}
         </ClayCard>
       </main>
-    </div>
+    </ClayBackground>
   );
 };
