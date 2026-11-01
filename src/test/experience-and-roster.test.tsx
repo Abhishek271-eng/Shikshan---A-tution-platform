@@ -55,7 +55,7 @@ describe('Experience Badge & Roster Tests', () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByText(/3\+ years exp/i)).toBeInTheDocument();
+    expect(screen.getByText(/3 years experience/i)).toBeInTheDocument();
   });
 
   it('strictly renders NO experience badge on TutorCard when experience is 0, empty, or undefined', () => {

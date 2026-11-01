@@ -18,7 +18,7 @@ import { TutorCard } from '../../components/marketplace/TutorCard';
 import { TutorFilterBar, TutorFilters } from '../../components/marketplace/TutorFilterBar';
 import { TutorProfileModal } from '../../components/marketplace/TutorProfileModal';
 import { TutorRequestModal } from '../../components/marketplace/TutorRequestModal';
-import { ClaySubjectIcon, ClayStudentAtDesk } from '../../components/common/Clay3DIllustrations';
+import { ClaySubjectIcon, ClayStudentStudyDesk } from '../../components/common/Clay3DIllustrations';
 import { ClayBottomNavigation, BottomNavTab } from '../../components/common/ClayBottomNavigation';
 import { ClayEmptyState } from '../../components/common/ClayEmptyState';
 import { ClayButton } from '../../components/common/ClayButton';
@@ -221,25 +221,15 @@ export const StudentDashboardPage: React.FC = () => {
         title="Shikshan"
         subtitle={`Namaskara, ${studentDisplayName}!`}
         customRight={
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-              className="w-9 h-9 rounded-full bg-white border border-[#E5DFF8] shadow-clay-sm flex items-center justify-center text-[#1C1938] hover:text-[#7C3AED] active:scale-95 transition-all cursor-pointer"
-              title="Refresh Data"
-              aria-label="Refresh Data"
-            >
-              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-[#7C3AED]' : ''}`} />
-            </button>
-            <button
-              onClick={() => signOut()}
-              className="w-9 h-9 rounded-full bg-white border border-[#E5DFF8] shadow-clay-sm flex items-center justify-center text-[#9CA3AF] hover:text-[#EF4444] active:scale-95 transition-all cursor-pointer"
-              title="Sign Out"
-              aria-label="Sign Out"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
-          </div>
+          <button
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white border border-[#E5DFF8] shadow-clay-sm flex items-center justify-center text-[#1C1938] hover:text-[#7C3AED] active:scale-95 transition-all cursor-pointer"
+            title="Refresh Data"
+            aria-label="Refresh Data"
+          >
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-[#7C3AED]' : ''}`} />
+          </button>
         }
       />
       <SetupNotice />
@@ -250,8 +240,8 @@ export const StudentDashboardPage: React.FC = () => {
         {/* ========================================================================= */}
         {activeTab === 'home' && (
           <div className="space-y-6 animate-fade-in">
-            {/* 1. Creative Educational Hero Section (3D Clay Student Studying at Desk) */}
-            <div className="relative overflow-hidden rounded-[32px] p-5 sm:p-6 bg-gradient-to-br from-[#FFFFFF] via-[#FAF9FE] to-[#F1EDFB] border border-[#E5DFF8] shadow-clay text-left flex items-center justify-between gap-4">
+            {/* 1. Creative Educational Hero Section (Prominent 3D Clay Student Studying at Desk) */}
+            <div className="sticky top-[68px] z-20 overflow-hidden rounded-[32px] p-5 sm:p-6 bg-gradient-to-br from-white/95 via-[#FAF9FE]/95 to-[#F1EDFB]/95 backdrop-blur-md border border-[#E5DFF8] shadow-clay text-left flex items-center justify-between gap-3 sm:gap-6">
               <div className="space-y-1.5 max-w-md">
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#EDE9FE] text-[#6D28D9] text-[11px] font-black">
                   <Sparkles className="w-3.5 h-3.5 text-[#7C3AED]" />
@@ -286,8 +276,8 @@ export const StudentDashboardPage: React.FC = () => {
               </div>
 
               {/* 3D Clay Student Studying at Desk Illustration */}
-              <div className="hidden xs:flex flex-shrink-0">
-                <ClayStudentAtDesk size={105} />
+              <div className="flex-shrink-0 flex items-center justify-center">
+                <ClayStudentStudyDesk size={135} className="sm:scale-110" />
               </div>
             </div>
 
@@ -298,9 +288,6 @@ export const StudentDashboardPage: React.FC = () => {
                   <h3 className="text-sm font-black text-[#1C1938] tracking-tight">
                     Search Mentors & Topics
                   </h3>
-                  <p className="text-xs text-[#686487]">
-                    Find bilingual educators across Karnataka
-                  </p>
                 </div>
                 <button
                   type="button"

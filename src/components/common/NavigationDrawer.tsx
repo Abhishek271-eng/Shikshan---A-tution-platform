@@ -4,19 +4,9 @@ import {
   X,
   Home,
   Info,
-  Shield,
   FileText,
-  HelpCircle,
   LogIn,
   LogOut,
-  UserCheck,
-  BookOpen,
-  LayoutDashboard,
-  ShieldAlert,
-  Calendar,
-  Inbox,
-  Compass,
-  Heart,
   Code2,
 } from 'lucide-react';
 import { ShikshanLogo } from './ShikshanLogo';
@@ -54,74 +44,29 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({ isOpen, onCl
     setIsConfirmSignOutOpen(false);
     await signOut();
     onClose();
-    navigate('/');
+    navigate('/login');
   };
 
-  // Build role-tailored navigation items
-  const getRoleMenuItems = () => {
-    if (!user) {
-      return [
-        { label: 'Home', path: '/', icon: Home },
-        { label: 'Register as Student', path: '/student/register', icon: BookOpen },
-        { label: 'Apply as Tutor', path: '/tutor/register', icon: UserCheck },
-        { label: 'About Shikshan', path: '/about', icon: Info },
-        { label: 'Developer & Founder', path: '/developer', icon: Code2 },
-        { label: 'Help and Contact', path: '/help', icon: HelpCircle },
-        { label: 'Privacy Policy', path: '/privacy-policy', icon: Shield },
-        { label: 'Terms and Conditions', path: '/terms', icon: FileText },
-      ];
-    }
-
-    if (profile?.role === 'tutor') {
-      return [
-        { label: 'Tutor Dashboard', path: '/tutor/dashboard', icon: LayoutDashboard },
-        { label: 'Verification Status', path: '/tutor/status', icon: UserCheck },
-        { label: 'My 3-Hour Batches', path: '/tutor/dashboard', icon: Calendar },
-        { label: 'Student Inquiries', path: '/tutor/dashboard', icon: Inbox },
-        { label: 'About Shikshan', path: '/about', icon: Info },
-        { label: 'Developer & Founder', path: '/developer', icon: Code2 },
-        { label: 'Help and Contact', path: '/help', icon: HelpCircle },
-        { label: 'Privacy Policy', path: '/privacy-policy', icon: Shield },
-        { label: 'Terms and Conditions', path: '/terms', icon: FileText },
-      ];
-    }
-
-    if (profile?.role === 'student') {
-      return [
-        { label: 'Student Dashboard', path: '/student/dashboard', icon: BookOpen },
-        { label: 'Explore Tutors', path: '/student/dashboard', icon: Compass },
-        { label: 'My Learning Requests', path: '/student/dashboard', icon: Inbox },
-        { label: 'Saved Mentors', path: '/student/dashboard', icon: Heart },
-        { label: 'About Shikshan', path: '/about', icon: Info },
-        { label: 'Developer & Founder', path: '/developer', icon: Code2 },
-        { label: 'Help and Contact', path: '/help', icon: HelpCircle },
-        { label: 'Privacy Policy', path: '/privacy-policy', icon: Shield },
-        { label: 'Terms and Conditions', path: '/terms', icon: FileText },
-      ];
-    }
-
-    if (profile?.role === 'admin') {
-      return [
-        { label: 'Admin Review Workspace', path: '/admin', icon: ShieldAlert },
-        { label: 'About Shikshan', path: '/about', icon: Info },
-        { label: 'Developer & Founder', path: '/developer', icon: Code2 },
-        { label: 'Help and Contact', path: '/help', icon: HelpCircle },
-        { label: 'Privacy Policy', path: '/privacy-policy', icon: Shield },
-        { label: 'Terms and Conditions', path: '/terms', icon: FileText },
-      ];
-    }
-
-    return [
-      { label: 'Home', path: '/', icon: Home },
-      { label: 'About Shikshan', path: '/about', icon: Info },
-      { label: 'Developer & Founder', path: '/developer', icon: Code2 },
-      { label: 'Help and Contact', path: '/help', icon: HelpCircle },
-      { label: 'Privacy Policy', path: '/privacy-policy', icon: Shield },
-      { label: 'Terms and Conditions', path: '/terms', icon: FileText },
-    ];
+  // Home navigates to the dashboard belonging to the currently authenticated role
+  const getHomePath = () => {
+    if (!user || !profile) return '/';
+    if (profile.role === 'admin') return '/admin';
+    if (profile.role === 'tutor') return '/tutor/dashboard';
+    if (profile.role === 'student') return '/student/dashboard';
+    return '/';
   };
 
-  const menuItems = getRoleMenuItems();
+  // Mandatory 4 items ONLY for every role:
+  // 1. Home
+  // 2. About Shikshan
+  // 3. Developer
+  // 4. Terms & Conditions
+  const menuItems = [
+    { label: 'Home', path: getHomePath(), icon: Home },
+    { label: 'About Shikshan', path: '/about', icon: Info },
+    { label: 'Developer', path: '/developer', icon: Code2 },
+    { label: 'Terms & Conditions', path: '/terms', icon: FileText },
+  ];
 
   return (
     <>
@@ -170,8 +115,8 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({ isOpen, onCl
                 </div>
               )}
 
-              {/* Navigation Links */}
-              <nav className="mt-4 space-y-1 text-left">
+              {/* Navigation Links — Exactly 4 Items */}
+              <nav className="mt-4 space-y-1.5 text-left">
                 {menuItems.map((item, idx) => {
                   const Icon = item.icon;
                   return (
@@ -179,9 +124,11 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({ isOpen, onCl
                       key={`${item.path}-${idx}`}
                       to={item.path}
                       onClick={onClose}
-                      className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-slate-700 hover:text-[#7C3AED] hover:bg-purple-50 transition-colors"
+                      className="flex items-center gap-3.5 px-4 py-3 rounded-2xl text-sm font-bold text-slate-700 hover:text-[#7C3AED] hover:bg-purple-50/80 transition-all active:scale-95"
                     >
-                      <Icon className="w-5 h-5 text-[#7C3AED]" />
+                      <div className="w-8 h-8 rounded-xl bg-purple-50 text-[#7C3AED] flex items-center justify-center flex-shrink-0">
+                        <Icon className="w-4 h-4 stroke-[2.2]" />
+                      </div>
                       <span>{item.label}</span>
                     </Link>
                   );
@@ -189,21 +136,21 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({ isOpen, onCl
               </nav>
             </div>
 
-            {/* Bottom Section: Auth Actions */}
+            {/* Bottom Section: Clearly Visible Logout Action */}
             <div className="p-6 border-t border-purple-100 bg-purple-50/40">
               {user ? (
                 <button
                   onClick={() => setIsConfirmSignOutOpen(true)}
-                  className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200/60 transition-colors cursor-pointer"
+                  className="w-full flex items-center justify-center gap-2.5 py-3 px-4 rounded-2xl text-sm font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200/70 transition-all active:scale-95 cursor-pointer shadow-xs"
                 >
-                  <LogOut className="w-4 h-4" />
-                  <span>Sign Out</span>
+                  <LogOut className="w-4 h-4 stroke-[2.2]" />
+                  <span>Logout</span>
                 </button>
               ) : (
                 <Link
                   to="/login"
                   onClick={onClose}
-                  className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-bold text-white bg-[#7C3AED] hover:bg-[#6D28D9] shadow-clay-button transition-colors"
+                  className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl text-sm font-bold text-white bg-[#7C3AED] hover:bg-[#6D28D9] shadow-clay-button transition-colors"
                 >
                   <LogIn className="w-4 h-4" />
                   <span>Sign In</span>
@@ -223,7 +170,7 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({ isOpen, onCl
         </div>
       </div>
 
-      {/* Logout Confirmation Modal */}
+      {/* Logout Confirmation Dialog */}
       {isConfirmSignOutOpen && (
         <div
           className="fixed inset-0 z-60 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in"
@@ -238,10 +185,10 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({ isOpen, onCl
 
             <div>
               <h3 id="logout-confirm-title" className="font-extrabold text-base text-slate-800">
-                Confirm Sign Out
+                Confirm Logout
               </h3>
               <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                Are you sure you want to log out of Shikshan? You will need to sign in again to access your dashboard and batches.
+                Are you sure you want to log out of Shikshan? You will need to sign in again to access your account.
               </p>
             </div>
 

@@ -233,52 +233,325 @@ export const ClayEmptyStateIllustration: React.FC<{ className?: string; size?: n
 /**
  * 3D Clay Subject Icon Component
  */
+/**
+ * 3D Clay Subject Artworks (Real Vector Illustrations, No Unicode Emojis)
+ */
+export const ClayMathArt: React.FC<{ size?: number; className?: string }> = ({ size = 48, className = '' }) => (
+  <div style={{ width: size, height: size }} className={`relative inline-flex items-center justify-center flex-shrink-0 select-none ${className}`}>
+    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-md">
+      <defs>
+        <radialGradient id="mathCalcGrad" cx="30%" cy="25%" r="75%">
+          <stop offset="0%" stopColor="#93C5FD" />
+          <stop offset="60%" stopColor="#3B82F6" />
+          <stop offset="100%" stopColor="#1D4ED8" />
+        </radialGradient>
+        <radialGradient id="mathRulerGrad" cx="30%" cy="20%" r="80%">
+          <stop offset="0%" stopColor="#FDE68A" />
+          <stop offset="70%" stopColor="#F59E0B" />
+          <stop offset="100%" stopColor="#D97706" />
+        </radialGradient>
+      </defs>
+      <path d="M15 80 L75 80 L15 20 Z" fill="url(#mathRulerGrad)" filter="drop-shadow(0 3px 4px rgba(0,0,0,0.15))" />
+      <path d="M25 72 L55 72 L25 42 Z" fill="#FEF3C7" opacity="0.9" />
+      <line x1="20" y1="78" x2="20" y2="74" stroke="#78350F" strokeWidth="1.5" strokeLinecap="round" />
+      <line x1="28" y1="78" x2="28" y2="74" stroke="#78350F" strokeWidth="1.5" strokeLinecap="round" />
+      <line x1="36" y1="78" x2="36" y2="74" stroke="#78350F" strokeWidth="1.5" strokeLinecap="round" />
+      <line x1="44" y1="78" x2="44" y2="74" stroke="#78350F" strokeWidth="1.5" strokeLinecap="round" />
+      <rect x="36" y="24" width="50" height="64" rx="12" fill="url(#mathCalcGrad)" filter="drop-shadow(0 6px 8px rgba(29,78,216,0.3))" />
+      <rect x="37" y="25" width="48" height="6" rx="3" fill="#FFFFFF" opacity="0.5" />
+      <rect x="42" y="32" width="38" height="14" rx="5" fill="#1E293B" stroke="#60A5FA" strokeWidth="1" />
+      <text x="76" y="43" fill="#38BDF8" fontSize="9" fontWeight="900" fontFamily="monospace" textAnchor="end">123+</text>
+      <rect x="42" y="52" width="10" height="9" rx="3" fill="#DBEAFE" />
+      <rect x="56" y="52" width="10" height="9" rx="3" fill="#DBEAFE" />
+      <rect x="70" y="52" width="10" height="9" rx="3" fill="#F97316" />
+      <rect x="42" y="64" width="10" height="9" rx="3" fill="#DBEAFE" />
+      <rect x="56" y="64" width="10" height="9" rx="3" fill="#DBEAFE" />
+      <rect x="70" y="64" width="10" height="9" rx="3" fill="#10B981" />
+      <rect x="42" y="75" width="24" height="8" rx="3" fill="#DBEAFE" />
+      <rect x="70" y="75" width="10" height="8" rx="3" fill="#6366F1" />
+    </svg>
+  </div>
+);
+
+export const ClayScienceArt: React.FC<{ size?: number; className?: string }> = ({ size = 48, className = '' }) => (
+  <div style={{ width: size, height: size }} className={`relative inline-flex items-center justify-center flex-shrink-0 select-none ${className}`}>
+    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-md">
+      <defs>
+        <radialGradient id="sciAtomGrad" cx="30%" cy="30%" r="70%">
+          <stop offset="0%" stopColor="#A7F3D0" />
+          <stop offset="60%" stopColor="#10B981" />
+          <stop offset="100%" stopColor="#047857" />
+        </radialGradient>
+        <radialGradient id="sciFlaskGrad" cx="35%" cy="35%" r="75%">
+          <stop offset="0%" stopColor="#6EE7B7" />
+          <stop offset="70%" stopColor="#059669" />
+          <stop offset="100%" stopColor="#064E3B" />
+        </radialGradient>
+      </defs>
+      <ellipse cx="44" cy="46" rx="32" ry="12" stroke="#6EE7B7" strokeWidth="2.5" transform="rotate(-30 44 46)" opacity="0.75" />
+      <ellipse cx="44" cy="46" rx="32" ry="12" stroke="#34D399" strokeWidth="2.5" transform="rotate(35 44 46)" opacity="0.75" />
+      <circle cx="44" cy="46" r="6" fill="#FBBF24" filter="drop-shadow(0 2px 4px rgba(245,158,11,0.5))" />
+      <path d="M56 82 L86 82" stroke="#047857" strokeWidth="6" strokeLinecap="round" />
+      <path d="M72 82 L72 50 C72 40 64 36 56 36" stroke="#059669" strokeWidth="5" strokeLinecap="round" />
+      <rect x="46" y="24" width="16" height="28" rx="5" transform="rotate(25 46 24)" fill="url(#sciAtomGrad)" filter="drop-shadow(0 4px 6px rgba(4,120,87,0.3))" />
+      <rect x="52" y="16" width="10" height="12" rx="3" transform="rotate(25 52 16)" fill="#34D399" />
+      <path d="M22 82 L38 82 L33 60 L33 52 L27 52 L27 60 Z" fill="url(#sciFlaskGrad)" filter="drop-shadow(0 4px 6px rgba(0,0,0,0.18))" />
+      <rect x="25" y="49" width="10" height="3" rx="1.5" fill="#A7F3D0" />
+      <path d="M24 78 L36 78 L33 65 L27 65 Z" fill="#6EE7B7" opacity="0.85" />
+      <circle cx="29" cy="72" r="2" fill="#FFFFFF" opacity="0.8" />
+      <circle cx="33" cy="68" r="1.5" fill="#FFFFFF" opacity="0.8" />
+    </svg>
+  </div>
+);
+
+export const ClayEnglishArt: React.FC<{ size?: number; className?: string }> = ({ size = 48, className = '' }) => (
+  <div style={{ width: size, height: size }} className={`relative inline-flex items-center justify-center flex-shrink-0 select-none ${className}`}>
+    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-md">
+      <defs>
+        <radialGradient id="engPinkGrad" cx="30%" cy="25%" r="75%">
+          <stop offset="0%" stopColor="#FBCFE8" />
+          <stop offset="70%" stopColor="#EC4899" />
+          <stop offset="100%" stopColor="#BE185D" />
+        </radialGradient>
+        <radialGradient id="engPurpleGrad" cx="30%" cy="25%" r="75%">
+          <stop offset="0%" stopColor="#DDD6FE" />
+          <stop offset="70%" stopColor="#8B5CF6" />
+          <stop offset="100%" stopColor="#6D28D9" />
+        </radialGradient>
+        <radialGradient id="engYellowGrad" cx="30%" cy="25%" r="75%">
+          <stop offset="0%" stopColor="#FEF08A" />
+          <stop offset="70%" stopColor="#FBBF24" />
+          <stop offset="100%" stopColor="#D97706" />
+        </radialGradient>
+      </defs>
+      <path d="M14 78 C30 72 45 74 50 78 C55 74 70 72 86 78 L86 58 C70 52 55 54 50 58 C45 54 30 52 14 58 Z" fill="#FFFFFF" stroke="#E2E8F0" strokeWidth="2" filter="drop-shadow(0 4px 6px rgba(0,0,0,0.12))" />
+      <path d="M50 58 L50 78" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round" />
+      <rect x="18" y="24" width="26" height="26" rx="6" fill="url(#engPinkGrad)" filter="drop-shadow(0 5px 6px rgba(190,24,93,0.3))" />
+      <rect x="19" y="25" width="24" height="4" rx="2" fill="#FFFFFF" opacity="0.6" />
+      <text x="31" y="43" fill="#FFFFFF" fontSize="16" fontWeight="900" fontFamily="sans-serif" textAnchor="middle">A</text>
+      <rect x="38" y="14" width="26" height="26" rx="6" fill="url(#engPurpleGrad)" filter="drop-shadow(0 5px 6px rgba(109,40,217,0.35))" />
+      <rect x="39" y="15" width="24" height="4" rx="2" fill="#FFFFFF" opacity="0.6" />
+      <text x="51" y="33" fill="#FFFFFF" fontSize="16" fontWeight="900" fontFamily="sans-serif" textAnchor="middle">B</text>
+      <rect x="58" y="26" width="26" height="26" rx="6" fill="url(#engYellowGrad)" filter="drop-shadow(0 5px 6px rgba(217,119,6,0.35))" />
+      <rect x="59" y="27" width="24" height="4" rx="2" fill="#FFFFFF" opacity="0.6" />
+      <text x="71" y="45" fill="#FFFFFF" fontSize="16" fontWeight="900" fontFamily="sans-serif" textAnchor="middle">C</text>
+    </svg>
+  </div>
+);
+
+export const ClayKannadaArt: React.FC<{ size?: number; className?: string }> = ({ size = 48, className = '' }) => (
+  <div style={{ width: size, height: size }} className={`relative inline-flex items-center justify-center flex-shrink-0 select-none ${className}`}>
+    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-md">
+      <defs>
+        <radialGradient id="kanGoldGrad" cx="30%" cy="25%" r="75%">
+          <stop offset="0%" stopColor="#FEF3C7" />
+          <stop offset="60%" stopColor="#F59E0B" />
+          <stop offset="100%" stopColor="#B45309" />
+        </radialGradient>
+      </defs>
+      <rect x="18" y="66" width="64" height="15" rx="5" fill="#DC2626" filter="drop-shadow(0 4px 6px rgba(153,27,27,0.3))" />
+      <rect x="20" y="68" width="60" height="3" rx="1.5" fill="#FCA5A5" opacity="0.7" />
+      <rect x="22" y="55" width="56" height="13" rx="4" fill="#F59E0B" filter="drop-shadow(0 3px 5px rgba(180,83,9,0.25))" />
+      <rect x="24" y="57" width="52" height="2.5" rx="1" fill="#FEF3C7" opacity="0.8" />
+      <rect x="28" y="16" width="44" height="42" rx="12" fill="url(#kanGoldGrad)" filter="drop-shadow(0 6px 10px rgba(180,83,9,0.35))" />
+      <rect x="30" y="18" width="40" height="5" rx="2.5" fill="#FFFFFF" opacity="0.5" />
+      <text x="50" y="45" fill="#FFFFFF" fontSize="26" fontWeight="900" fontFamily="'Noto Sans Kannada', sans-serif" textAnchor="middle">ಕ</text>
+    </svg>
+  </div>
+);
+
+export const ClaySocialScienceArt: React.FC<{ size?: number; className?: string }> = ({ size = 48, className = '' }) => (
+  <div style={{ width: size, height: size }} className={`relative inline-flex items-center justify-center flex-shrink-0 select-none ${className}`}>
+    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-md">
+      <defs>
+        <radialGradient id="socGlobeOcean" cx="35%" cy="30%" r="70%">
+          <stop offset="0%" stopColor="#7DD3FC" />
+          <stop offset="60%" stopColor="#0284C7" />
+          <stop offset="100%" stopColor="#0369A1" />
+        </radialGradient>
+        <radialGradient id="socStandGrad" cx="30%" cy="30%" r="70%">
+          <stop offset="0%" stopColor="#FED7AA" />
+          <stop offset="70%" stopColor="#EA580C" />
+          <stop offset="100%" stopColor="#9A3412" />
+        </radialGradient>
+      </defs>
+      <ellipse cx="50" cy="86" rx="20" ry="6" fill="url(#socStandGrad)" filter="drop-shadow(0 3px 4px rgba(0,0,0,0.2))" />
+      <rect x="47" y="68" width="6" height="19" rx="3" fill="#C2410C" />
+      <path d="M50 20 C68 20 74 34 74 50 C74 66 66 74 50 74" stroke="#F97316" strokeWidth="4.5" strokeLinecap="round" fill="none" />
+      <circle cx="48" cy="46" r="24" fill="url(#socGlobeOcean)" filter="drop-shadow(0 6px 10px rgba(2,132,199,0.35))" />
+      <path d="M38 34 C43 33 46 38 43 43 C40 48 34 46 34 40 Z" fill="#34D399" opacity="0.95" />
+      <path d="M54 36 C59 36 62 41 58 46 C54 50 49 46 51 40 Z" fill="#34D399" opacity="0.95" />
+      <path d="M40 52 C45 52 48 58 45 62 C41 65 37 60 38 55 Z" fill="#34D399" opacity="0.95" />
+      <ellipse cx="48" cy="46" rx="23" ry="8" stroke="#E0F2FE" strokeWidth="1.5" strokeDasharray="3 3" opacity="0.6" />
+      <polygon points="76,22 80,14 84,22 92,26 84,30 80,38 76,30 68,26" fill="#FBBF24" filter="drop-shadow(0 2px 3px rgba(0,0,0,0.15))" />
+    </svg>
+  </div>
+);
+
+export const ClayComputerScienceArt: React.FC<{ size?: number; className?: string }> = ({ size = 48, className = '' }) => (
+  <div style={{ width: size, height: size }} className={`relative inline-flex items-center justify-center flex-shrink-0 select-none ${className}`}>
+    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-md">
+      <defs>
+        <radialGradient id="compScreenGrad" cx="30%" cy="25%" r="75%">
+          <stop offset="0%" stopColor="#C4B5FD" />
+          <stop offset="60%" stopColor="#7C3AED" />
+          <stop offset="100%" stopColor="#4C1D95" />
+        </radialGradient>
+      </defs>
+      <ellipse cx="50" cy="85" rx="18" ry="5" fill="#4B5563" />
+      <rect x="47" y="66" width="6" height="19" rx="3" fill="#6B7280" />
+      <rect x="18" y="18" width="64" height="50" rx="10" fill="#1E293B" filter="drop-shadow(0 6px 10px rgba(0,0,0,0.3))" />
+      <rect x="22" y="22" width="56" height="42" rx="6" fill="#0F172A" />
+      <text x="32" y="47" fill="#38BDF8" fontSize="15" fontWeight="900" fontFamily="monospace">&lt;/&gt;</text>
+      <circle cx="28" cy="28" r="2" fill="#EF4444" />
+      <circle cx="34" cy="28" r="2" fill="#F59E0B" />
+      <circle cx="40" cy="28" r="2" fill="#10B981" />
+      <rect x="14" y="74" width="72" height="14" rx="5" fill="#E2E8F0" filter="drop-shadow(0 4px 6px rgba(0,0,0,0.15))" />
+      <rect x="18" y="77" width="8" height="4" rx="1.5" fill="#94A3B8" />
+      <rect x="28" y="77" width="8" height="4" rx="1.5" fill="#94A3B8" />
+      <rect x="38" y="77" width="24" height="4" rx="1.5" fill="#7C3AED" />
+      <rect x="64" y="77" width="8" height="4" rx="1.5" fill="#94A3B8" />
+      <rect x="74" y="77" width="8" height="4" rx="1.5" fill="#10B981" />
+    </svg>
+  </div>
+);
+
+/**
+ * 3D Clay Subject Icon Component — Dispatches real 3D vector artwork (No Unicode Emojis)
+ */
 export const ClaySubjectIcon: React.FC<{
   subject: string;
   size?: number;
   className?: string;
-}> = ({ subject, size = 42, className = '' }) => {
+}> = ({ subject, size = 48, className = '' }) => {
   const norm = (subject || '').toLowerCase();
 
-  let bgGrad = 'from-[#EDE9FE] to-[#DDD6FE]';
-  let textColor = 'text-[#6D28D9]';
-  let emoji = '📚';
-
   if (norm.includes('math')) {
-    bgGrad = 'from-[#DBEAFE] to-[#BFDBFE]';
-    textColor = 'text-[#1D4ED8]';
-    emoji = '📐';
+    return <ClayMathArt size={size} className={className} />;
   } else if (norm.includes('sci')) {
-    bgGrad = 'from-[#D1FAE5] to-[#A7F3D0]';
-    textColor = 'text-[#047857]';
-    emoji = '🔬';
+    return <ClayScienceArt size={size} className={className} />;
   } else if (norm.includes('kannada')) {
-    bgGrad = 'from-[#FEF3C7] to-[#FDE68A]';
-    textColor = 'text-[#B45309]';
-    emoji = 'ಕ';
+    return <ClayKannadaArt size={size} className={className} />;
   } else if (norm.includes('eng')) {
-    bgGrad = 'from-[#FCE7F3] to-[#FBCFE8]';
-    textColor = 'text-[#BE185D]';
-    emoji = '✍️';
+    return <ClayEnglishArt size={size} className={className} />;
   } else if (norm.includes('soc')) {
-    bgGrad = 'from-[#FFEDD5] to-[#FED7AA]';
-    textColor = 'text-[#C2410C]';
-    emoji = '🌍';
-  } else if (norm.includes('hin')) {
-    bgGrad = 'from-[#E0E7FF] to-[#C7D2FE]';
-    textColor = 'text-[#4338CA]';
-    emoji = 'अ';
+    return <ClaySocialScienceArt size={size} className={className} />;
+  } else if (norm.includes('comp') || norm.includes('tech') || norm.includes('cs')) {
+    return <ClayComputerScienceArt size={size} className={className} />;
   }
 
-  return (
-    <div
-      className={`relative inline-flex items-center justify-center rounded-2xl bg-gradient-to-br ${bgGrad} border border-white/80 shadow-clay-sm flex-shrink-0 select-none ${className}`}
-      style={{ width: size, height: size }}
-    >
-      <span className={`text-base font-black ${textColor}`}>{emoji}</span>
-    </div>
-  );
+  // Fallback to Kannada / English book artwork
+  return <ClayEnglishArt size={size} className={className} />;
 };
+
+/**
+ * Grand 3D Clay Student Studying at Desk Scene
+ * Features: Student with headphones, wooden-clay study desk, school bag on floor,
+ * stack of colourful books, open notebook with pen, desk lamp with warm glow,
+ * pencil cup with colorful pencils and ruler. Floating gentle animation.
+ */
+export const ClayStudentStudyDesk: React.FC<{ size?: number; className?: string }> = ({
+  size = 150,
+  className = '',
+}) => (
+  <div
+    style={{ width: size, height: size * 0.95 }}
+    className={`relative inline-flex items-center justify-center flex-shrink-0 select-none animate-float ${className}`}
+    aria-label="3D Clay Student Studying at Desk"
+  >
+    <svg viewBox="0 0 240 220" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-xl">
+      <defs>
+        <radialGradient id="deskWood" cx="30%" cy="20%" r="80%">
+          <stop offset="0%" stopColor="#FFFFFF" />
+          <stop offset="35%" stopColor="#F5EFE6" />
+          <stop offset="100%" stopColor="#E2D4C0" />
+        </radialGradient>
+        <radialGradient id="bagPurple" cx="30%" cy="25%" r="75%">
+          <stop offset="0%" stopColor="#DDD6FE" />
+          <stop offset="60%" stopColor="#8B5CF6" />
+          <stop offset="100%" stopColor="#6D28D9" />
+        </radialGradient>
+        <radialGradient id="studentSweater" cx="30%" cy="20%" r="75%">
+          <stop offset="0%" stopColor="#A7F3D0" />
+          <stop offset="50%" stopColor="#10B981" />
+          <stop offset="100%" stopColor="#047857" />
+        </radialGradient>
+        <radialGradient id="lampGlow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#FEF08A" stopOpacity="0.55" />
+          <stop offset="100%" stopColor="#FEF08A" stopOpacity="0" />
+        </radialGradient>
+      </defs>
+
+      {/* Ambient Floor Shadow */}
+      <ellipse cx="120" cy="205" rx="95" ry="10" fill="#DFD8F3" fillOpacity="0.8" />
+
+      {/* School Backpack leaning on Floor (Left) */}
+      <rect x="24" y="135" width="36" height="52" rx="14" fill="url(#bagPurple)" filter="drop-shadow(0 6px 8px rgba(109,40,217,0.3))" />
+      <rect x="28" y="152" width="28" height="26" rx="8" fill="#A78BFA" />
+      <rect x="36" y="148" width="12" height="3" rx="1.5" fill="#FEF08A" />
+      <ellipse cx="42" cy="133" rx="8" ry="4" fill="#C4B5FD" />
+      <rect x="18" y="145" width="10" height="22" rx="4" fill="#14B8A6" />
+      <rect x="20" y="140" width="6" height="6" rx="2" fill="#0D9488" />
+
+      {/* Study Desk Legs */}
+      <rect x="58" y="140" width="10" height="62" rx="5" fill="#C4B5FD" />
+      <rect x="178" y="140" width="10" height="62" rx="5" fill="#C4B5FD" />
+
+      {/* Study Desk Surface (Light wood / clay beveled) */}
+      <rect x="46" y="128" width="154" height="18" rx="9" fill="url(#deskWood)" filter="drop-shadow(0 8px 12px rgba(65,54,202,0.18))" />
+      <rect x="48" y="130" width="150" height="4" rx="2" fill="#FFFFFF" opacity="0.85" />
+
+      {/* Student Behind Desk */}
+      <ellipse cx="122" cy="118" rx="30" ry="24" fill="url(#studentSweater)" filter="drop-shadow(0 4px 6px rgba(0,0,0,0.12))" />
+      <rect x="110" y="104" width="24" height="6" rx="3" fill="#FFFFFF" opacity="0.7" />
+      <circle cx="122" cy="74" r="26" fill="#FED7AA" />
+      <path d="M96 68 C96 46 110 40 122 40 C134 40 148 46 148 68 C142 54 134 50 122 50 C110 50 102 54 96 68 Z" fill="#292524" />
+      <circle cx="114" cy="74" r="3" fill="#1E1B4B" />
+      <circle cx="130" cy="74" r="3" fill="#1E1B4B" />
+      <circle cx="115" cy="73" r="1" fill="#FFFFFF" />
+      <circle cx="131" cy="73" r="1" fill="#FFFFFF" />
+      <ellipse cx="108" cy="80" rx="4" ry="2" fill="#F43F5E" opacity="0.4" />
+      <ellipse cx="136" cy="80" rx="4" ry="2" fill="#F43F5E" opacity="0.4" />
+      <path d="M118 82 Q122 86 126 82" stroke="#9A3412" strokeWidth="2" strokeLinecap="round" fill="none" />
+      <path d="M95 72 C95 50 105 44 122 44 C139 44 149 50 149 72" stroke="#6366F1" strokeWidth="5" strokeLinecap="round" fill="none" />
+      <rect x="91" y="68" width="8" height="14" rx="4" fill="#4338CA" />
+      <rect x="145" y="68" width="8" height="14" rx="4" fill="#4338CA" />
+
+      {/* Study Lamp on Left Side of Desk */}
+      <rect x="62" y="122" width="18" height="8" rx="4" fill="#F59E0B" />
+      <path d="M71 122 L71 88 L86 88" stroke="#F59E0B" strokeWidth="4" strokeLinecap="round" />
+      <path d="M80 80 L94 88 L80 96 Z" fill="#FBBF24" />
+      <polygon points="94,88 150,118 100,126" fill="url(#lampGlow)" />
+
+      {/* Open Notebook on Desk */}
+      <rect x="100" y="122" width="44" height="16" rx="3" fill="#FFFFFF" stroke="#CBD5E1" strokeWidth="1.5" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.1))" />
+      <line x1="122" y1="122" x2="122" y2="138" stroke="#94A3B8" strokeWidth="1.5" />
+      <line x1="104" y1="126" x2="118" y2="126" stroke="#E2E8F0" strokeWidth="1" />
+      <line x1="104" y1="130" x2="118" y2="130" stroke="#E2E8F0" strokeWidth="1" />
+      <line x1="126" y1="126" x2="140" y2="126" stroke="#E2E8F0" strokeWidth="1" />
+      <line x1="126" y1="130" x2="140" y2="130" stroke="#E2E8F0" strokeWidth="1" />
+
+      {/* Student Hands Writing */}
+      <circle cx="106" cy="126" r="6" fill="#FED7AA" />
+      <circle cx="138" cy="126" r="6" fill="#FED7AA" />
+      <line x1="138" y1="126" x2="144" y2="118" stroke="#EF4444" strokeWidth="2.5" strokeLinecap="round" />
+
+      {/* Stack of Colourful 3D Books on Right Side of Desk */}
+      <rect x="156" y="120" width="34" height="8" rx="3" fill="#8B5CF6" filter="drop-shadow(0 2px 3px rgba(0,0,0,0.15))" />
+      <rect x="154" y="112" width="34" height="8" rx="3" fill="#10B981" filter="drop-shadow(0 2px 3px rgba(0,0,0,0.15))" />
+      <rect x="158" y="104" width="30" height="8" rx="3" fill="#F59E0B" filter="drop-shadow(0 2px 3px rgba(0,0,0,0.15))" />
+
+      {/* Pencil Cup on Desk with Pencils & Ruler */}
+      <rect x="80" y="112" width="14" height="18" rx="4" fill="#EC4899" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.12))" />
+      <line x1="84" y1="102" x2="84" y2="112" stroke="#FBBF24" strokeWidth="2.5" strokeLinecap="round" />
+      <line x1="89" y1="100" x2="89" y2="112" stroke="#38BDF8" strokeWidth="2.5" strokeLinecap="round" />
+      <path d="M86 108 L91 98 L92 108 Z" fill="#A78BFA" />
+
+      {/* Floating Ambient Sparkles */}
+      <polygon points="196,56 200,44 204,56 216,60 204,64 200,76 196,64 184,60" fill="#FBBF24" opacity="0.85" filter="drop-shadow(0 2px 4px rgba(245,158,11,0.4))" />
+    </svg>
+  </div>
+);
 
 // ============================================================================
 // COMPLETE 3D CLAY EDUCATIONAL ILLUSTRATION SYSTEM (PHASE 3)

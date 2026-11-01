@@ -16,6 +16,7 @@ import { StudentRegisterPage } from './pages/student/StudentRegisterPage';
 import { StudentDashboardPage } from './pages/student/StudentDashboardPage';
 import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
 import { AboutPage } from './pages/info/AboutPage';
+import { DeveloperPage } from './pages/info/DeveloperPage';
 import { PrivacyPolicyPage } from './pages/info/PrivacyPolicyPage';
 import { TermsPage } from './pages/info/TermsPage';
 import { HelpContactPage } from './pages/info/HelpContactPage';
@@ -121,6 +122,7 @@ export const App: React.FC = () => {
             {/* Informational & Marketing */}
             <Route path="/welcome" element={<HomePage />} />
             <Route path="/about" element={<AboutPage />} />
+            <Route path="/developer" element={<DeveloperPage />} />
             <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
             <Route path="/terms" element={<TermsPage />} />
             <Route path="/help" element={<HelpContactPage />} />

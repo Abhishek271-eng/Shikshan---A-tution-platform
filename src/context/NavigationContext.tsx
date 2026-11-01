@@ -59,7 +59,7 @@ export const NavigationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     if (window.history.length > 1) {
       navigate(-1);
     } else {
-      setIsExitDialogOpen(true);
+      navigate('/');
     }
   }, [isExitDialogOpen, location.pathname, navigate]);
 

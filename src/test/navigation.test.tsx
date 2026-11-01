@@ -81,15 +81,15 @@ describe('Navigation and Usability Tests', () => {
     // Click hamburger button to open drawer
     fireEvent.click(hamburgerButton);
 
-    // Drawer is now open with required links
+    // Drawer is now open with required 4 links only
     const dialog = screen.getByRole('dialog', { name: /main navigation/i });
     expect(dialog).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /^home$/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /about shikshan/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /developer/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /privacy policy/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /terms and conditions/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /help and contact/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /terms (&|and) conditions/i })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /privacy policy/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /help and contact/i })).not.toBeInTheDocument();
 
     // Close button works
     const closeButton = screen.getByRole('button', { name: /close menu/i });
