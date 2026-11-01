@@ -18,7 +18,7 @@ import { TutorCard } from '../../components/marketplace/TutorCard';
 import { TutorFilterBar, TutorFilters } from '../../components/marketplace/TutorFilterBar';
 import { TutorProfileModal } from '../../components/marketplace/TutorProfileModal';
 import { TutorRequestModal } from '../../components/marketplace/TutorRequestModal';
-import { ClayWelcomeMascot, ClaySubjectIcon } from '../../components/common/Clay3DIllustrations';
+import { ClaySubjectIcon, ClayStudentAtDesk } from '../../components/common/Clay3DIllustrations';
 import { ClayBottomNavigation, BottomNavTab } from '../../components/common/ClayBottomNavigation';
 import { ClayEmptyState } from '../../components/common/ClayEmptyState';
 import { ClayButton } from '../../components/common/ClayButton';
@@ -250,7 +250,7 @@ export const StudentDashboardPage: React.FC = () => {
         {/* ========================================================================= */}
         {activeTab === 'home' && (
           <div className="space-y-6 animate-fade-in">
-            {/* 1. Compact Welcome Section (Replaces the oversized promotional banner) */}
+            {/* 1. Creative Educational Hero Section (3D Clay Student Studying at Desk) */}
             <div className="relative overflow-hidden rounded-[32px] p-5 sm:p-6 bg-gradient-to-br from-[#FFFFFF] via-[#FAF9FE] to-[#F1EDFB] border border-[#E5DFF8] shadow-clay text-left flex items-center justify-between gap-4">
               <div className="space-y-1.5 max-w-md">
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#EDE9FE] text-[#6D28D9] text-[11px] font-black">
@@ -258,12 +258,17 @@ export const StudentDashboardPage: React.FC = () => {
                   <span>Karnataka State Syllabus • Classes 1–10</span>
                 </div>
 
-                <h2 className="text-xl sm:text-2xl font-black text-[#1C1938] tracking-tight">
-                  Namaskara, {studentDisplayName}! 👋
-                </h2>
+                <div className="pt-0.5">
+                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#7C3AED] block">
+                    Academic Mentorship Platform
+                  </span>
+                  <h2 className="text-xl sm:text-2xl font-black text-[#1C1938] tracking-tight">
+                    Welcome, {studentDisplayName}
+                  </h2>
+                </div>
 
                 <p className="text-xs sm:text-sm text-[#4A4668] font-medium leading-relaxed">
-                  Ready to learn something new today?
+                  Master Karnataka curriculum topics with verified mentors in focused, 4-student batches.
                 </p>
 
                 {/* Prominent but elegant Find Tutors button */}
@@ -280,9 +285,9 @@ export const StudentDashboardPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Compact 3D Clay Educational Illustration */}
+              {/* 3D Clay Student Studying at Desk Illustration */}
               <div className="hidden xs:flex flex-shrink-0">
-                <ClayWelcomeMascot size={90} />
+                <ClayStudentAtDesk size={105} />
               </div>
             </div>
 
@@ -312,12 +317,12 @@ export const StudentDashboardPage: React.FC = () => {
                 onChange={(query) => {
                   setFilters({ ...filters, searchQuery: query });
                 }}
-                placeholder="Search by tutor name, subject, or keyword..."
+                placeholder="Search Mentors & Topics"
                 onFilterClick={() => setActiveTab('discover')}
               />
             </ClayCard>
 
-            {/* 3. Subject Categories (Interactive Clay Cards) */}
+            {/* 3. Subject Categories (Interactive Clay Cards with Real Mentor Counts) */}
             <div className="space-y-3 text-left">
               <div className="flex items-center justify-between">
                 <div>
@@ -343,6 +348,10 @@ export const StudentDashboardPage: React.FC = () => {
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                 {SCHOOL_SUBJECTS.map((sub) => {
                   const isSelected = filters.selectedSubject === sub.id;
+                  const mentorCount = tutors.filter((t) =>
+                    t.subjects?.some((s) => s.toLowerCase().includes(sub.id.toLowerCase()))
+                  ).length;
+
                   return (
                     <button
                       key={sub.id}
@@ -357,13 +366,16 @@ export const StudentDashboardPage: React.FC = () => {
                           : 'bg-white hover:bg-[#FAF9FE] border-[#E5DFF8] text-[#1C1938]'
                       }`}
                     >
-                      <ClaySubjectIcon subject={sub.id} size={36} />
+                      <ClaySubjectIcon subject={sub.id} size={38} />
                       <div className="min-w-0">
                         <span className="text-xs font-black block truncate">
                           {sub.label.split(' ')[0]}
                         </span>
                         <span className="text-[10px] text-[#686487] block font-kannada truncate">
                           {sub.kannadaLabel?.split(' ')[0]}
+                        </span>
+                        <span className="text-[9px] font-bold text-[#7C3AED] block mt-0.5">
+                          {mentorCount > 0 ? `${mentorCount} Mentors` : 'Available'}
                         </span>
                       </div>
                     </button>

@@ -43,7 +43,7 @@ describe('Tutor Discovery Marketplace Journey', () => {
     });
 
     // Filter by search query "Savitha"
-    const searchInput = screen.getByPlaceholderText(/search by tutor name/i);
+    const searchInput = screen.getByPlaceholderText(/search mentors & topics|search by tutor name/i);
     fireEvent.change(searchInput, { target: { value: 'Savitha' } });
 
     await waitFor(() => {

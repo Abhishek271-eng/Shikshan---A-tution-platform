@@ -717,6 +717,151 @@ api.delete('/tutor/batches/:id', authMiddleware, requireRole(['tutor', 'admin'])
   }
 });
 
+api.get('/tutor/batches/:id/students', authMiddleware, requireRole(['tutor', 'admin']), async (c) => {
+  const authUser = c.get('user');
+  const batchId = c.req.param('id');
+
+  try {
+    const batch: any = await c.env.DB.prepare(
+      'SELECT id, name, start_time, end_time, days, tutor_id FROM tutor_batches WHERE id = ?'
+    )
+      .bind(batchId)
+      .first();
+
+    if (!batch) {
+      return c.json({ error: 'Batch not found' }, 404);
+    }
+
+    if (authUser.role !== 'admin' && batch.tutor_id !== authUser.id) {
+      return c.json({ error: 'Forbidden' }, 403);
+    }
+
+    const { results } = await c.env.DB.prepare(
+      `SELECT r.id as request_id, r.student_id, r.subject, r.class_level, r.learning_needs,
+              r.guardian_phone, r.created_at, r.updated_at, r.status,
+              u.name as student_name, u.email as student_email, u.phone as student_phone, u.photo_url as student_photo
+       FROM tutor_requests r
+       JOIN users u ON r.student_id = u.id
+       WHERE r.batch_id = ? AND r.status = 'accepted'
+       ORDER BY r.updated_at DESC`
+    )
+      .bind(batchId)
+      .all();
+
+    return c.json({ batch, students: results || [] });
+  } catch {
+    return c.json({ error: 'Failed to fetch batch students' }, 500);
+  }
+});
+
+api.post('/tutor/batches/:id/assign', authMiddleware, requireRole(['tutor', 'admin']), async (c) => {
+  const authUser = c.get('user');
+  const batchId = c.req.param('id');
+  const body = await c.req.json().catch(() => ({}));
+  const { requestId } = body;
+
+  if (!requestId) {
+    return c.json({ error: 'requestId is required' }, 400);
+  }
+
+  try {
+    const batch: any = await c.env.DB.prepare(
+      'SELECT id, name, start_time, end_time, days, tutor_id FROM tutor_batches WHERE id = ?'
+    )
+      .bind(batchId)
+      .first();
+
+    if (!batch) {
+      return c.json({ error: 'Batch not found' }, 404);
+    }
+
+    if (authUser.role !== 'admin' && batch.tutor_id !== authUser.id) {
+      return c.json({ error: 'Forbidden' }, 403);
+    }
+
+    const countRes: any = await c.env.DB.prepare(
+      `SELECT count(*) as count FROM tutor_requests WHERE batch_id = ? AND status = 'accepted'`
+    )
+      .bind(batchId)
+      .first();
+
+    if (countRes && countRes.count >= 4) {
+      return c.json({ error: 'Batch is full (maximum 4 students allowed)' }, 400);
+    }
+
+    const reqItem: any = await c.env.DB.prepare(
+      'SELECT id, student_id, tutor_id, status FROM tutor_requests WHERE id = ?'
+    )
+      .bind(requestId)
+      .first();
+
+    if (!reqItem) {
+      return c.json({ error: 'Student request not found' }, 404);
+    }
+
+    if (authUser.role !== 'admin' && reqItem.tutor_id !== authUser.id) {
+      return c.json({ error: 'Forbidden' }, 403);
+    }
+
+    if (reqItem.status !== 'accepted') {
+      return c.json({ error: 'Only accepted student requests can be assigned to a batch' }, 400);
+    }
+
+    const batchTimeStr = `${batch.start_time} - ${batch.end_time}`;
+    await c.env.DB.prepare(
+      `UPDATE tutor_requests
+       SET batch_id = ?, batch_name = ?, batch_time = ?, updated_at = CURRENT_TIMESTAMP
+       WHERE id = ?`
+    )
+      .bind(batch.id, batch.name, batchTimeStr, requestId)
+      .run();
+
+    return c.json({ success: true, message: 'Student successfully assigned to batch' });
+  } catch (err: any) {
+    console.error('Assign student error:', err);
+    return c.json({ error: 'Failed to assign student to batch' }, 500);
+  }
+});
+
+api.post('/tutor/batches/:id/unassign', authMiddleware, requireRole(['tutor', 'admin']), async (c) => {
+  const authUser = c.get('user');
+  const batchId = c.req.param('id');
+  const body = await c.req.json().catch(() => ({}));
+  const { requestId } = body;
+
+  if (!requestId) {
+    return c.json({ error: 'requestId is required' }, 400);
+  }
+
+  try {
+    const batch: any = await c.env.DB.prepare(
+      'SELECT id, tutor_id FROM tutor_batches WHERE id = ?'
+    )
+      .bind(batchId)
+      .first();
+
+    if (!batch) {
+      return c.json({ error: 'Batch not found' }, 404);
+    }
+
+    if (authUser.role !== 'admin' && batch.tutor_id !== authUser.id) {
+      return c.json({ error: 'Forbidden' }, 403);
+    }
+
+    await c.env.DB.prepare(
+      `UPDATE tutor_requests
+       SET batch_id = NULL, batch_name = NULL, batch_time = NULL, updated_at = CURRENT_TIMESTAMP
+       WHERE id = ? AND batch_id = ?`
+    )
+      .bind(requestId, batchId)
+      .run();
+
+    return c.json({ success: true, message: 'Student removed from batch' });
+  } catch {
+    return c.json({ error: 'Failed to unassign student from batch' }, 500);
+  }
+});
+
 api.get('/tutors/:id/batches', optionalAuthMiddleware, async (c) => {
   const tutorId = c.req.param('id');
   try {

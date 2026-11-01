@@ -154,6 +154,21 @@ export const api = {
       method: 'DELETE',
     }),
 
+  getBatchStudents: (batchId: string) =>
+    request<{ batch: any; students: any[] }>(`/tutor/batches/${batchId}/students`),
+
+  assignStudentToBatch: (batchId: string, requestId: string) =>
+    request<{ success: boolean; message: string }>(`/tutor/batches/${batchId}/assign`, {
+      method: 'POST',
+      body: JSON.stringify({ requestId }),
+    }),
+
+  unassignStudentFromBatch: (batchId: string, requestId: string) =>
+    request<{ success: boolean; message: string }>(`/tutor/batches/${batchId}/unassign`, {
+      method: 'POST',
+      body: JSON.stringify({ requestId }),
+    }),
+
   // Public / Approved Tutors Discovery
   getApprovedTutors: (params?: { subject?: string; classLevel?: string; search?: string }) => {
     const query = new URLSearchParams(params as any).toString();

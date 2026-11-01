@@ -75,7 +75,7 @@ export const TutorCard: React.FC<TutorCardProps> = ({
               {hasExperience && (
                 <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-black">
                   <Award className="w-3 h-3 text-amber-600" />
-                  {expNum}+ yrs exp
+                  {expNum === 1 ? '1 Year Exp' : `${expNum}+ Years Exp`}
                 </span>
               )}
             </div>

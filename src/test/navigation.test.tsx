@@ -86,7 +86,7 @@ describe('Navigation and Usability Tests', () => {
     expect(dialog).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /^home$/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /about shikshan/i })).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /developer/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /developer/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /privacy policy/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /terms and conditions/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /help and contact/i })).toBeInTheDocument();

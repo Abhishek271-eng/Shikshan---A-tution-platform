@@ -176,8 +176,8 @@ export const TutorProfileModal: React.FC<TutorProfileModalProps> = ({
             </p>
           </div>
 
-          {/* 4-Metric Real Information Grid */}
-          <div className="grid grid-cols-4 gap-2 p-3 rounded-2xl bg-purple-50/60 border border-purple-100/80 text-center shadow-clay-sm">
+          {/* Metric Real Information Grid: dynamic columns (shows experience only when > 0) */}
+          <div className={`grid ${hasExperience ? 'grid-cols-4' : 'grid-cols-3'} gap-2 p-3 rounded-2xl bg-purple-50/60 border border-purple-100/80 text-center shadow-clay-sm`}>
             {/* Monthly Fee */}
             <div className="space-y-0.5">
               <span className="text-sm font-black text-[#7C3AED]">₹{feeDisplay}</span>
@@ -190,15 +190,17 @@ export const TutorProfileModal: React.FC<TutorProfileModalProps> = ({
               <span className="text-[10px] text-slate-500 font-bold block">Commitment</span>
             </div>
 
-            {/* Experience (Shown only if > 0) */}
-            <div className="space-y-0.5 border-l border-purple-200/60">
-              <span className="text-sm font-black text-slate-800">
-                {hasExperience ? `${expNum}+ Yrs` : 'Fresher'}
-              </span>
-              <span className="text-[10px] text-slate-500 font-bold block">
-                {hasExperience ? 'Experience' : 'Educator'}
-              </span>
-            </div>
+            {/* Experience (Strictly shown only if > 0, otherwise completely omitted) */}
+            {hasExperience && (
+              <div className="space-y-0.5 border-l border-purple-200/60">
+                <span className="text-sm font-black text-slate-800">
+                  {expNum === 1 ? '1 Year' : `${expNum}+ Yrs`}
+                </span>
+                <span className="text-[10px] text-slate-500 font-bold block">
+                  Experience
+                </span>
+              </div>
+            )}
 
             {/* Status */}
             <div className="space-y-0.5 border-l border-purple-200/60">
