@@ -80,13 +80,21 @@ export const DeveloperPage: React.FC = () => {
     }
   };
 
+  const handleBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate('/');
+    }
+  };
+
   return (
     <ClayBackground className="min-h-screen flex flex-col">
       <Header
         title="Developer & Founder"
         subtitle="The Vision Behind Shikshan"
         showBack={true}
-        onBack={() => navigate(-1)}
+        onBack={handleBack}
       />
 
       <main className="flex-1 max-w-xl mx-auto w-full px-4 sm:px-6 py-6 pb-24 space-y-6 text-left">
@@ -245,49 +253,49 @@ export const DeveloperPage: React.FC = () => {
 
         {/* Guiding Principles */}
         <div className="space-y-3">
-          <h3 className="text-sm font-extrabold text-slate-800 px-1">
+          <h3 className="text-sm font-extrabold text-[#1C1938] px-1">
             Our Guiding Commitments
           </h3>
 
-          <div className="grid grid-cols-1 gap-3">
-            <div className="p-4 rounded-2xl bg-white border border-purple-100 shadow-sm flex items-start gap-3.5">
-              <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-700 flex items-center justify-center flex-shrink-0">
-                <BookOpen className="w-5 h-5" />
+          <div className="grid grid-cols-1 gap-2.5">
+            <div className="p-3.5 rounded-2xl bg-white border border-[#E5DFF8] shadow-clay-sm flex items-start gap-3">
+              <div className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-700 flex items-center justify-center flex-shrink-0">
+                <BookOpen className="w-4 h-4" />
               </div>
-              <div className="space-y-1">
-                <h4 className="text-xs font-extrabold text-slate-800">
+              <div className="space-y-0.5">
+                <h4 className="text-xs font-extrabold text-[#1C1938]">
                   Karnataka State Syllabus & Bilingual Learning
                 </h4>
-                <p className="text-[11px] text-slate-600 leading-relaxed font-medium">
-                  Designed specifically for Karnataka syllabus students in Classes 1 to 10, empowering children to learn in their mother tongue Kannada and English with complete confidence.
+                <p className="text-[11px] text-[#686487] leading-relaxed font-medium">
+                  Designed for Classes 1 to 10 in Kannada and English medium, empowering children with personalized curriculum guidance.
                 </p>
               </div>
             </div>
 
-            <div className="p-4 rounded-2xl bg-white border border-purple-100 shadow-sm flex items-start gap-3.5">
-              <div className="w-10 h-10 rounded-xl bg-purple-50 border border-purple-100 text-[#7C3AED] flex items-center justify-center flex-shrink-0">
-                <Users className="w-5 h-5" />
+            <div className="p-3.5 rounded-2xl bg-white border border-[#E5DFF8] shadow-clay-sm flex items-start gap-3">
+              <div className="w-9 h-9 rounded-xl bg-purple-50 border border-purple-100 text-[#7C3AED] flex items-center justify-center flex-shrink-0">
+                <Users className="w-4 h-4" />
               </div>
-              <div className="space-y-1">
-                <h4 className="text-xs font-extrabold text-slate-800">
-                  Micro-Batches (Strictly Maximum 4 Students)
+              <div className="space-y-0.5">
+                <h4 className="text-xs font-extrabold text-[#1C1938]">
+                  Micro-Batches (Strictly Max 4 Students)
                 </h4>
-                <p className="text-[11px] text-slate-600 leading-relaxed font-medium">
-                  No overcrowded coaching centers. Every tutor teaches a maximum of 4 students per 3-hour batch, ensuring individual academic attention and personal growth for each child.
+                <p className="text-[11px] text-[#686487] leading-relaxed font-medium">
+                  Every batch is strictly capped at 4 students per 3-hour session, ensuring individual academic attention.
                 </p>
               </div>
             </div>
 
-            <div className="p-4 rounded-2xl bg-white border border-purple-100 shadow-sm flex items-start gap-3.5">
-              <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0">
-                <ShieldCheck className="w-5 h-5" />
+            <div className="p-3.5 rounded-2xl bg-white border border-[#E5DFF8] shadow-clay-sm flex items-start gap-3">
+              <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0">
+                <ShieldCheck className="w-4 h-4" />
               </div>
-              <div className="space-y-1">
-                <h4 className="text-xs font-extrabold text-slate-800">
+              <div className="space-y-0.5">
+                <h4 className="text-xs font-extrabold text-[#1C1938]">
                   Fair Fee Cap & Verified Educators
                 </h4>
-                <p className="text-[11px] text-slate-600 leading-relaxed font-medium">
-                  Monthly tutor fees are capped at ₹3,000 to keep mentorship affordable for every family. All educators undergo manual credential verification before mentoring students.
+                <p className="text-[11px] text-[#686487] leading-relaxed font-medium">
+                  Fees capped at maximum ₹3,000/month. Educators undergo identity and credential verification before approval.
                 </p>
               </div>
             </div>
@@ -295,18 +303,18 @@ export const DeveloperPage: React.FC = () => {
         </div>
 
         {/* Heartfelt Note Card with 3D Illustration */}
-        <div className="p-5 rounded-3xl bg-gradient-to-r from-purple-100/60 to-indigo-100/60 border border-purple-200/80 flex items-center justify-between gap-4">
-          <div className="space-y-1">
+        <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-100/60 to-indigo-100/60 border border-purple-200/80 flex items-center justify-between gap-4">
+          <div className="space-y-0.5">
             <div className="flex items-center gap-1.5 text-xs font-black text-[#7C3AED]">
-              <Heart className="w-4 h-4 fill-[#7C3AED]" />
-              <span>Built for Karnataka's Future</span>
+              <Heart className="w-3.5 h-3.5 fill-[#7C3AED]" />
+              <span>Built with Care for Karnataka</span>
             </div>
-            <p className="text-xs text-slate-700 leading-relaxed font-medium">
-              Have questions or suggestions? We are always listening and eager to support every student, parent, and teacher.
+            <p className="text-[11px] text-[#4A4668] leading-relaxed font-medium">
+              Created to support students, parents, and dedicated educators across Karnataka.
             </p>
           </div>
           <div className="flex-shrink-0">
-            <ClayStudentReading size={72} />
+            <ClayStudentReading size={56} />
           </div>
         </div>
       </main>

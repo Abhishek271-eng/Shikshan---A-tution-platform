@@ -67,14 +67,14 @@ export const Header: React.FC<HeaderProps> = ({
             )}
 
             {/* Title / Brand Text */}
-            <div className="flex flex-col text-left">
+            <div className="flex flex-col text-left flex-1 min-w-0 pr-1">
               {title ? (
                 <>
-                  <h1 className="text-base sm:text-lg font-extrabold text-slate-800 leading-tight truncate max-w-[200px] sm:max-w-xs">
+                  <h1 className="text-base sm:text-lg font-black text-[#1C1938] leading-tight truncate max-w-[200px] sm:max-w-xs">
                     {title}
                   </h1>
                   {subtitle && (
-                    <span className="text-[11px] text-slate-500 font-medium truncate">
+                    <span className="text-[11px] text-[#686487] font-medium truncate">
                       {subtitle}
                     </span>
                   )}
@@ -87,14 +87,14 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
 
-          {/* Right: Custom actions + Hamburger menu */}
-          <div className="flex items-center gap-2">
+          {/* Right: Custom actions + Permanent Hamburger menu */}
+          <div className="flex items-center gap-2 flex-shrink-0">
             {customRight}
 
             <button
               onClick={() => setIsDrawerOpen(true)}
               aria-label="Open menu"
-              className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white border border-purple-100 shadow-sm flex items-center justify-center text-slate-700 hover:text-[#7C3AED] hover:bg-purple-50 active:scale-95 transition-all cursor-pointer"
+              className="min-w-[44px] min-h-[44px] w-11 h-11 rounded-2xl bg-white border border-[#E5DFF8] shadow-clay-sm flex items-center justify-center text-[#1C1938] hover:text-[#7C3AED] hover:bg-purple-50 active:scale-95 transition-all cursor-pointer flex-shrink-0 z-50"
             >
               <Menu className="w-5 h-5 stroke-[2.2]" />
             </button>

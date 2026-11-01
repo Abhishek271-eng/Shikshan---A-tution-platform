@@ -44,7 +44,7 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({ isOpen, onCl
     setIsConfirmSignOutOpen(false);
     await signOut();
     onClose();
-    navigate('/login');
+    navigate('/login', { replace: true });
   };
 
   // Home navigates to the dashboard belonging to the currently authenticated role

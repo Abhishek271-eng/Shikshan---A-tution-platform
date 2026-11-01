@@ -71,16 +71,16 @@ export const TutorCard: React.FC<TutorCardProps> = ({
   const palette = colorPalettes[hash % colorPalettes.length];
 
   return (
-    <div className="relative overflow-visible pt-8 mt-7 bg-white rounded-[28px] p-5 sm:p-6 border border-[#E9E4F5] shadow-clay hover:shadow-clay-lg transition-all flex flex-col justify-between space-y-4 group text-left">
+    <div className="relative overflow-visible pt-7 mt-5 bg-white rounded-[24px] p-4.5 sm:p-5 border border-[#E9E4F5] shadow-clay hover:shadow-clay-md transition-all flex flex-col justify-between space-y-3.5 group text-left">
       {/* Overlapping Raised 3D Photograph / Avatar extending beyond the upper boundary */}
-      <div className="absolute -top-7 left-6 z-10">
+      <div className="absolute -top-5 left-5 z-10">
         <div className="relative inline-block select-none flex-shrink-0">
-          <div className="w-16 h-16 rounded-full overflow-hidden border-4 border-white shadow-clay-md flex items-center justify-center font-black bg-white transition-transform group-hover:scale-105">
+          <div className="w-14 h-14 rounded-full overflow-hidden border-3 border-white shadow-clay-md flex items-center justify-center font-black bg-white transition-transform group-hover:scale-105">
             {photoUrl ? (
               <img src={photoUrl} alt={tutorName} className="w-full h-full object-cover" />
             ) : (
               <div
-                className={`w-full h-full flex items-center justify-center text-lg font-black bg-gradient-to-br ${palette.bg} ${palette.text}`}
+                className={`w-full h-full flex items-center justify-center text-base font-black bg-gradient-to-br ${palette.bg} ${palette.text}`}
               >
                 <span>{initials}</span>
               </div>
@@ -98,7 +98,7 @@ export const TutorCard: React.FC<TutorCardProps> = ({
       </div>
 
       {/* Top Header Row (Badges & Actions) */}
-      <div className="flex items-center justify-end gap-2 min-h-[32px]">
+      <div className="flex items-center justify-end gap-2 min-h-[28px]">
         {tutor.status === 'approved' && (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-black">
             <ShieldCheck className="w-3 h-3 text-emerald-600" />
@@ -122,11 +122,11 @@ export const TutorCard: React.FC<TutorCardProps> = ({
       </div>
 
       {/* Tutor Information */}
-      <div className="space-y-1.5 pt-1">
+      <div className="space-y-1 pt-0.5">
         <div className="flex items-center gap-2 flex-wrap">
-          <h4 className="font-black text-lg text-[#1C1938] leading-tight truncate">{tutorName}</h4>
+          <h4 className="font-black text-base text-[#1C1938] leading-tight truncate">{tutorName}</h4>
           {hasExperience && (
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-black">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-black">
               <Award className="w-3 h-3 text-amber-600" />
               {expNum === 1 ? '1 Year Experience' : `${expNum} Years Experience`}
             </span>
@@ -141,12 +141,12 @@ export const TutorCard: React.FC<TutorCardProps> = ({
         </p>
 
         {/* Classes Taught & Languages */}
-        <div className="flex items-center gap-2 pt-1 text-[11px] font-medium text-slate-500 flex-wrap">
-          <span className="inline-flex items-center gap-1 text-slate-700 font-bold bg-slate-50 px-2.5 py-0.5 rounded-full border border-slate-200/80">
+        <div className="flex items-center gap-1.5 pt-0.5 text-[11px] font-medium text-slate-500 flex-wrap">
+          <span className="inline-flex items-center gap-1 text-slate-700 font-bold bg-slate-50 px-2 py-0.5 rounded-full border border-slate-200/80">
             <Clock className="w-3 h-3 text-[#7C3AED]" />
             {classesTaughtDisplay}
           </span>
-          <span className="inline-flex items-center gap-1 text-slate-600 bg-slate-50 px-2.5 py-0.5 rounded-full border border-slate-200/80">
+          <span className="inline-flex items-center gap-1 text-slate-600 bg-slate-50 px-2 py-0.5 rounded-full border border-slate-200/80">
             <Globe2 className="w-3 h-3 text-emerald-600" />
             {languagesDisplay}
           </span>
@@ -201,7 +201,7 @@ export const TutorCard: React.FC<TutorCardProps> = ({
           <button
             type="button"
             onClick={() => onViewProfile(tutor)}
-            className="px-4 py-2.5 rounded-full bg-purple-50/80 hover:bg-purple-100 text-[#7C3AED] border border-purple-200 text-xs font-bold transition-all active:scale-95 cursor-pointer shadow-sm"
+            className="px-3.5 py-2 rounded-full bg-purple-50/80 hover:bg-purple-100 text-[#7C3AED] border border-purple-200 text-xs font-bold transition-all active:scale-95 cursor-pointer shadow-sm"
           >
             Details
           </button>
@@ -209,7 +209,7 @@ export const TutorCard: React.FC<TutorCardProps> = ({
           <button
             type="button"
             onClick={() => onRequestTutor(tutor)}
-            className="px-5 py-2.5 rounded-full bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] text-white text-xs font-bold shadow-clay-button hover:opacity-95 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
+            className="px-4.5 py-2 rounded-full bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] text-white text-xs font-bold shadow-clay-button hover:opacity-95 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
           >
             <span>Request</span>
             <ArrowRight className="w-3.5 h-3.5" />

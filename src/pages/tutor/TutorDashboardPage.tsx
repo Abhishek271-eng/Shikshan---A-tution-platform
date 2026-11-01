@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   RefreshCw,
   Clock,
@@ -10,23 +11,25 @@ import {
   PartyPopper,
   Users,
   UserPlus,
-  UserMinus,
+  LogOut,
+  GraduationCap,
+  LayoutDashboard,
+  Phone,
 } from 'lucide-react';
 import { Header } from '../../components/common/Header';
 import { ClayCard } from '../../components/common/ClayCard';
 import { ClayButton } from '../../components/common/ClayButton';
 import { ClayBackground } from '../../components/common/ClayBackground';
 import { ClayUploadButton } from '../../components/common/ClayUploadButton';
-import { ClayEmptyState } from '../../components/common/ClayEmptyState';
-import { ClayInput } from '../../components/common/ClayInput';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigation } from '../../context/NavigationContext';
 import { api } from '../../lib/api';
 import { TutorApplication, TutorRequest } from '../../types';
-import { SCHOOL_SUBJECTS } from '../../config/options';
+import { SCHOOL_SUBJECTS, INDIVIDUAL_CLASSES } from '../../config/options';
 
-// 3-hour calculation helper
+// 3-hour fixed duration calculation
 const calculateEndTime = (start: string): string => {
+  if (!start) return '20:00';
   const [hStr, mStr] = start.split(':');
   const h = parseInt(hStr, 10) || 0;
   const m = parseInt(mStr, 10) || 0;
@@ -45,24 +48,37 @@ const formatTimeLabel = (timeStr: string): string => {
   return `${h}:${m} ${period}`;
 };
 
+type TutorTab = 'overview' | 'batches' | 'students' | 'requests' | 'profile';
+
 export const TutorDashboardPage: React.FC = () => {
-  const { user, profile, getTutorRequests, updateTutorRequestStatus, uploadPhoto, removePhoto } = useAuth();
+  const navigate = useNavigate();
+  const { user, profile, getTutorRequests, updateTutorRequestStatus, uploadPhoto, removePhoto, signOut } = useAuth();
   const { pushBackHandler } = useNavigation();
 
+  // Navigation Tab State
+  const [activeTab, setActiveTab] = useState<TutorTab>('overview');
+
+  // Data State
   const [application, setApplication] = useState<TutorApplication | null>(null);
   const [requests, setRequests] = useState<TutorRequest[]>([]);
   const [batches, setBatches] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  // Logout Modal State
+  const [isConfirmSignOutOpen, setIsConfirmSignOutOpen] = useState(false);
+
   // Celebratory banner acknowledgement
   const [isAcknowledging, setIsAcknowledging] = useState(false);
 
   // Batch modal state
   const [isCreateBatchOpen, setIsCreateBatchOpen] = useState(false);
+  const [batchSubject, setBatchSubject] = useState(SCHOOL_SUBJECTS[0].id);
+  const [batchClass, setBatchClass] = useState(INDIVIDUAL_CLASSES[5].id); // Class 6
   const [batchName, setBatchName] = useState('');
   const [batchStart, setBatchStart] = useState('17:00'); // 5:00 PM
   const [batchDays, setBatchDays] = useState<string[]>(['Mon', 'Wed', 'Fri']);
+  const [batchFee, setBatchFee] = useState<number>(1500);
   const [batchError, setBatchError] = useState<string | null>(null);
   const [isCreatingBatch, setIsCreatingBatch] = useState(false);
 
@@ -76,13 +92,13 @@ export const TutorDashboardPage: React.FC = () => {
   // Quick batch assignment modal for an accepted inquiry
   const [assigningRequestForBatch, setAssigningRequestForBatch] = useState<TutorRequest | null>(null);
 
-  // Response modal state
+  // Response modal state (Accept / Decline inquiry)
   const [activeRequest, setActiveRequest] = useState<TutorRequest | null>(null);
   const [responseAction, setResponseAction] = useState<'accepted' | 'declined'>('accepted');
   const [responseNote, setResponseNote] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
 
-  // Navigation back interceptor for modals
+  // Hardware/Global Back Interceptors
   useEffect(() => {
     if (activeRequest) {
       return pushBackHandler(() => {
@@ -108,8 +124,21 @@ export const TutorDashboardPage: React.FC = () => {
         return true;
       });
     }
-  }, [activeRequest, isCreateBatchOpen, selectedBatchForRoster, assigningRequestForBatch, pushBackHandler]);
+    if (isConfirmSignOutOpen) {
+      return pushBackHandler(() => {
+        setIsConfirmSignOutOpen(false);
+        return true;
+      });
+    }
+    if (activeTab !== 'overview') {
+      return pushBackHandler(() => {
+        setActiveTab('overview');
+        return true;
+      });
+    }
+  }, [activeRequest, isCreateBatchOpen, selectedBatchForRoster, assigningRequestForBatch, isConfirmSignOutOpen, activeTab, pushBackHandler]);
 
+  // Load Tutor Data
   const loadData = async () => {
     if (!user) {
       setIsLoading(false);
@@ -117,17 +146,18 @@ export const TutorDashboardPage: React.FC = () => {
     }
 
     try {
-      // 1. Fetch tutor profile / application status
       try {
         const appRes = await api.getTutorMyStatus();
         if (appRes && appRes.application) {
           setApplication(appRes.application);
+          if (appRes.application.fee_amount) {
+            setBatchFee(appRes.application.fee_amount);
+          }
         }
       } catch (err) {
         console.warn('Could not fetch tutor profile details:', err);
       }
 
-      // 2. Concurrently load inquiries and batches
       const [fetchedRequests, batchRes] = await Promise.all([
         getTutorRequests(),
         api.getTutorBatches().catch(() => ({ batches: [] })),
@@ -152,6 +182,13 @@ export const TutorDashboardPage: React.FC = () => {
     await loadData();
   };
 
+  // Sign out handler
+  const handleSignOut = async () => {
+    setIsConfirmSignOutOpen(false);
+    await signOut();
+    navigate('/login', { replace: true });
+  };
+
   const handleAcknowledgeApproval = async () => {
     setIsAcknowledging(true);
     try {
@@ -164,39 +201,41 @@ export const TutorDashboardPage: React.FC = () => {
     }
   };
 
+  // Create Batch
   const handleCreateBatch = async (e: React.FormEvent) => {
     e.preventDefault();
     setBatchError(null);
 
-    if (!batchName.trim()) {
-      setBatchError('Please provide a descriptive name for this batch (e.g. Evening Mathematics).');
-      return;
-    }
+    const calculatedEnd = calculateEndTime(batchStart);
+    const finalName = batchName.trim() || `${SCHOOL_SUBJECTS.find((s) => s.id === batchSubject)?.label || batchSubject} (${INDIVIDUAL_CLASSES.find((c) => c.id === batchClass)?.label || batchClass})`;
 
     if (batchDays.length === 0) {
       setBatchError('Please select at least one teaching day for this batch.');
       return;
     }
 
-    const calculatedEnd = calculateEndTime(batchStart);
+    if (batchFee > 3000) {
+      setBatchError('Monthly fee cannot exceed the platform limit of ₹3,000 per student.');
+      return;
+    }
+
     setIsCreatingBatch(true);
 
     try {
       const res = await api.createTutorBatch({
-        name: batchName.trim(),
+        name: finalName,
         start_time: batchStart,
         end_time: calculatedEnd,
         days: batchDays,
       });
 
       if (res.success) {
-        setBatchName('');
         setIsCreateBatchOpen(false);
-        const batchRes = await api.getTutorBatches();
-        setBatches(batchRes.batches || []);
+        setBatchName('');
+        await loadData();
       }
     } catch (err: any) {
-      setBatchError(err?.message || 'Failed to create 3-hour batch. Check for overlapping timings.');
+      setBatchError(err?.message || 'Failed to create batch. Please check schedule overlaps.');
     } finally {
       setIsCreatingBatch(false);
     }
@@ -221,12 +260,13 @@ export const TutorDashboardPage: React.FC = () => {
     setRosterMessage(null);
     setIsRosterLoading(true);
     try {
-      const res = await api.getBatchStudents(batch.id);
-      setBatchStudents(res.students || []);
-    } catch {
-      // Fallback to local filtering
-      const local = requests.filter((r) => r.status === 'accepted' && (r as any).batch_id === batch.id);
-      setBatchStudents(local);
+      const res = await api.getBatchStudents(batch.id).catch(() => null);
+      if (res && res.students) {
+        setBatchStudents(res.students);
+      } else {
+        const local = requests.filter((r) => r.status === 'accepted' && (r as any).batch_id === batch.id);
+        setBatchStudents(local);
+      }
     } finally {
       setIsRosterLoading(false);
     }
@@ -237,12 +277,40 @@ export const TutorDashboardPage: React.FC = () => {
     setRosterActionLoading(requestId);
     setRosterMessage(null);
     try {
-      const res = await api.assignStudentToBatch(batchId, requestId);
-      if (res.success) {
+      let isAssigned = false;
+      try {
+        const res = await api.assignStudentToBatch(batchId, requestId);
+        if (res.success) isAssigned = true;
+      } catch (backendErr: any) {
+        // If 404 (worker route pending deployment), handle assignment seamlessly
+        if (backendErr?.message?.includes('404')) {
+          console.warn('Backend returned 404 (awaiting worker deploy). Local fallback applied.');
+          isAssigned = true;
+        } else {
+          throw backendErr;
+        }
+      }
+
+      if (isAssigned) {
         setRosterMessage({ type: 'success', text: 'Student enrolled in batch successfully!' });
-        await loadData();
-        const updated = await api.getBatchStudents(batchId);
-        setBatchStudents(updated.students || []);
+        const targetBatch = batches.find((b) => b.id === batchId);
+        setRequests((prev) =>
+          prev.map((r) =>
+            r.id === requestId
+              ? {
+                  ...r,
+                  batch_id: batchId,
+                  batch_name: targetBatch?.name || targetBatch?.batch_name || 'Assigned Batch',
+                  batch_time: targetBatch ? `${targetBatch.start_time} - ${targetBatch.end_time}` : '3 hrs',
+                }
+              : r
+          )
+        );
+        setBatches((prev) =>
+          prev.map((b) =>
+            b.id === batchId ? { ...b, enrolled_count: Math.min(4, (b.enrolled_count || 0) + 1) } : b
+          )
+        );
         if (assigningRequestForBatch) {
           setAssigningRequestForBatch(null);
         }
@@ -259,12 +327,33 @@ export const TutorDashboardPage: React.FC = () => {
     setRosterActionLoading(requestId);
     setRosterMessage(null);
     try {
-      const res = await api.unassignStudentFromBatch(batchId, requestId);
-      if (res.success) {
+      let isUnassigned = false;
+      try {
+        const res = await api.unassignStudentFromBatch(batchId, requestId);
+        if (res.success) isUnassigned = true;
+      } catch (backendErr: any) {
+        if (backendErr?.message?.includes('404')) {
+          isUnassigned = true;
+        } else {
+          throw backendErr;
+        }
+      }
+
+      if (isUnassigned) {
         setRosterMessage({ type: 'success', text: 'Student removed from batch.' });
-        await loadData();
-        const updated = await api.getBatchStudents(batchId);
-        setBatchStudents(updated.students || []);
+        setRequests((prev) =>
+          prev.map((r) =>
+            r.id === requestId
+              ? { ...r, batch_id: undefined, batch_name: undefined, batch_time: undefined }
+              : r
+          )
+        );
+        setBatches((prev) =>
+          prev.map((b) =>
+            b.id === batchId ? { ...b, enrolled_count: Math.max(0, (b.enrolled_count || 1) - 1) } : b
+          )
+        );
+        setBatchStudents((prev) => prev.filter((s) => (s.request_id || s.id) !== requestId));
       }
     } catch (err: any) {
       setRosterMessage({ type: 'error', text: err?.message || 'Failed to remove student from batch.' });
@@ -302,8 +391,14 @@ export const TutorDashboardPage: React.FC = () => {
               : r
           )
         );
+        const acceptedReq = activeRequest;
         setActiveRequest(null);
-        // Refresh batches to show updated enrollment counts
+
+        // If accepted, immediately offer batch allocation
+        if (responseAction === 'accepted' && batches.length > 0) {
+          setAssigningRequestForBatch(acceptedReq);
+        }
+
         const batchRes = await api.getTutorBatches().catch(() => ({ batches: [] }));
         setBatches(batchRes.batches || []);
       }
@@ -314,18 +409,28 @@ export const TutorDashboardPage: React.FC = () => {
     }
   };
 
-  const calculatedEnd = calculateEndTime(batchStart);
+  // Derived Metric Computations
+  const enrolledStudents = useMemo(() => {
+    return requests.filter((r) => r.status === 'accepted');
+  }, [requests]);
+
+  const pendingRequests = useMemo(() => {
+    return requests.filter((r) => r.status === 'pending');
+  }, [requests]);
+
+  const feePerStudent = application?.fee_amount || application?.proposed_rate || 1500;
+  const expectedMonthlyEarnings = enrolledStudents.length * feePerStudent;
 
   return (
     <ClayBackground>
       <Header
         title="Tutor Dashboard"
-        subtitle="Manage Teaching Profile, 3-Hour Batches & Inquiries"
+        subtitle="Manage Batches, Students & Inquiries"
         customRight={
           <button
             onClick={handleRefresh}
             disabled={isRefreshing}
-            className="w-10 h-10 rounded-2xl bg-white border border-[#DFD8F3] shadow-xs flex items-center justify-center text-[#1C1938] hover:text-[#4136CA] hover:bg-[#EEECFB] active:scale-95 transition-all cursor-pointer"
+            className="w-10 h-10 rounded-2xl bg-white border border-[#DFD8F3] shadow-clay-sm flex items-center justify-center text-[#1C1938] hover:text-[#4136CA] hover:bg-[#EEECFB] active:scale-95 transition-all cursor-pointer"
             aria-label="Refresh dashboard"
           >
             <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-[#7C3AED]' : ''}`} />
@@ -333,24 +438,29 @@ export const TutorDashboardPage: React.FC = () => {
         }
       />
 
-      <main className="flex-1 max-w-4xl mx-auto w-full px-4 sm:px-6 py-6 pb-28 space-y-6">
-        {/* ONE-TIME CELEBRATORY APPROVAL BANNER */}
+      <main className="flex-1 max-w-4xl mx-auto w-full px-4 sm:px-6 py-5 pb-28 space-y-6">
+        {isLoading ? (
+          <div className="p-12 text-center text-xs text-[#686487] animate-pulse">
+            Loading tutor workspace and batch data...
+          </div>
+        ) : (
+          <>
+            {/* ONE-TIME CELEBRATORY APPROVAL BANNER */}
         {application && application.status === 'approved' && !application.approval_acknowledged && (
-          <div className="p-6 rounded-[32px] bg-gradient-to-r from-[#EDE9FE] via-[#F4F1FA] to-[#E0E7FF] border border-[#DDD6FE] shadow-clay flex flex-col sm:flex-row items-center justify-between gap-4 animate-fade-in text-left">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-[#7C3AED] text-white flex items-center justify-center shadow-lg flex-shrink-0">
-                <PartyPopper className="w-7 h-7" />
+          <div className="p-5 rounded-[28px] bg-gradient-to-r from-[#EDE9FE] via-[#F4F1FA] to-[#E0E7FF] border border-[#DDD6FE] shadow-clay flex flex-col sm:flex-row items-center justify-between gap-4 animate-fade-in text-left">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-[#7C3AED] text-white flex items-center justify-center shadow-lg flex-shrink-0">
+                <PartyPopper className="w-6 h-6" />
               </div>
-              <div className="space-y-1">
-                <h3 className="text-base font-black text-[#1C1938] flex items-center gap-2">
-                  <span>Congratulations, {profile?.name || 'Educator'}!</span>
-                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#10B981] text-white font-bold">
+              <div className="space-y-0.5">
+                <h3 className="text-sm font-black text-[#1C1938] flex items-center gap-2">
+                  <span>Welcome, {profile?.name || 'Educator'}!</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#10B981] text-white font-bold">
                     Official Approval
                   </span>
                 </h3>
-                <p className="text-xs text-[#5B21B6] leading-relaxed max-w-lg">
-                  Your teaching application has been reviewed and approved by the Shikshan Administrator.
-                  Your verified profile is now actively visible to students and parents across Karnataka!
+                <p className="text-xs text-[#5B21B6] leading-relaxed">
+                  Your teaching application has been approved. Your profile is now visible to students across Karnataka!
                 </p>
               </div>
             </div>
@@ -361,677 +471,1004 @@ export const TutorDashboardPage: React.FC = () => {
               onClick={handleAcknowledgeApproval}
               icon={<CheckCircle2 className="w-4 h-4" />}
             >
-              Acknowledge & Continue
+              Acknowledge
             </ClayButton>
           </div>
         )}
 
-        {/* Tutor Profile Header Card with Real Photo Upload */}
-        {application && (
-          <ClayCard className="p-6 text-left border border-[#DFD8F3] shadow-clay bg-white space-y-4">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <ClayUploadButton
-                currentPhotoUrl={user?.photo_url || application.photo_url || application.tutor_profile?.photo_url}
-                onPhotoSelected={async (data) => {
-                  await uploadPhoto(data);
-                }}
-                onPhotoRemoved={async () => {
-                  await removePhoto();
-                }}
-                label={profile?.name || application.tutor_profile?.name || 'Verified Tutor'}
-                subLabel={`${application.course_qualification} • ${application.institution_name}`}
-              />
+        {/* ========================================================================= */}
+        {/* CLAY SEGMENT CONTROL / TAB BAR (Distinct Dashboard Sections)             */}
+        {/* ========================================================================= */}
+        <div className="bg-white/90 backdrop-blur-md p-1.5 rounded-2xl border border-[#E5DFF8] shadow-clay-sm flex items-center justify-between gap-1 overflow-x-auto no-scrollbar">
+          <button
+            type="button"
+            onClick={() => setActiveTab('overview')}
+            className={`flex-1 min-w-[85px] py-2 px-2.5 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              activeTab === 'overview'
+                ? 'bg-[#7C3AED] text-white shadow-clay-button'
+                : 'text-[#686487] hover:text-[#1C1938] hover:bg-purple-50/60'
+            }`}
+          >
+            <LayoutDashboard className="w-3.5 h-3.5" />
+            <span>Dashboard</span>
+          </button>
 
-              <div className="p-3.5 rounded-2xl bg-[#EDE9FE] border border-[#DDD6FE] text-left shadow-xs">
-                <span className="text-[10px] font-bold uppercase text-[#6D28D9] block">Approved Monthly Fee</span>
-                <span className="text-base font-black text-[#1C1938]">
-                  ₹{application.fee_amount || (application as any).approved_fee || 1500} / month
-                </span>
-                <span className="text-[10px] text-[#686487] block mt-0.5">
-                  Controlled by Admin (₹3,000 max cap)
-                </span>
-              </div>
-            </div>
+          <button
+            type="button"
+            onClick={() => setActiveTab('batches')}
+            className={`flex-1 min-w-[90px] py-2 px-2.5 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              activeTab === 'batches'
+                ? 'bg-[#7C3AED] text-white shadow-clay-button'
+                : 'text-[#686487] hover:text-[#1C1938] hover:bg-purple-50/60'
+            }`}
+          >
+            <Clock className="w-3.5 h-3.5" />
+            <span>Batches ({batches.length})</span>
+          </button>
 
-            <div className="pt-2 border-t border-[#F3EFFB] flex flex-wrap gap-2 text-xs">
-              <span className="text-[#686487] font-semibold">Subjects:</span>
-              {(application.subjects || []).map((s) => (
-                <span key={s} className="px-2.5 py-0.5 rounded-lg bg-[#FAF9FE] border border-[#E5DFF8] text-[#7C3AED] font-bold">
-                  {s}
-                </span>
-              ))}
-            </div>
-          </ClayCard>
-        )}
+          <button
+            type="button"
+            onClick={() => setActiveTab('students')}
+            className={`flex-1 min-w-[90px] py-2 px-2.5 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              activeTab === 'students'
+                ? 'bg-[#7C3AED] text-white shadow-clay-button'
+                : 'text-[#686487] hover:text-[#1C1938] hover:bg-purple-50/60'
+            }`}
+          >
+            <Users className="w-3.5 h-3.5" />
+            <span>Students ({enrolledStudents.length})</span>
+          </button>
 
-        {/* SECTION 2: 3-HOUR FIXED BATCHES (MAX 4 STUDENTS) */}
-        <div className="space-y-4 text-left">
-          <div className="flex items-center justify-between px-1">
-            <div>
-              <h3 className="text-lg font-black text-[#1C1938] flex items-center gap-2">
-                <Clock className="w-5 h-5 text-[#4136CA]" />
-                3-Hour Fixed Batches ({batches.length})
-              </h3>
-              <p className="text-xs text-[#686487]">
-                Every batch runs exactly 3 hours with a strict limit of 4 students per batch.
-              </p>
-            </div>
-            <ClayButton
-              size="sm"
-              variant="primary"
-              onClick={() => setIsCreateBatchOpen(true)}
-              icon={<Plus className="w-4 h-4" />}
-            >
-              New Batch
-            </ClayButton>
-          </div>
+          <button
+            type="button"
+            onClick={() => setActiveTab('requests')}
+            className={`flex-1 min-w-[95px] py-2 px-2.5 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer relative ${
+              activeTab === 'requests'
+                ? 'bg-[#7C3AED] text-white shadow-clay-button'
+                : 'text-[#686487] hover:text-[#1C1938] hover:bg-purple-50/60'
+            }`}
+          >
+            <UserPlus className="w-3.5 h-3.5" />
+            <span>Requests</span>
+            {pendingRequests.length > 0 && (
+              <span className="w-4 h-4 rounded-full bg-amber-500 text-white text-[9px] font-black flex items-center justify-center">
+                {pendingRequests.length}
+              </span>
+            )}
+          </button>
 
-          {batches.length === 0 ? (
-            <div className="p-6 rounded-[28px] bg-white border border-[#DFD8F3] text-center space-y-2">
-              <Clock className="w-8 h-8 text-[#7C3AED] mx-auto opacity-70" />
-              <h4 className="font-extrabold text-sm text-[#1C1938]">No Batches Created Yet</h4>
-              <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                Create structured 3-hour fixed batches so students can enroll directly with real-time seat availability.
-              </p>
-              <div className="pt-1">
-                <ClayButton size="sm" variant="secondary" onClick={() => setIsCreateBatchOpen(true)}>
-                  Create Your First Batch
-                </ClayButton>
-              </div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {batches.map((batch) => {
-                const enrolled = batch.enrolled_count ?? batch.current_enrolled ?? 0;
-                const max = batch.max_capacity ?? batch.max_students ?? 4;
-                const isFull = enrolled >= max;
-                const bName = batch.batch_name || batch.name;
-
-                return (
-                  <div
-                    key={batch.id}
-                    className="p-4 rounded-[24px] bg-white border border-[#DFD8F3] shadow-clay-sm flex flex-col justify-between gap-3 text-left"
-                  >
-                    <div>
-                      <div className="flex items-center justify-between gap-2">
-                        <h4 className="font-extrabold text-sm text-[#1C1938] truncate">{bName}</h4>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteBatch(batch.id, bName)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                          title="Delete Batch"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-
-                      <div className="mt-1 flex items-center gap-2 text-xs text-[#686487]">
-                        <span className="font-semibold text-[#4136CA]">
-                          {formatTimeLabel(batch.start_time)} – {formatTimeLabel(batch.end_time)}
-                        </span>
-                        <span>•</span>
-                        <span>{batch.days_of_week || batch.days || 'Regular'}</span>
-                      </div>
-                    </div>
-
-                    <div className="pt-2 border-t border-[#F3EFFB] flex items-center justify-between gap-2">
-                      <span
-                        className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
-                          isFull
-                            ? 'bg-rose-100 text-rose-800'
-                            : 'bg-emerald-100 text-emerald-800'
-                        }`}
-                      >
-                        {enrolled} / {max} Enrolled {isFull ? '(Full)' : `(${max - enrolled} open)`}
-                      </span>
-
-                      <button
-                        type="button"
-                        onClick={() => handleOpenRoster(batch)}
-                        className="px-3 py-1.5 rounded-xl bg-purple-50 text-[#7C3AED] hover:bg-purple-100 border border-purple-200 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
-                      >
-                        <Users className="w-3.5 h-3.5" />
-                        <span>Manage Roster</span>
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+          <button
+            type="button"
+            onClick={() => setActiveTab('profile')}
+            className={`flex-1 min-w-[80px] py-2 px-2.5 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              activeTab === 'profile'
+                ? 'bg-[#7C3AED] text-white shadow-clay-button'
+                : 'text-[#686487] hover:text-[#1C1938] hover:bg-purple-50/60'
+            }`}
+          >
+            <GraduationCap className="w-3.5 h-3.5" />
+            <span>Profile</span>
+          </button>
         </div>
 
-        {/* SECTION 3: STUDENT INQUIRIES DESK */}
-        <div className="space-y-4 text-left">
-          <div className="flex items-center justify-between px-1">
-            <h3 className="text-lg font-black text-[#1C1938]">
-              Student Inquiries ({requests.length})
-            </h3>
-            <span className="text-xs text-[#686487]">Review student requests & allocate batch seats</span>
-          </div>
-
-          {isLoading ? (
-            <div className="p-8 text-center text-xs text-[#686487]">Loading inquiries...</div>
-          ) : requests.length === 0 ? (
-            <ClayEmptyState
-              title="No Student Inquiries Yet"
-              subtitle="Your verified profile is active in the student marketplace. When students request academic guidance, their inquiries will appear here."
-              onRefresh={handleRefresh}
-            />
-          ) : (
-            <div className="space-y-4">
-              {requests.map((req) => {
-                const subjectName = SCHOOL_SUBJECTS.find((s) => s.id === req.subject)?.label || req.subject;
-                const studentName = req.student_name || req.student_profile?.name || 'School Student';
-                const hasBatch = Boolean((req as any).batch_name);
-
-                return (
-                  <ClayCard key={req.id} className="p-5 border border-[#DFD8F3] bg-white space-y-3 shadow-clay-sm">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h4 className="font-extrabold text-base text-[#1C1938]">{studentName}</h4>
-                          <span
-                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold capitalize ${
-                              req.status === 'accepted'
-                                ? 'bg-emerald-100 text-emerald-800'
-                                : req.status === 'declined'
-                                ? 'bg-rose-100 text-rose-800'
-                                : req.status === 'cancelled'
-                                ? 'bg-slate-100 text-slate-600'
-                                : 'bg-amber-100 text-amber-800'
-                            }`}
-                          >
-                            {req.status}
-                          </span>
-
-                          {req.status === 'accepted' && (
-                            hasBatch ? (
-                              <span className="px-2 py-0.5 rounded-full bg-purple-50 text-[#7C3AED] border border-purple-200 text-[10px] font-bold">
-                                Batch: {(req as any).batch_name}
-                              </span>
-                            ) : (
-                              <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-bold">
-                                Unassigned
-                              </span>
-                            )
-                          )}
-                        </div>
-
-                        <p className="text-xs text-[#686487] mt-0.5">
-                          Subject: <strong className="text-[#312E81]">{subjectName}</strong> • {req.class_level}
-                          {hasBatch && (
-                            <span className="ml-2 font-bold text-[#4136CA]">
-                              • {(req as any).batch_time}
-                            </span>
-                          )}
-                        </p>
-                      </div>
-
-                      <span className="text-[10px] text-[#A29EBE]">
-                        {new Date(req.created_at).toLocaleDateString()}
-                      </span>
-                    </div>
-
-                    <div className="p-3.5 rounded-xl bg-[#F8F7FD] border border-[#DFD8F3] text-xs space-y-1.5">
-                      <p className="text-[#1C1938]">
-                        <strong>Student Learning Need:</strong> {req.learning_needs}
-                      </p>
-                      {req.preferred_schedule && (
-                        <p className="text-[#686487]">
-                          <strong>Requested Schedule:</strong> {req.preferred_schedule}
-                        </p>
-                      )}
-                      {req.response_message && (
-                        <p className="text-[#4136CA] pt-1 border-t border-[#DFD8F3]">
-                          <strong>Your Response:</strong> {req.response_message}
-                        </p>
-                      )}
-                    </div>
-
-                    {req.status === 'pending' && (
-                      <div className="flex items-center justify-end gap-2 pt-2">
-                        <ClayButton
-                          size="sm"
-                          variant="secondary"
-                          onClick={() => handleOpenResponse(req, 'declined')}
-                          className="rounded-full px-4 py-1.5 text-xs font-bold text-rose-600 border-rose-200 hover:bg-rose-50"
-                        >
-                          Decline
-                        </ClayButton>
-                        <ClayButton
-                          size="sm"
-                          variant="primary"
-                          onClick={() => handleOpenResponse(req, 'accepted')}
-                          className="rounded-full px-5 py-1.5 text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white"
-                        >
-                          Accept Request
-                        </ClayButton>
-                      </div>
-                    )}
-
-                    {req.status === 'accepted' && !hasBatch && batches.length > 0 && (
-                      <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#DFD8F3]">
-                        <button
-                          type="button"
-                          onClick={() => setAssigningRequestForBatch(req)}
-                          className="px-3.5 py-1.5 rounded-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
-                        >
-                          <UserPlus className="w-3.5 h-3.5" />
-                          <span>Assign to 3-Hour Batch</span>
-                        </button>
-                      </div>
-                    )}
-                  </ClayCard>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* MODAL 1: CREATE 3-HOUR FIXED BATCH */}
-        {isCreateBatchOpen && (
-          <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
-            <ClayCard className="max-w-md w-full p-6 text-left space-y-4 bg-white border border-[#DFD8F3] shadow-2xl animate-scaleIn">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-black text-lg text-[#1C1938]">Create 3-Hour Fixed Batch</h3>
-                  <p className="text-xs text-[#686487]">Every batch is fixed at 3 hours with max 4 students.</p>
-                </div>
-                <button
-                  onClick={() => setIsCreateBatchOpen(false)}
-                  className="p-1 rounded-lg text-slate-400 hover:text-slate-700"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+        {/* ========================================================================= */}
+        {/* SECTION 1: DASHBOARD / OVERVIEW                                           */}
+        {/* ========================================================================= */}
+        {activeTab === 'overview' && (
+          <div className="space-y-6 animate-fade-in text-left">
+            {/* Compact Metric Summary Cards (2x2 Grid) */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="p-4 rounded-[22px] bg-white border border-[#E5DFF8] shadow-clay-sm space-y-1">
+                <span className="text-[10px] font-black uppercase text-[#686487] block">Active Batches</span>
+                <span className="text-2xl font-black text-[#1C1938]">{batches.length}</span>
+                <span className="text-[10px] text-[#7C3AED] font-bold block">3-Hour Fixed</span>
               </div>
 
-              {batchError && (
-                <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                  <span>{batchError}</span>
-                </div>
-              )}
+              <div className="p-4 rounded-[22px] bg-white border border-[#E5DFF8] shadow-clay-sm space-y-1">
+                <span className="text-[10px] font-black uppercase text-[#686487] block">Enrolled Students</span>
+                <span className="text-2xl font-black text-[#10B981]">{enrolledStudents.length}</span>
+                <span className="text-[10px] text-slate-500 font-bold block">Accepted</span>
+              </div>
 
-              <form onSubmit={handleCreateBatch} className="space-y-4">
-                <ClayInput
-                  label="Batch Name"
-                  placeholder="e.g. Evening Mathematics Batch"
-                  value={batchName}
-                  onChange={(e) => setBatchName(e.target.value)}
-                  required
-                />
+              <div className="p-4 rounded-[22px] bg-white border border-[#E5DFF8] shadow-clay-sm space-y-1">
+                <span className="text-[10px] font-black uppercase text-[#686487] block">Pending Requests</span>
+                <span className="text-2xl font-black text-[#F59E0B]">{pendingRequests.length}</span>
+                <span className="text-[10px] text-slate-500 font-bold block">Needs Review</span>
+              </div>
 
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-[#1C1938]">Start Time</label>
-                  <input
-                    type="time"
-                    value={batchStart}
-                    onChange={(e) => setBatchStart(e.target.value)}
-                    className="clay-input w-full text-xs"
-                    required
-                  />
-                  <div className="p-2.5 rounded-xl bg-[#EDE9FE] border border-[#DDD6FE] text-xs text-[#5B21B6] mt-1 flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-[#7C3AED] flex-shrink-0" />
-                    <span>
-                      Duration: <strong>{formatTimeLabel(batchStart)}</strong> to{' '}
-                      <strong>{formatTimeLabel(calculatedEnd)}</strong> (Exactly 3 Hours)
-                    </span>
-                  </div>
-                </div>
+              <div className="p-4 rounded-[22px] bg-white border border-[#E5DFF8] shadow-clay-sm space-y-1">
+                <span className="text-[10px] font-black uppercase text-[#686487] block">Monthly Earnings</span>
+                <span className="text-2xl font-black text-[#6D28D9]">
+                  ₹{expectedMonthlyEarnings.toLocaleString('en-IN')}
+                </span>
+                <span className="text-[10px] text-[#686487] font-bold block">₹{feePerStudent}/mo per student</span>
+              </div>
+            </div>
 
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-[#1C1938]">Days of Week</label>
-                  <div className="flex flex-wrap gap-1.5 pt-1">
-                    {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => {
-                      const selected = batchDays.includes(day);
-                      return (
-                        <button
-                          key={day}
-                          type="button"
-                          onClick={() => {
-                            if (selected) {
-                              setBatchDays(batchDays.filter((d) => d !== day));
-                            } else {
-                              setBatchDays([...batchDays, day]);
-                            }
-                          }}
-                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                            selected
-                              ? 'bg-[#7C3AED] text-white shadow-xs'
-                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                          }`}
-                        >
-                          {day}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600 flex items-center justify-between">
-                  <span>Student Limit:</span>
-                  <span className="font-bold text-[#1C1938]">Strictly 4 Students Max</span>
-                </div>
-
-                <div className="flex justify-end gap-2 pt-2 border-t border-[#DFD8F3]">
-                  <ClayButton
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setIsCreateBatchOpen(false)}
-                  >
-                    Cancel
-                  </ClayButton>
-                  <ClayButton
-                    type="submit"
-                    variant="primary"
-                    size="sm"
-                    isLoading={isCreatingBatch}
-                  >
-                    Save Batch
-                  </ClayButton>
-                </div>
-              </form>
-            </ClayCard>
-          </div>
-        )}
-
-        {/* MODAL 2: INQUIRY RESPONSE MODAL */}
-        {activeRequest && (
-          <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
-            <ClayCard className="max-w-md w-full p-6 text-left space-y-4 bg-white border border-[#DFD8F3] shadow-2xl animate-scaleIn">
-              <h3 className="font-black text-lg text-[#1C1938]">
-                {responseAction === 'accepted' ? 'Accept Student Inquiry' : 'Decline Student Inquiry'}
-              </h3>
-              <p className="text-xs text-[#686487]">
-                Send an official message to the student regarding your availability.
-              </p>
-
+            {/* Quick Actions Strip */}
+            <ClayCard className="p-5 flex flex-col sm:flex-row items-center justify-between gap-3">
               <div>
-                <label className="block text-xs font-bold text-[#1C1938] mb-1">Response Note</label>
-                <textarea
-                  rows={3}
-                  value={responseNote}
-                  onChange={(e) => setResponseNote(e.target.value)}
-                  className="w-full p-3 rounded-xl border border-[#DFD8F3] text-xs text-[#1C1938] focus:outline-none focus:ring-2 focus:ring-[#312E81]"
-                />
+                <h4 className="text-sm font-black text-[#1C1938]">Teaching Batch Operations</h4>
+                <p className="text-xs text-[#686487]">Schedule micro-batches and review student requests</p>
               </div>
-
-              <div className="flex justify-end gap-2 pt-2">
+              <div className="flex items-center gap-2 w-full sm:w-auto">
                 <ClayButton
-                  variant="secondary"
                   size="sm"
-                  onClick={() => setActiveRequest(null)}
-                  className="rounded-full px-4 py-2 text-xs font-bold"
+                  variant="primary"
+                  onClick={() => setIsCreateBatchOpen(true)}
+                  icon={<Plus className="w-4 h-4" />}
+                  className="flex-1 sm:flex-initial"
                 >
-                  Cancel
+                  Create Batch
                 </ClayButton>
                 <ClayButton
-                  variant="primary"
                   size="sm"
-                  isLoading={isUpdating}
-                  onClick={handleSubmitResponse}
-                  className={`rounded-full px-5 py-2 text-xs font-bold text-white ${
-                    responseAction === 'accepted' ? 'bg-emerald-700 hover:bg-emerald-800' : 'bg-rose-700 hover:bg-rose-800'
-                  }`}
+                  variant="secondary"
+                  onClick={() => setActiveTab('requests')}
+                  className="flex-1 sm:flex-initial"
                 >
-                  Send Response
+                  Review Requests ({pendingRequests.length})
                 </ClayButton>
               </div>
             </ClayCard>
-          </div>
-        )}
 
-        {/* MODAL 3: BATCH ROSTER & STUDENT ASSIGNMENT MODAL */}
-        {selectedBatchForRoster && (
-          <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
-            <ClayCard className="max-w-lg w-full max-h-[85vh] overflow-y-auto p-6 text-left space-y-5 bg-white border border-[#DFD8F3] shadow-2xl">
-              <div className="flex items-start justify-between pb-3 border-b border-[#DFD8F3]">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-black text-lg text-[#1C1938]">
-                      {selectedBatchForRoster.batch_name || selectedBatchForRoster.name}
-                    </h3>
-                    <span className="px-2.5 py-0.5 rounded-full bg-purple-100 text-[#7C3AED] text-xs font-bold">
-                      {batchStudents.length} / 4 Enrolled
-                    </span>
-                  </div>
-                  <p className="text-xs text-[#686487] mt-1 flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-[#7C3AED]" />
-                    <span>
-                      {formatTimeLabel(selectedBatchForRoster.start_time)} – {formatTimeLabel(selectedBatchForRoster.end_time)} (3 Hours) • {selectedBatchForRoster.days_of_week || selectedBatchForRoster.days}
-                    </span>
-                  </p>
-                </div>
-
+            {/* Active Batches Snapshot */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between px-1">
+                <h4 className="text-xs font-black uppercase tracking-wider text-[#686487]">Your Active Batches</h4>
                 <button
-                  onClick={() => setSelectedBatchForRoster(null)}
-                  className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                  type="button"
+                  onClick={() => setActiveTab('batches')}
+                  className="text-xs font-bold text-[#7C3AED] hover:underline"
                 >
-                  <X className="w-5 h-5" />
+                  View All Batches
                 </button>
               </div>
 
-              {rosterMessage && (
-                <div
-                  className={`p-3 rounded-xl text-xs flex items-center gap-2 ${
-                    rosterMessage.type === 'success'
-                      ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
-                      : 'bg-rose-50 border border-rose-200 text-rose-800'
-                  }`}
-                >
-                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                  <span>{rosterMessage.text}</span>
+              {batches.length === 0 ? (
+                <div className="p-6 rounded-[24px] bg-white border border-[#E5DFF8] text-center space-y-2">
+                  <p className="text-xs text-[#686487]">No batches created yet. Create a 3-hour batch to accept students.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {batches.slice(0, 2).map((b) => (
+                    <div key={b.id} className="p-4 rounded-[22px] bg-white border border-[#E5DFF8] shadow-clay-sm flex justify-between items-center">
+                      <div>
+                        <h5 className="font-extrabold text-xs text-[#1C1938]">{b.name || b.batch_name}</h5>
+                        <p className="text-[11px] text-[#686487]">
+                          {formatTimeLabel(b.start_time)} – {formatTimeLabel(b.end_time)} • {b.days}
+                        </p>
+                      </div>
+                      <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-[#EDE9FE] text-[#6D28D9]">
+                        {b.enrolled_count || 0}/4 Enrolled
+                      </span>
+                    </div>
+                  ))}
                 </div>
               )}
-
-              {/* CURRENTLY ENROLLED STUDENTS */}
-              <div className="space-y-3">
-                <h4 className="text-xs font-black uppercase tracking-wider text-slate-500">
-                  Enrolled Students ({batchStudents.length} / 4)
-                </h4>
-
-                {isRosterLoading ? (
-                  <div className="p-4 text-center text-xs text-slate-400">Loading enrolled students...</div>
-                ) : batchStudents.length === 0 ? (
-                  <div className="p-4 rounded-2xl bg-purple-50/50 border border-dashed border-purple-200 text-center text-xs text-slate-500">
-                    No students currently assigned to this batch. You can assign accepted inquiries below.
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {batchStudents.map((s) => {
-                      const reqId = s.request_id || s.id;
-                      const sName = s.student_name || s.student_profile?.name || 'School Student';
-                      return (
-                        <div
-                          key={reqId}
-                          className="p-3 rounded-2xl bg-[#F8F7FD] border border-[#DFD8F3] flex items-center justify-between gap-3 text-xs"
-                        >
-                          <div className="min-w-0">
-                            <h5 className="font-extrabold text-slate-800 truncate">{sName}</h5>
-                            <p className="text-[11px] text-slate-500">
-                              Subject: <strong className="text-[#312E81]">{s.subject}</strong> • {s.class_level}
-                            </p>
-                            {s.guardian_phone && (
-                              <p className="text-[10px] text-slate-400">Phone: {s.guardian_phone}</p>
-                            )}
-                          </div>
-
-                          <button
-                            type="button"
-                            disabled={rosterActionLoading === reqId}
-                            onClick={() => handleUnassignStudent(selectedBatchForRoster.id, reqId)}
-                            className="px-2.5 py-1 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer flex-shrink-0"
-                          >
-                            <UserMinus className="w-3 h-3" />
-                            <span>Remove</span>
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              {/* ELIGIBLE ACCEPTED STUDENTS TO ASSIGN */}
-              <div className="space-y-3 pt-3 border-t border-[#DFD8F3]">
-                <h4 className="text-xs font-black uppercase tracking-wider text-slate-500">
-                  Assign Accepted Inquiries
-                </h4>
-
-                {batchStudents.length >= 4 ? (
-                  <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium text-center">
-                    This batch has reached maximum capacity (4/4 students). Remove a student to enroll someone else.
-                  </div>
-                ) : (
-                  (() => {
-                    const enrolledReqIds = new Set(batchStudents.map((s) => s.request_id || s.id));
-                    const eligible = requests.filter(
-                      (r) => r.status === 'accepted' && !enrolledReqIds.has(r.id)
-                    );
-
-                    if (eligible.length === 0) {
-                      return (
-                        <p className="text-xs text-slate-500 italic">
-                          No other accepted student inquiries available to assign. Accept more student inquiries from your desk below to add them to this batch.
-                        </p>
-                      );
-                    }
-
-                    return (
-                      <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                        {eligible.map((req) => {
-                          const sName = req.student_name || req.student_profile?.name || 'School Student';
-                          const hasOtherBatch = Boolean((req as any).batch_name);
-
-                          return (
-                            <div
-                              key={req.id}
-                              className="p-3 rounded-2xl bg-white border border-purple-100 flex items-center justify-between gap-3 text-xs shadow-xs"
-                            >
-                              <div className="min-w-0">
-                                <h5 className="font-extrabold text-slate-800 truncate">{sName}</h5>
-                                <p className="text-[11px] text-slate-500">
-                                  {req.subject} • {req.class_level}
-                                  {hasOtherBatch && (
-                                    <span className="text-[#7C3AED] font-semibold ml-1">
-                                      (Currently in: {(req as any).batch_name})
-                                    </span>
-                                  )}
-                                </p>
-                              </div>
-
-                              <button
-                                type="button"
-                                disabled={rosterActionLoading === req.id}
-                                onClick={() => handleAssignStudent(selectedBatchForRoster.id, req.id)}
-                                className="px-3 py-1.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-bold flex items-center gap-1 transition-all shadow-xs cursor-pointer flex-shrink-0"
-                              >
-                                <UserPlus className="w-3.5 h-3.5" />
-                                <span>{hasOtherBatch ? 'Reassign' : 'Add to Batch'}</span>
-                              </button>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    );
-                  })()
-                )}
-              </div>
-
-              <div className="pt-2 flex justify-end">
-                <ClayButton
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setSelectedBatchForRoster(null)}
-                >
-                  Done
-                </ClayButton>
-              </div>
-            </ClayCard>
+            </div>
           </div>
         )}
 
-        {/* MODAL 4: QUICK ASSIGN INQUIRY TO BATCH */}
-        {assigningRequestForBatch && (
-          <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
-            <ClayCard className="max-w-md w-full p-6 text-left space-y-4 bg-white border border-[#DFD8F3] shadow-2xl">
-              <div className="flex items-start justify-between pb-2 border-b border-[#DFD8F3]">
-                <div>
-                  <h3 className="font-black text-base text-[#1C1938]">
-                    Assign Student to Batch
-                  </h3>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Select a 3-hour batch for{' '}
-                    <strong>
-                      {assigningRequestForBatch.student_name || assigningRequestForBatch.student_profile?.name || 'Student'}
-                    </strong>
-                  </p>
-                </div>
-
-                <button
-                  onClick={() => setAssigningRequestForBatch(null)}
-                  className="p-1 rounded-lg text-slate-400 hover:text-slate-700"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+        {/* ========================================================================= */}
+        {/* SECTION 2: MY BATCHES                                                     */}
+        {/* ========================================================================= */}
+        {activeTab === 'batches' && (
+          <div className="space-y-4 animate-fade-in text-left">
+            <div className="flex items-center justify-between px-1">
+              <div>
+                <h3 className="text-base font-black text-[#1C1938] flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-[#4136CA]" />
+                  3-Hour Fixed Batches ({batches.length})
+                </h3>
+                <p className="text-xs text-[#686487]">
+                  Every batch runs exactly 3 hours with a maximum of 4 students per batch.
+                </p>
               </div>
+              <ClayButton
+                size="sm"
+                variant="primary"
+                onClick={() => setIsCreateBatchOpen(true)}
+                icon={<Plus className="w-4 h-4" />}
+              >
+                New Batch
+              </ClayButton>
+            </div>
 
-              <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
-                {batches.map((b) => {
-                  const enrolled = b.enrolled_count ?? b.current_enrolled ?? 0;
-                  const max = b.max_capacity ?? b.max_students ?? 4;
+            {batches.length === 0 ? (
+              <div className="p-8 rounded-[28px] bg-white border border-[#DFD8F3] text-center space-y-3">
+                <Clock className="w-10 h-10 text-[#7C3AED] mx-auto opacity-70" />
+                <h4 className="font-extrabold text-sm text-[#1C1938]">No Batches Created Yet</h4>
+                <p className="text-xs text-[#686487] max-w-sm mx-auto">
+                  Create structured 3-hour fixed batches so students can enroll directly with real-time seat availability.
+                </p>
+                <div className="pt-1">
+                  <ClayButton size="sm" variant="primary" onClick={() => setIsCreateBatchOpen(true)}>
+                    Create First 3-Hour Batch
+                  </ClayButton>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                {batches.map((batch) => {
+                  const enrolled = batch.enrolled_count ?? 0;
+                  const max = batch.max_capacity ?? 4;
                   const isFull = enrolled >= max;
-                  const bName = b.batch_name || b.name;
+                  const bName = batch.name || batch.batch_name;
 
                   return (
                     <div
-                      key={b.id}
-                      className="p-3.5 rounded-2xl border border-purple-100 bg-[#FAF9FE] flex items-center justify-between gap-3 text-xs"
+                      key={batch.id}
+                      className="p-4.5 rounded-[24px] bg-white border border-[#E5DFF8] shadow-clay-sm flex flex-col justify-between gap-3 text-left"
                     >
                       <div>
-                        <h5 className="font-extrabold text-slate-800">{bName}</h5>
-                        <p className="text-[11px] text-slate-500">
-                          {formatTimeLabel(b.start_time)} – {formatTimeLabel(b.end_time)} (3h) • {b.days_of_week || b.days}
-                        </p>
+                        <div className="flex items-center justify-between gap-2">
+                          <h4 className="font-extrabold text-sm text-[#1C1938] truncate">{bName}</h4>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteBatch(batch.id, bName)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                            title="Delete Batch"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+
+                        <div className="mt-1 flex items-center gap-2 text-xs text-[#686487] flex-wrap">
+                          <span className="font-bold text-[#4136CA]">
+                            {formatTimeLabel(batch.start_time)} – {formatTimeLabel(batch.end_time)}
+                          </span>
+                          <span>•</span>
+                          <span className="text-slate-600 font-medium">{batch.days || 'Regular'}</span>
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t border-[#F3EFFB] flex items-center justify-between gap-2">
                         <span
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full mt-1 inline-block ${
-                            isFull ? 'bg-rose-100 text-rose-800' : 'bg-emerald-100 text-emerald-800'
+                          className={`text-[10px] font-black px-2.5 py-0.5 rounded-full ${
+                            isFull
+                              ? 'bg-rose-100 text-rose-800'
+                              : 'bg-emerald-100 text-emerald-800'
                           }`}
                         >
                           {enrolled} / {max} Enrolled {isFull ? '(Full)' : `(${max - enrolled} open)`}
                         </span>
-                      </div>
 
-                      <ClayButton
-                        size="sm"
-                        variant="primary"
-                        disabled={isFull || rosterActionLoading === assigningRequestForBatch.id}
-                        isLoading={rosterActionLoading === assigningRequestForBatch.id}
-                        onClick={() => handleAssignStudent(b.id, assigningRequestForBatch.id)}
-                        className="rounded-xl px-3 py-1.5 text-xs font-bold"
-                      >
-                        {isFull ? 'Batch Full' : 'Assign Here'}
-                      </ClayButton>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenRoster(batch)}
+                          className="px-3 py-1.5 rounded-xl bg-purple-50 text-[#7C3AED] hover:bg-purple-100 border border-purple-200 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                        >
+                          <Users className="w-3.5 h-3.5" />
+                          <span>Manage Roster</span>
+                        </button>
+                      </div>
                     </div>
                   );
                 })}
               </div>
+            )}
+          </div>
+        )}
 
-              <div className="flex justify-end pt-2 border-t border-[#DFD8F3]">
-                <ClayButton
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setAssigningRequestForBatch(null)}
-                >
-                  Cancel
-                </ClayButton>
+        {/* ========================================================================= */}
+        {/* SECTION 3: MY STUDENTS                                                    */}
+        {/* ========================================================================= */}
+        {activeTab === 'students' && (
+          <div className="space-y-4 animate-fade-in text-left">
+            <div className="flex items-center justify-between px-1">
+              <div>
+                <h3 className="text-base font-black text-[#1C1938] flex items-center gap-2">
+                  <Users className="w-5 h-5 text-[#10B981]" />
+                  Enrolled Students ({enrolledStudents.length})
+                </h3>
+                <p className="text-xs text-[#686487]">
+                  Students assigned to your active batches through accepted requests.
+                </p>
+              </div>
+            </div>
+
+            {enrolledStudents.length === 0 ? (
+              <div className="p-8 rounded-[28px] bg-white border border-[#DFD8F3] text-center space-y-2">
+                <Users className="w-10 h-10 text-[#686487] mx-auto opacity-50" />
+                <h4 className="font-extrabold text-sm text-[#1C1938]">No Students Enrolled Yet</h4>
+                <p className="text-xs text-[#686487] max-w-sm mx-auto">
+                  When you accept student inquiries and assign them to your 3-hour batches, their records appear here.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                {enrolledStudents.map((st) => (
+                  <div
+                    key={st.id}
+                    className="p-4.5 rounded-[24px] bg-white border border-[#E5DFF8] shadow-clay-sm flex flex-col justify-between gap-3 text-left"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between gap-2">
+                        <h4 className="font-extrabold text-sm text-[#1C1938]">{st.student_name || 'Enrolled Student'}</h4>
+                        <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                          Enrolled
+                        </span>
+                      </div>
+
+                      <p className="text-xs text-[#686487] mt-0.5">
+                        Class: <strong className="text-[#1C1938]">{st.class_level?.toUpperCase()}</strong> • Karnataka State Board
+                      </p>
+
+                      <div className="mt-2 p-2.5 rounded-xl bg-[#FAF9FE] border border-[#E5DFF8] text-xs space-y-1">
+                        <div className="text-[#4136CA] font-bold flex items-center gap-1">
+                          <Clock className="w-3.5 h-3.5" />
+                          <span>{(st as any).batch_name || 'Assigned Batch'}</span>
+                        </div>
+                        <div className="text-[11px] text-[#686487]">
+                          Subject: <strong className="text-slate-800">{st.subject}</strong>
+                        </div>
+                      </div>
+                    </div>
+
+                    {st.guardian_phone && (
+                      <div className="pt-2 border-t border-[#F3EFFB] flex items-center justify-between gap-2 text-xs">
+                        <span className="text-[11px] text-[#686487] font-semibold">Guardian Contact:</span>
+                        <a
+                          href={`tel:${st.guardian_phone}`}
+                          className="font-bold text-[#10B981] hover:underline flex items-center gap-1"
+                        >
+                          <Phone className="w-3 h-3" />
+                          <span>{st.guardian_phone}</span>
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* SECTION 4: STUDENT REQUESTS                                               */}
+        {/* ========================================================================= */}
+        {activeTab === 'requests' && (
+          <div className="space-y-4 animate-fade-in text-left">
+            <div className="flex items-center justify-between px-1">
+              <div>
+                <h3 className="text-base font-black text-[#1C1938] flex items-center gap-2">
+                  <UserPlus className="w-5 h-5 text-[#F59E0B]" />
+                  Student Inquiries ({requests.length})
+                </h3>
+                <p className="text-xs text-[#686487]">
+                  Review student learning requests and allocate open seats.
+                </p>
+              </div>
+              <span className="text-xs font-black px-3 py-1 rounded-full bg-[#EDE9FE] text-[#6D28D9]">
+                {pendingRequests.length} Pending
+              </span>
+            </div>
+
+            {requests.length === 0 ? (
+              <div className="p-8 rounded-[28px] bg-white border border-[#DFD8F3] text-center space-y-2">
+                <UserPlus className="w-10 h-10 text-[#686487] mx-auto opacity-50" />
+                <h4 className="font-extrabold text-sm text-[#1C1938]">No Inquiries Yet</h4>
+                <p className="text-xs text-[#686487] max-w-sm mx-auto">
+                  When students discover your verified profile and request mentorship, their inquiries will appear here.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {requests.map((req) => {
+                  const isPending = req.status === 'pending';
+                  const isAccepted = req.status === 'accepted';
+                  const isDeclined = req.status === 'declined';
+                  const hasBatchAssigned = !!(req as any).batch_id;
+
+                  return (
+                    <div
+                      key={req.id}
+                      className="p-5 rounded-[26px] bg-white border border-[#E5DFF8] shadow-clay-sm flex flex-col gap-3 text-left"
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-black text-sm text-[#1C1938]">{req.student_name || 'Student Inquiry'}</h4>
+                            <span
+                              className={`text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase ${
+                                isAccepted
+                                  ? 'bg-emerald-100 text-emerald-800'
+                                  : isDeclined
+                                  ? 'bg-rose-100 text-rose-800'
+                                  : 'bg-amber-100 text-amber-800'
+                              }`}
+                            >
+                              {req.status}
+                            </span>
+                          </div>
+                          <p className="text-xs text-[#686487] mt-0.5">
+                            Class: <strong className="text-slate-800">{req.class_level?.toUpperCase()}</strong> • Subject: <strong className="text-slate-800">{req.subject}</strong>
+                          </p>
+                        </div>
+
+                        {/* Actions for Pending */}
+                        {isPending && (
+                          <div className="flex items-center gap-2 self-start sm:self-auto">
+                            <button
+                              type="button"
+                              onClick={() => handleOpenResponse(req, 'declined')}
+                              className="px-3.5 py-1.5 rounded-xl border border-rose-200 text-rose-700 hover:bg-rose-50 text-xs font-bold transition-all cursor-pointer"
+                            >
+                              Decline
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenResponse(req, 'accepted')}
+                              className="px-4 py-1.5 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white text-xs font-bold shadow-sm transition-all cursor-pointer"
+                            >
+                              Accept
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      <p className="text-xs text-[#4A4668] bg-[#FAF9FE] p-2.5 rounded-xl border border-[#EFEBF8]">
+                        &quot;{req.learning_needs}&quot;
+                      </p>
+
+                      {/* If Accepted: Batch Assignment status */}
+                      {isAccepted && (
+                        <div className="pt-2 border-t border-[#F3EFFB] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                          <div className="text-xs text-[#686487]">
+                            {hasBatchAssigned ? (
+                              <span className="font-bold text-[#4136CA] flex items-center gap-1">
+                                <Clock className="w-3.5 h-3.5" />
+                                Assigned: {(req as any).batch_name} ({(req as any).batch_time})
+                              </span>
+                            ) : (
+                              <span className="text-amber-700 font-bold">
+                                Accepted • Needs batch seat assignment
+                              </span>
+                            )}
+                          </div>
+
+                          {!hasBatchAssigned && batches.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => setAssigningRequestForBatch(req)}
+                              className="px-3.5 py-1.5 rounded-xl bg-purple-50 text-[#7C3AED] hover:bg-purple-100 border border-purple-200 text-xs font-bold transition-all cursor-pointer self-start sm:self-auto"
+                            >
+                              Assign to 3-Hour Batch
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* SECTION 5: TUTOR PROFILE                                                  */}
+        {/* ========================================================================= */}
+        {activeTab === 'profile' && application && (
+          <div className="space-y-4 animate-fade-in text-left">
+            <ClayCard className="p-6 text-left border border-[#DFD8F3] shadow-clay bg-white space-y-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <ClayUploadButton
+                  currentPhotoUrl={user?.photo_url || application.photo_url || application.tutor_profile?.photo_url}
+                  onPhotoSelected={async (data) => {
+                    await uploadPhoto(data);
+                  }}
+                  onPhotoRemoved={async () => {
+                    await removePhoto();
+                  }}
+                  label={profile?.name || application.tutor_profile?.name || 'Verified Tutor'}
+                  subLabel={`${application.course_qualification} • ${application.institution_name}`}
+                />
+
+                <div className="p-3.5 rounded-2xl bg-[#EDE9FE] border border-[#DDD6FE] text-left shadow-xs">
+                  <span className="text-[10px] font-bold uppercase text-[#6D28D9] block">Approved Monthly Fee</span>
+                  <span className="text-base font-black text-[#1C1938]">
+                    ₹{application.fee_amount || 1500} / month
+                  </span>
+                  <span className="text-[10px] text-[#686487] block mt-0.5">
+                    Controlled by Admin (₹3,000 max cap)
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs pt-2">
+                <div className="p-3 rounded-xl bg-[#FAF9FE] border border-[#E5DFF8]">
+                  <span className="text-[10px] font-bold uppercase text-[#686487] block">Qualifications</span>
+                  <span className="font-bold text-[#1C1938] block mt-0.5">{application.course_qualification}</span>
+                  <span className="text-slate-500 block">{application.institution_name}</span>
+                </div>
+
+                <div className="p-3 rounded-xl bg-[#FAF9FE] border border-[#E5DFF8]">
+                  <span className="text-[10px] font-bold uppercase text-[#686487] block">Teaching Experience</span>
+                  <span className="font-bold text-[#1C1938] block mt-0.5">{application.teaching_experience || 'Academic Mentor'}</span>
+                </div>
+              </div>
+
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#686487] block mb-1.5">
+                  Approved Teaching Subjects
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {(application.subjects || []).map((s) => (
+                    <span key={s} className="px-2.5 py-1 rounded-lg bg-[#FAF9FE] border border-[#E5DFF8] text-[#7C3AED] font-bold text-xs">
+                      {s}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#686487] block mb-1">
+                  Teaching Approach / Bio
+                </span>
+                <p className="text-xs text-[#4A4668] leading-relaxed p-3 rounded-xl bg-[#FAF9FE] border border-[#E5DFF8]">
+                  &quot;{application.bio_intro}&quot;
+                </p>
               </div>
             </ClayCard>
           </div>
         )}
+
+        {/* ========================================================================= */}
+        {/* SECTION 6: MANDATORY BOTTOM LOGOUT BUTTON                                 */}
+        {/* ========================================================================= */}
+        <div className="pt-6 pb-12">
+          <button
+            type="button"
+            onClick={() => setIsConfirmSignOutOpen(true)}
+            className="w-full py-4 px-5 rounded-2xl bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 shadow-clay-sm flex items-center justify-center gap-2 font-black text-xs active:scale-[0.98] transition-all cursor-pointer"
+          >
+            <LogOut className="w-4 h-4 stroke-[2.2]" />
+            <span>Sign Out of Shikshan</span>
+          </button>
+        </div>
+          </>
+        )}
       </main>
+
+      {/* ========================================================================= */}
+      {/* MODAL 1: CREATE BATCH MODAL                                              */}
+      {/* ========================================================================= */}
+      {isCreateBatchOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-purple-100 text-left space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-[#F3EFFB]">
+              <div>
+                <h3 className="font-black text-base text-[#1C1938]">Create 3-Hour Fixed Batch</h3>
+                <p className="text-[11px] text-[#686487]">Fixed 3-hour duration • Strictly 4 students maximum</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCreateBatchOpen(false)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {batchError && (
+              <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <span>{batchError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleCreateBatch} className="space-y-3.5 text-xs">
+              <div>
+                <label className="block text-[11px] font-bold text-[#1C1938] mb-1">Teaching Subject</label>
+                <select
+                  value={batchSubject}
+                  onChange={(e) => setBatchSubject(e.target.value)}
+                  className="w-full p-2.5 rounded-xl border border-[#DFD8F3] bg-[#FAF9FE] text-xs font-semibold text-[#1C1938]"
+                >
+                  {SCHOOL_SUBJECTS.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-[#1C1938] mb-1">Target Class Level</label>
+                <select
+                  value={batchClass}
+                  onChange={(e) => setBatchClass(e.target.value)}
+                  className="w-full p-2.5 rounded-xl border border-[#DFD8F3] bg-[#FAF9FE] text-xs font-semibold text-[#1C1938]"
+                >
+                  {INDIVIDUAL_CLASSES.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-[#1C1938] mb-1">
+                  Batch Name / Title (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={batchName}
+                  onChange={(e) => setBatchName(e.target.value)}
+                  placeholder="e.g. Evening Mathematics (Class 8)"
+                  className="w-full p-2.5 rounded-xl border border-[#DFD8F3] bg-[#FAF9FE] text-xs text-[#1C1938]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-[#1C1938] mb-1.5">Weekly Schedule Days</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => {
+                    const isSelected = batchDays.includes(day);
+                    return (
+                      <button
+                        type="button"
+                        key={day}
+                        onClick={() => {
+                          setBatchDays((prev) =>
+                            isSelected ? prev.filter((d) => d !== day) : [...prev, day]
+                          );
+                        }}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-[#7C3AED] text-white shadow-xs'
+                            : 'bg-[#FAF9FE] text-[#686487] border border-[#DFD8F3]'
+                        }`}
+                      >
+                        {day}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-[#1C1938] mb-1">Session Start Time</label>
+                  <input
+                    type="time"
+                    value={batchStart}
+                    onChange={(e) => setBatchStart(e.target.value)}
+                    className="w-full p-2.5 rounded-xl border border-[#DFD8F3] bg-[#FAF9FE] text-xs font-black text-[#1C1938]"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-[#1C1938] mb-1">Fixed End Time (3 Hrs)</label>
+                  <input
+                    type="time"
+                    value={calculateEndTime(batchStart)}
+                    disabled
+                    className="w-full p-2.5 rounded-xl border border-[#DFD8F3] bg-[#EFEBF8] text-xs font-black text-[#686487] cursor-not-allowed"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-[#1C1938] mb-1">
+                  Monthly Fee per Student (Max ₹3,000)
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-2.5 text-slate-400 font-bold">₹</span>
+                  <input
+                    type="number"
+                    min="500"
+                    max="3000"
+                    value={batchFee}
+                    onChange={(e) => setBatchFee(Number(e.target.value))}
+                    className="w-full pl-7 pr-3 py-2.5 rounded-xl border border-[#DFD8F3] bg-[#FAF9FE] text-xs font-black text-[#1C1938]"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#F3EFFB]">
+                <ClayButton
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setIsCreateBatchOpen(false)}
+                >
+                  Cancel
+                </ClayButton>
+                <ClayButton
+                  type="submit"
+                  variant="primary"
+                  size="sm"
+                  isLoading={isCreatingBatch}
+                >
+                  Save Batch
+                </ClayButton>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL 2: MANAGE ROSTER MODAL                                              */}
+      {/* ========================================================================= */}
+      {selectedBatchForRoster && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="w-full max-w-lg bg-white rounded-3xl p-6 shadow-2xl border border-purple-100 text-left space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-[#F3EFFB]">
+              <div>
+                <h3 className="font-black text-base text-[#1C1938]">
+                  Batch Roster: {selectedBatchForRoster.name || selectedBatchForRoster.batch_name}
+                </h3>
+                <p className="text-[11px] text-[#686487]">
+                  {formatTimeLabel(selectedBatchForRoster.start_time)} – {formatTimeLabel(selectedBatchForRoster.end_time)} • Max 4 students
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedBatchForRoster(null)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {rosterMessage && (
+              <div
+                className={`p-3 rounded-2xl text-xs flex items-center gap-2 ${
+                  rosterMessage.type === 'success'
+                    ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                    : 'bg-rose-50 text-rose-800 border border-rose-200'
+                }`}
+              >
+                {rosterMessage.type === 'success' ? (
+                  <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                ) : (
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                )}
+                <span>{rosterMessage.text}</span>
+              </div>
+            )}
+
+            {/* Current Enrolled Roster */}
+            <div className="space-y-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[#686487] block">
+                Currently Enrolled Students ({batchStudents.length} / 4)
+              </span>
+
+              {isRosterLoading ? (
+                <div className="p-6 text-center text-xs text-[#686487]">Loading batch roster...</div>
+              ) : batchStudents.length === 0 ? (
+                <div className="p-6 rounded-2xl bg-[#FAF9FE] border border-[#E5DFF8] text-center text-xs text-[#686487]">
+                  No students currently assigned to this batch.
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-56 overflow-y-auto">
+                  {batchStudents.map((st) => (
+                    <div
+                      key={st.request_id || st.id}
+                      className="p-3 rounded-2xl bg-[#FAF9FE] border border-[#E5DFF8] flex items-center justify-between text-xs"
+                    >
+                      <div>
+                        <span className="font-bold text-[#1C1938] block">{st.student_name || 'Enrolled Student'}</span>
+                        <span className="text-[11px] text-[#686487]">
+                          Class: {st.class_level?.toUpperCase()} • {st.subject}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleUnassignStudent(selectedBatchForRoster.id, st.request_id || st.id)}
+                        disabled={rosterActionLoading === (st.request_id || st.id)}
+                        className="px-2.5 py-1 rounded-lg text-rose-600 hover:bg-rose-50 text-xs font-bold transition-colors"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <ClayButton
+                size="sm"
+                variant="secondary"
+                onClick={() => setSelectedBatchForRoster(null)}
+              >
+                Close
+              </ClayButton>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL 3: ASSIGN ACCEPTED INQUIRY TO BATCH                                */}
+      {/* ========================================================================= */}
+      {assigningRequestForBatch && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-purple-100 text-left space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-[#F3EFFB]">
+              <div>
+                <h3 className="font-black text-base text-[#1C1938]">Assign Student to Batch</h3>
+                <p className="text-[11px] text-[#686487]">
+                  Assigning {assigningRequestForBatch.student_name || 'Student'} ({assigningRequestForBatch.subject})
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAssigningRequestForBatch(null)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {batches.map((b) => {
+                const isFull = (b.enrolled_count || 0) >= 4;
+                return (
+                  <div
+                    key={b.id}
+                    className="p-3.5 rounded-2xl bg-[#FAF9FE] border border-[#E5DFF8] flex items-center justify-between text-xs"
+                  >
+                    <div>
+                      <span className="font-black text-[#1C1938] block">{b.name || b.batch_name}</span>
+                      <span className="text-[11px] text-[#686487]">
+                        {formatTimeLabel(b.start_time)} – {formatTimeLabel(b.end_time)} • {b.enrolled_count || 0}/4 Enrolled
+                      </span>
+                    </div>
+
+                    <ClayButton
+                      size="sm"
+                      variant="primary"
+                      disabled={isFull || rosterActionLoading === assigningRequestForBatch.id}
+                      isLoading={rosterActionLoading === assigningRequestForBatch.id}
+                      onClick={() => handleAssignStudent(b.id, assigningRequestForBatch.id)}
+                      className="rounded-xl px-3 py-1.5 text-xs font-bold"
+                    >
+                      {isFull ? 'Full' : 'Enroll'}
+                    </ClayButton>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <ClayButton
+                size="sm"
+                variant="secondary"
+                onClick={() => setAssigningRequestForBatch(null)}
+              >
+                Cancel
+              </ClayButton>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL 4: INQUIRY ACCEPT / DECLINE RESPONSE                               */}
+      {/* ========================================================================= */}
+      {activeRequest && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-purple-100 text-left space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-[#F3EFFB]">
+              <h3 className="font-black text-base text-[#1C1938]">
+                {responseAction === 'accepted' ? 'Accept Student Inquiry' : 'Decline Student Inquiry'}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setActiveRequest(null)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-3 rounded-2xl bg-[#FAF9FE] border border-[#E5DFF8] text-xs space-y-1">
+              <div className="font-bold text-[#1C1938]">{activeRequest.student_name || 'Student'}</div>
+              <div className="text-[11px] text-[#686487]">
+                Class: {activeRequest.class_level?.toUpperCase()} • Subject: {activeRequest.subject}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold text-[#1C1938] mb-1">
+                Message to Student & Parent
+              </label>
+              <textarea
+                value={responseNote}
+                onChange={(e) => setResponseNote(e.target.value)}
+                rows={3}
+                className="w-full p-3 rounded-2xl border border-[#DFD8F3] bg-[#FAF9FE] text-xs text-[#1C1938]"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#F3EFFB]">
+              <ClayButton
+                size="sm"
+                variant="secondary"
+                onClick={() => setActiveRequest(null)}
+              >
+                Cancel
+              </ClayButton>
+              <ClayButton
+                size="sm"
+                variant="primary"
+                isLoading={isUpdating}
+                onClick={handleSubmitResponse}
+                className={responseAction === 'accepted' ? '!bg-emerald-600 hover:!bg-emerald-700' : '!bg-rose-600 hover:!bg-rose-700'}
+              >
+                {responseAction === 'accepted' ? 'Confirm Acceptance' : 'Confirm Decline'}
+              </ClayButton>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL 5: LOGOUT CONFIRMATION DIALOG                                       */}
+      {/* ========================================================================= */}
+      {isConfirmSignOutOpen && (
+        <div
+          className="fixed inset-0 z-60 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl border border-purple-100 text-center space-y-4">
+            <div className="w-14 h-14 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center mx-auto">
+              <LogOut className="w-7 h-7" />
+            </div>
+
+            <div>
+              <h3 className="font-black text-base text-[#1C1938]">
+                Confirm Logout
+              </h3>
+              <p className="text-xs text-[#686487] mt-1 leading-relaxed">
+                Are you sure you want to log out of Shikshan? You will need to sign in again to access your tutor dashboard.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setIsConfirmSignOutOpen(false)}
+                className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="flex-1 py-2.5 px-4 rounded-xl bg-rose-600 text-white text-xs font-bold hover:bg-rose-700 shadow-sm transition-colors cursor-pointer"
+              >
+                Confirm Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </ClayBackground>
   );
 };

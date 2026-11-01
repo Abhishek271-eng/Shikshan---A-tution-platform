@@ -7,6 +7,7 @@ import {
   Clock,
   CheckCircle2,
   XCircle,
+  LogOut,
 } from 'lucide-react';
 import { Header } from '../../components/common/Header';
 import { ClayCard } from '../../components/common/ClayCard';
@@ -18,11 +19,18 @@ import { TutorApplication } from '../../types';
 
 export const TutorStatusPage: React.FC = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
 
   const [application, setApplication] = useState<TutorApplication | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isConfirmSignOutOpen, setIsConfirmSignOutOpen] = useState(false);
+
+  const handleSignOut = async () => {
+    setIsConfirmSignOutOpen(false);
+    await signOut();
+    navigate('/login', { replace: true });
+  };
 
   const fetchStatus = async () => {
     if (!user) {
@@ -204,7 +212,58 @@ export const TutorStatusPage: React.FC = () => {
             </ClayCard>
           </>
         )}
+
+        {/* Mandatory Bottom Logout Button */}
+        <div className="pt-4 pb-12">
+          <button
+            type="button"
+            onClick={() => setIsConfirmSignOutOpen(true)}
+            className="w-full py-3.5 px-4 rounded-2xl bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 shadow-clay-sm flex items-center justify-center gap-2 font-bold text-xs active:scale-[0.98] transition-all cursor-pointer"
+          >
+            <LogOut className="w-4 h-4 stroke-[2.2]" />
+            <span>Sign Out of Shikshan</span>
+          </button>
+        </div>
       </main>
+
+      {/* Logout Confirmation Dialog */}
+      {isConfirmSignOutOpen && (
+        <div
+          className="fixed inset-0 z-60 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl border border-purple-100 text-center space-y-4">
+            <div className="w-14 h-14 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center mx-auto">
+              <LogOut className="w-7 h-7" />
+            </div>
+            <div>
+              <h3 className="font-extrabold text-base text-slate-800">
+                Confirm Logout
+              </h3>
+              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                Are you sure you want to log out of Shikshan? You will need to sign in again to access your account.
+              </p>
+            </div>
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setIsConfirmSignOutOpen(false)}
+                className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="flex-1 py-2.5 px-4 rounded-xl bg-rose-600 text-white text-xs font-bold hover:bg-rose-700 shadow-sm transition-colors"
+              >
+                Confirm Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </ClayBackground>
   );
 };
