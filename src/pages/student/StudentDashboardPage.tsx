@@ -87,6 +87,13 @@ export const StudentDashboardPage: React.FC = () => {
     maxPrice: 5000,
   });
 
+  // Enrolled Batches derived from genuine assignment relationship
+  const enrolledRequests = useMemo(() => {
+    return myRequests.filter(
+      (r) => r.status === 'accepted' && (r.batch_id || (r as any).batch_name)
+    );
+  }, [myRequests]);
+
   const loadData = async () => {
     try {
       const [fetchedTutors, fetchedRequests, fetchedFavs, fetchedPayments] = await Promise.all([
@@ -312,6 +319,57 @@ export const StudentDashboardPage: React.FC = () => {
                 onFilterClick={() => setActiveTab('discover')}
               />
             </ClayCard>
+
+            {/* Real Enrolled Batches Section (Retrieved from Student's Genuine Assignment Relationship) */}
+            {enrolledRequests.length > 0 && (
+              <div className="space-y-3 text-left">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-black text-[#1C1938] tracking-tight flex items-center gap-1.5">
+                      <Clock className="w-4 h-4 text-[#4136CA]" />
+                      <span>My Enrolled Batches</span>
+                    </h3>
+                    <p className="text-[11px] text-[#686487]">
+                      Active 3-hour learning sessions with your verified mentors
+                    </p>
+                  </div>
+                  <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-[#EDE9FE] text-[#6D28D9]">
+                    {enrolledRequests.length} Active
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {enrolledRequests.map((req) => (
+                    <div
+                      key={req.id}
+                      className="p-4 rounded-[22px] bg-white border border-[#E5DFF8] shadow-clay-sm space-y-2 text-left"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-extrabold text-xs text-[#1C1938] truncate">
+                          {(req as any).batch_name || `Batch #${(req as any).batch_id?.slice(0, 6)}`}
+                        </span>
+                        <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
+                          Enrolled
+                        </span>
+                      </div>
+
+                      <div className="text-[11px] text-[#686487] space-y-0.5">
+                        <p>
+                          Mentor: <strong className="text-[#1C1938]">{req.tutor_name || 'Verified Educator'}</strong>
+                        </p>
+                        <p>
+                          Class {req.class_level?.toUpperCase()} • {SCHOOL_SUBJECTS.find((s) => s.id === req.subject)?.label || req.subject}
+                        </p>
+                        <p className="text-[#4136CA] font-semibold flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          <span>{(req as any).batch_time || '3-Hour Fixed Session'}</span>
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* 3. Subject Categories (Interactive Clay Cards with Real Mentor Counts) */}
             <div className="space-y-3 text-left">

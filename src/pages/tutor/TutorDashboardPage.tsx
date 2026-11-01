@@ -21,6 +21,7 @@ import { ClayCard } from '../../components/common/ClayCard';
 import { ClayButton } from '../../components/common/ClayButton';
 import { ClayBackground } from '../../components/common/ClayBackground';
 import { ClayUploadButton } from '../../components/common/ClayUploadButton';
+import { ClayTutorBottomNavigation, TutorNavTab } from '../../components/common/ClayTutorBottomNavigation';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigation } from '../../context/NavigationContext';
 import { api } from '../../lib/api';
@@ -48,7 +49,39 @@ const formatTimeLabel = (timeStr: string): string => {
   return `${h}:${m} ${period}`;
 };
 
-type TutorTab = 'overview' | 'batches' | 'students' | 'requests' | 'profile';
+const formatDaysLabel = (daysInput: any): string => {
+  if (!daysInput) return 'Mon · Wed · Fri';
+  let daysArr: string[] = [];
+  if (Array.isArray(daysInput)) {
+    daysArr = daysInput;
+  } else if (typeof daysInput === 'string') {
+    const trimmed = daysInput.trim();
+    if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+      try {
+        daysArr = JSON.parse(trimmed);
+      } catch {
+        daysArr = trimmed.replace(/[\[\]"']/g, '').split(/[\s,]+/);
+      }
+    } else {
+      daysArr = trimmed.split(/[\s,·•]+/);
+    }
+  }
+  const cleanDays = daysArr
+    .map((d) => d.trim())
+    .filter(Boolean)
+    .map((d) => {
+      const lower = d.toLowerCase();
+      if (lower.startsWith('mon')) return 'Mon';
+      if (lower.startsWith('tue')) return 'Tue';
+      if (lower.startsWith('wed')) return 'Wed';
+      if (lower.startsWith('thu')) return 'Thu';
+      if (lower.startsWith('fri')) return 'Fri';
+      if (lower.startsWith('sat')) return 'Sat';
+      if (lower.startsWith('sun')) return 'Sun';
+      return d;
+    });
+  return cleanDays.length > 0 ? cleanDays.join(' · ') : 'Mon · Wed · Fri';
+};
 
 export const TutorDashboardPage: React.FC = () => {
   const navigate = useNavigate();
@@ -56,7 +89,7 @@ export const TutorDashboardPage: React.FC = () => {
   const { pushBackHandler } = useNavigation();
 
   // Navigation Tab State
-  const [activeTab, setActiveTab] = useState<TutorTab>('overview');
+  const [activeTab, setActiveTab] = useState<TutorNavTab>('overview');
 
   // Data State
   const [application, setApplication] = useState<TutorApplication | null>(null);
@@ -699,48 +732,70 @@ export const TutorDashboardPage: React.FC = () => {
                   return (
                     <div
                       key={batch.id}
-                      className="p-4.5 rounded-[24px] bg-white border border-[#E5DFF8] shadow-clay-sm flex flex-col justify-between gap-3 text-left"
+                      className="p-5 rounded-[26px] bg-white border border-[#E5DFF8] shadow-clay-sm flex flex-col justify-between gap-3.5 text-left"
                     >
                       <div>
                         <div className="flex items-center justify-between gap-2">
                           <h4 className="font-extrabold text-sm text-[#1C1938] truncate">{bName}</h4>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteBatch(batch.id, bName)}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                            title="Delete Batch"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          <div className="flex items-center gap-1.5">
+                            {isFull ? (
+                              <span className="px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-black uppercase">
+                                Full
+                              </span>
+                            ) : (
+                              <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-black uppercase">
+                                Active
+                              </span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteBatch(batch.id, bName)}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                              title="Delete Batch"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </div>
 
-                        <div className="mt-1 flex items-center gap-2 text-xs text-[#686487] flex-wrap">
-                          <span className="font-bold text-[#4136CA]">
-                            {formatTimeLabel(batch.start_time)} – {formatTimeLabel(batch.end_time)}
-                          </span>
-                          <span>•</span>
-                          <span className="text-slate-600 font-medium">{batch.days || 'Regular'}</span>
+                        <div className="mt-2 space-y-1.5 text-xs text-[#686487]">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-bold text-[#4136CA]">
+                              {formatTimeLabel(batch.start_time)} – {formatTimeLabel(batch.end_time)}
+                            </span>
+                            <span>•</span>
+                            <span className="font-semibold text-slate-700">{formatDaysLabel(batch.days)}</span>
+                          </div>
+
+                          <div className="flex items-center gap-2 pt-0.5 text-[11px] flex-wrap">
+                            <span className="bg-[#EFEAFF] text-[#4136CA] font-bold px-2 py-0.5 rounded-lg flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              3 Hours Session
+                            </span>
+                            <span className="text-[#7C3AED] font-bold">
+                              ₹{(batch.fee_amount || batch.fee || application?.fee_amount || 3000).toLocaleString('en-IN')} / mo
+                            </span>
+                          </div>
                         </div>
                       </div>
 
-                      <div className="pt-2 border-t border-[#F3EFFB] flex items-center justify-between gap-2">
-                        <span
-                          className={`text-[10px] font-black px-2.5 py-0.5 rounded-full ${
-                            isFull
-                              ? 'bg-rose-100 text-rose-800'
-                              : 'bg-emerald-100 text-emerald-800'
-                          }`}
-                        >
-                          {enrolled} / {max} Enrolled {isFull ? '(Full)' : `(${max - enrolled} open)`}
-                        </span>
+                      <div className="pt-2.5 border-t border-[#F3EFFB] flex flex-col gap-2">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-bold text-slate-700">
+                            {enrolled} of {max} seats filled
+                          </span>
+                          <span className="text-[11px] text-[#686487]">
+                            {isFull ? 'No seats left' : `${max - enrolled} seats open`}
+                          </span>
+                        </div>
 
                         <button
                           type="button"
                           onClick={() => handleOpenRoster(batch)}
-                          className="px-3 py-1.5 rounded-xl bg-purple-50 text-[#7C3AED] hover:bg-purple-100 border border-purple-200 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                          className="w-full py-2.5 px-4 rounded-xl bg-[#EDE9FE] hover:bg-[#DDD6FE] text-[#6D28D9] font-black text-xs transition-all flex items-center justify-center gap-2 active:scale-98 shadow-xs cursor-pointer"
                         >
-                          <Users className="w-3.5 h-3.5" />
-                          <span>Manage Roster</span>
+                          <Users className="w-4 h-4" />
+                          <span>Manage Batch</span>
                         </button>
                       </div>
                     </div>
@@ -1011,23 +1066,21 @@ export const TutorDashboardPage: React.FC = () => {
                   &quot;{application.bio_intro}&quot;
                 </p>
               </div>
+
+              {/* Single Proper Logout Action inside Profile section at bottom */}
+              <div className="pt-4 border-t border-[#F3EFFB]">
+                <button
+                  type="button"
+                  onClick={() => setIsConfirmSignOutOpen(true)}
+                  className="w-full py-3.5 px-5 rounded-2xl bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 shadow-clay-sm flex items-center justify-center gap-2 font-black text-xs active:scale-[0.98] transition-all cursor-pointer"
+                >
+                  <LogOut className="w-4 h-4 stroke-[2.2]" />
+                  <span>Sign Out of Shikshan</span>
+                </button>
+              </div>
             </ClayCard>
           </div>
         )}
-
-        {/* ========================================================================= */}
-        {/* SECTION 6: MANDATORY BOTTOM LOGOUT BUTTON                                 */}
-        {/* ========================================================================= */}
-        <div className="pt-6 pb-12">
-          <button
-            type="button"
-            onClick={() => setIsConfirmSignOutOpen(true)}
-            className="w-full py-4 px-5 rounded-2xl bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 shadow-clay-sm flex items-center justify-center gap-2 font-black text-xs active:scale-[0.98] transition-all cursor-pointer"
-          >
-            <LogOut className="w-4 h-4 stroke-[2.2]" />
-            <span>Sign Out of Shikshan</span>
-          </button>
-        </div>
           </>
         )}
       </main>
@@ -1255,7 +1308,7 @@ export const TutorDashboardPage: React.FC = () => {
                   No students currently assigned to this batch.
                 </div>
               ) : (
-                <div className="space-y-2 max-h-56 overflow-y-auto">
+                <div className="space-y-2 max-h-48 overflow-y-auto">
                   {batchStudents.map((st) => (
                     <div
                       key={st.request_id || st.id}
@@ -1271,13 +1324,68 @@ export const TutorDashboardPage: React.FC = () => {
                         type="button"
                         onClick={() => handleUnassignStudent(selectedBatchForRoster.id, st.request_id || st.id)}
                         disabled={rosterActionLoading === (st.request_id || st.id)}
-                        className="px-2.5 py-1 rounded-lg text-rose-600 hover:bg-rose-50 text-xs font-bold transition-colors"
+                        className="px-2.5 py-1 rounded-lg text-rose-600 hover:bg-rose-50 text-xs font-bold transition-colors cursor-pointer"
                       >
                         Remove
                       </button>
                     </div>
                   ))}
                 </div>
+              )}
+            </div>
+
+            {/* Add Student Section inside Manage Batch */}
+            <div className="pt-2 border-t border-[#F3EFFB] space-y-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[#686487] block">
+                Add Accepted Student ({Math.max(0, 4 - batchStudents.length)} seats available)
+              </span>
+
+              {batchStudents.length >= 4 ? (
+                <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold">
+                  This batch is at maximum capacity (4/4 students).
+                </div>
+              ) : (
+                (() => {
+                  const availableRequests = requests.filter(
+                    (r) =>
+                      r.status === 'accepted' &&
+                      !batchStudents.some((bs) => (bs.request_id || bs.id) === r.id)
+                  );
+
+                  if (availableRequests.length === 0) {
+                    return (
+                      <div className="p-3 rounded-2xl bg-[#FAF9FE] border border-[#E5DFF8] text-xs text-[#686487]">
+                        No unassigned accepted students waiting. Accept pending requests in the Requests tab to assign students here.
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                      {availableRequests.map((cand) => (
+                        <div
+                          key={cand.id}
+                          className="p-2.5 rounded-xl bg-[#FAF9FE] border border-[#E5DFF8] flex items-center justify-between text-xs"
+                        >
+                          <div>
+                            <span className="font-bold text-[#1C1938] block">{cand.student_name || 'Accepted Student'}</span>
+                            <span className="text-[10px] text-[#686487]">
+                              Class: {cand.class_level?.toUpperCase()} • {cand.subject}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleAssignStudent(selectedBatchForRoster.id, cand.id)}
+                            disabled={rosterActionLoading === cand.id}
+                            className="px-3 py-1 rounded-xl bg-[#7C3AED] text-white hover:bg-[#6D28D9] text-xs font-bold transition-all shadow-xs cursor-pointer"
+                          >
+                            {rosterActionLoading === cand.id ? 'Adding...' : 'Add to Batch'}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()
               )}
             </div>
 
@@ -1469,6 +1577,15 @@ export const TutorDashboardPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Mobile-First Tutor Bottom Navigation Dock */}
+      <ClayTutorBottomNavigation
+        activeTab={activeTab}
+        onChangeTab={(tab) => setActiveTab(tab)}
+        batchesCount={batches.length}
+        studentsCount={enrolledStudents.length}
+        requestsCount={pendingRequests.length}
+      />
     </ClayBackground>
   );
 };

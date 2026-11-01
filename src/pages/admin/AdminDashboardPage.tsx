@@ -16,6 +16,10 @@ import {
   Clock,
   FileText,
   Edit2,
+  LayoutDashboard,
+  ArrowRight,
+  Send,
+  ShieldCheck,
 } from 'lucide-react';
 import { Header } from '../../components/common/Header';
 import { ClayCard } from '../../components/common/ClayCard';
@@ -41,9 +45,27 @@ interface StudentRecord {
 }
 
 export const AdminDashboardPage: React.FC = () => {
-  const { user, profile } = useAuth();
+  const { user, profile, uploadPhoto, removePhoto } = useAuth();
 
-  const [mainSection, setMainSection] = useState<'tutors' | 'students' | 'payments' | 'inquiries' | 'audit'>('tutors');
+  const [mainSection, setMainSection] = useState<
+    'dashboard' | 'tutors' | 'students' | 'batches' | 'inquiries' | 'payments' | 'audit' | 'profile'
+  >('tutors');
+  const [adminStats, setAdminStats] = useState<{
+    total_students: number;
+    approved_tutors: number;
+    pending_applications: number;
+    total_requests: number;
+    active_batches: number;
+    payment_interests: number;
+  }>({
+    total_students: 0,
+    approved_tutors: 0,
+    pending_applications: 0,
+    total_requests: 0,
+    active_batches: 0,
+    payment_interests: 0,
+  });
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [applications, setApplications] = useState<TutorApplication[]>([]);
   const [selectedApp, setSelectedApp] = useState<TutorApplication | null>(null);
   const [activeTab, setActiveTab] = useState<'pending' | 'approved' | 'rejected' | 'all'>('pending');
@@ -80,6 +102,17 @@ export const AdminDashboardPage: React.FC = () => {
   const [isUpdatingFee, setIsUpdatingFee] = useState(false);
 
   const isAdmin = profile?.role === 'admin' || user?.role === 'admin';
+
+  const fetchStats = async () => {
+    try {
+      const res = await api.getAdminStats();
+      if (res?.stats) {
+        setAdminStats(res.stats);
+      }
+    } catch (err) {
+      console.error('Failed to load admin stats:', err);
+    }
+  };
 
   const fetchApplications = async () => {
     setIsLoading(true);
@@ -155,6 +188,7 @@ export const AdminDashboardPage: React.FC = () => {
 
   useEffect(() => {
     if (isAdmin) {
+      fetchStats();
       fetchApplications();
       fetchStudents();
       fetchPayments();
@@ -164,6 +198,90 @@ export const AdminDashboardPage: React.FC = () => {
       setIsLoading(false);
     }
   }, [isAdmin]);
+
+  const handleAdminPhotoUpload = async (base64Photo: string) => {
+    setIsUploadingPhoto(true);
+    setStatusMessage(null);
+    try {
+      const res = await uploadPhoto(base64Photo);
+      if (res.success) {
+        setStatusMessage('Admin profile photo updated successfully.');
+      } else {
+        setStatusMessage(res.error || 'Failed to update admin photo.');
+      }
+    } catch (err: unknown) {
+      setStatusMessage(err instanceof Error ? err.message : 'Photo upload failed.');
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
+  const handleAdminPhotoRemove = async () => {
+    setIsUploadingPhoto(true);
+    setStatusMessage(null);
+    try {
+      const res = await removePhoto();
+      if (res.success) {
+        setStatusMessage('Admin profile photo removed.');
+      } else {
+        setStatusMessage(res.error || 'Failed to remove admin photo.');
+      }
+    } catch (err: unknown) {
+      setStatusMessage(err instanceof Error ? err.message : 'Photo removal failed.');
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
+  const derivedBatches = React.useMemo(() => {
+    const batchMap: Record<
+      string,
+      {
+        id: string;
+        name: string;
+        tutorName: string;
+        tutorPhone?: string;
+        subject: string;
+        classLevel: string;
+        startTime?: string;
+        endTime?: string;
+        enrolledCount: number;
+        students: { name: string; email: string; phone?: string; status: string }[];
+      }
+    > = {};
+
+    requests.forEach((r) => {
+      const key = r.batch_id || (r.batch_name ? `${r.tutor_id}-${r.batch_name}` : null);
+      if (!key) return;
+      if (!batchMap[key]) {
+        batchMap[key] = {
+          id: r.batch_id || key,
+          name: r.batch_name || 'Academic Mentorship Batch',
+          tutorName: r.tutor_name || 'Approved Mentor',
+          tutorPhone: r.tutor_phone,
+          subject: r.subject || 'Core Subjects',
+          classLevel: r.class_level || 'School Curriculum',
+          startTime: r.batch_start_time || '16:00',
+          endTime: r.batch_end_time || '19:00',
+          enrolledCount: 0,
+          students: [],
+        };
+      }
+      if (r.student_name && !batchMap[key].students.some((s) => s.name === r.student_name)) {
+        batchMap[key].students.push({
+          name: r.student_name,
+          email: r.student_email,
+          phone: r.student_phone,
+          status: r.status,
+        });
+        if (r.status === 'accepted') {
+          batchMap[key].enrolledCount += 1;
+        }
+      }
+    });
+
+    return Object.values(batchMap);
+  }, [requests]);
 
   const handleStatusUpdate = async (newStatus: 'approved' | 'rejected') => {
     if (!selectedApp) return;
@@ -327,6 +445,7 @@ export const AdminDashboardPage: React.FC = () => {
               variant="secondary"
               size="sm"
               onClick={() => {
+                fetchStats();
                 fetchApplications();
                 fetchStudents();
                 fetchPayments();
@@ -342,8 +461,21 @@ export const AdminDashboardPage: React.FC = () => {
           </div>
         </ClayCard>
 
-        {/* Section Navigation Tabs: Tutors, Students, Payments, Inquiries, Audit */}
+        {/* Section Navigation Tabs: Overview, Tutors, Students, Batches, Inquiries, Payments, Governance, Audit */}
         <div className="flex items-center gap-2 border-b border-[#DFD8F3] pb-3 overflow-x-auto select-none">
+          <button
+            type="button"
+            onClick={() => setMainSection('dashboard')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold transition-all whitespace-nowrap ${
+              mainSection === 'dashboard'
+                ? 'bg-[#312E81] text-white shadow-sm'
+                : 'bg-white text-[#686487] border border-[#DFD8F3] hover:text-[#1C1938]'
+            }`}
+          >
+            <LayoutDashboard className="w-4 h-4" />
+            <span>Overview</span>
+          </button>
+
           <button
             type="button"
             onClick={() => setMainSection('tutors')}
@@ -355,6 +487,45 @@ export const AdminDashboardPage: React.FC = () => {
           >
             <GraduationCap className="w-4 h-4" />
             <span>Tutors ({applications.length})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setMainSection('students')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold transition-all whitespace-nowrap ${
+              mainSection === 'students'
+                ? 'bg-[#312E81] text-white shadow-sm'
+                : 'bg-white text-[#686487] border border-[#DFD8F3] hover:text-[#1C1938]'
+            }`}
+          >
+            <Users className="w-4 h-4" />
+            <span>Students ({students.length})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setMainSection('batches')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold transition-all whitespace-nowrap ${
+              mainSection === 'batches'
+                ? 'bg-[#312E81] text-white shadow-sm'
+                : 'bg-white text-[#686487] border border-[#DFD8F3] hover:text-[#1C1938]'
+            }`}
+          >
+            <BookOpen className="w-4 h-4" />
+            <span>Batches ({derivedBatches.length || adminStats.active_batches})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setMainSection('inquiries')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold transition-all whitespace-nowrap ${
+              mainSection === 'inquiries'
+                ? 'bg-[#312E81] text-white shadow-sm'
+                : 'bg-white text-[#686487] border border-[#DFD8F3] hover:text-[#1C1938]'
+            }`}
+          >
+            <Clock className="w-4 h-4" />
+            <span>Inquiries ({requests.length})</span>
           </button>
 
           <button
@@ -372,28 +543,15 @@ export const AdminDashboardPage: React.FC = () => {
 
           <button
             type="button"
-            onClick={() => setMainSection('inquiries')}
+            onClick={() => setMainSection('profile')}
             className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold transition-all whitespace-nowrap ${
-              mainSection === 'inquiries'
+              mainSection === 'profile'
                 ? 'bg-[#312E81] text-white shadow-sm'
                 : 'bg-white text-[#686487] border border-[#DFD8F3] hover:text-[#1C1938]'
             }`}
           >
-            <Clock className="w-4 h-4" />
-            <span>Inquiries & Batches ({requests.length})</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setMainSection('students')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold transition-all whitespace-nowrap ${
-              mainSection === 'students'
-                ? 'bg-[#312E81] text-white shadow-sm'
-                : 'bg-white text-[#686487] border border-[#DFD8F3] hover:text-[#1C1938]'
-            }`}
-          >
-            <Users className="w-4 h-4" />
-            <span>Students ({students.length})</span>
+            <ShieldCheck className="w-4 h-4" />
+            <span>Governance & Admin</span>
           </button>
 
           <button
@@ -414,6 +572,208 @@ export const AdminDashboardPage: React.FC = () => {
           <div className="p-4 rounded-2xl bg-[#EEECFB] border border-[#A7AAE5] text-xs font-bold text-[#312E81] flex items-center gap-2">
             <Check className="w-4 h-4 text-[#4136CA]" />
             {statusMessage}
+          </div>
+        )}
+
+        {/* SECTION 0: ADMINISTRATIVE OVERVIEW DASHBOARD */}
+        {mainSection === 'dashboard' && (
+          <div className="space-y-6 text-left">
+            {/* 6 Real Summary Metric Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+              <ClayCard className="p-4 border border-[#DFD8F3] bg-white flex flex-col justify-between">
+                <div className="flex items-center justify-between text-[#4136CA] mb-2">
+                  <span className="text-[11px] font-bold text-[#686487]">Students</span>
+                  <Users className="w-4 h-4" />
+                </div>
+                <div className="text-2xl font-black text-[#1C1938]">
+                  {adminStats.total_students || students.length}
+                </div>
+                <span className="text-[10px] text-emerald-600 font-bold mt-1">Registered</span>
+              </ClayCard>
+
+              <ClayCard className="p-4 border border-[#DFD8F3] bg-white flex flex-col justify-between">
+                <div className="flex items-center justify-between text-emerald-600 mb-2">
+                  <span className="text-[11px] font-bold text-[#686487]">Tutors</span>
+                  <GraduationCap className="w-4 h-4" />
+                </div>
+                <div className="text-2xl font-black text-[#1C1938]">
+                  {adminStats.approved_tutors || applications.filter((a) => a.status === 'approved').length}
+                </div>
+                <span className="text-[10px] text-emerald-600 font-bold mt-1">Verified</span>
+              </ClayCard>
+
+              <ClayCard className="p-4 border border-[#DFD8F3] bg-white flex flex-col justify-between">
+                <div className="flex items-center justify-between text-amber-600 mb-2">
+                  <span className="text-[11px] font-bold text-[#686487]">Pending</span>
+                  <Clock className="w-4 h-4" />
+                </div>
+                <div className="text-2xl font-black text-[#1C1938]">
+                  {adminStats.pending_applications ||
+                    applications.filter((a) => a.status === 'pending' || a.status === 'pending_review').length}
+                </div>
+                <span className="text-[10px] text-amber-600 font-bold mt-1">Awaiting Review</span>
+              </ClayCard>
+
+              <ClayCard className="p-4 border border-[#DFD8F3] bg-white flex flex-col justify-between">
+                <div className="flex items-center justify-between text-purple-600 mb-2">
+                  <span className="text-[11px] font-bold text-[#686487]">Batches</span>
+                  <BookOpen className="w-4 h-4" />
+                </div>
+                <div className="text-2xl font-black text-[#1C1938]">
+                  {adminStats.active_batches || derivedBatches.length}
+                </div>
+                <span className="text-[10px] text-purple-600 font-bold mt-1">Max 4 / batch</span>
+              </ClayCard>
+
+              <ClayCard className="p-4 border border-[#DFD8F3] bg-white flex flex-col justify-between">
+                <div className="flex items-center justify-between text-indigo-600 mb-2">
+                  <span className="text-[11px] font-bold text-[#686487]">Inquiries</span>
+                  <Send className="w-4 h-4" />
+                </div>
+                <div className="text-2xl font-black text-[#1C1938]">
+                  {adminStats.total_requests || requests.length}
+                </div>
+                <span className="text-[10px] text-indigo-600 font-bold mt-1">Student Requests</span>
+              </ClayCard>
+
+              <ClayCard className="p-4 border border-[#DFD8F3] bg-white flex flex-col justify-between">
+                <div className="flex items-center justify-between text-rose-600 mb-2">
+                  <span className="text-[11px] font-bold text-[#686487]">Payments</span>
+                  <IndianRupee className="w-4 h-4" />
+                </div>
+                <div className="text-2xl font-black text-[#1C1938]">
+                  {adminStats.payment_interests || payments.length}
+                </div>
+                <span className="text-[10px] text-rose-600 font-bold mt-1">Coordination Desk</span>
+              </ClayCard>
+            </div>
+
+            {/* Quick Action Navigation Desk Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <ClayCard className="p-5 border border-[#DFD8F3] bg-white space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-[#EDE9FE] flex items-center justify-center text-[#4136CA]">
+                      <GraduationCap className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-extrabold text-sm text-[#1C1938]">Tutor Verification Desk</h3>
+                      <p className="text-[11px] text-[#686487]">Vet tutor degrees, certificates & approve fees</p>
+                    </div>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold">
+                    {applications.filter((a) => a.status === 'pending' || a.status === 'pending_review').length} Pending
+                  </span>
+                </div>
+                <p className="text-xs text-[#4A4668]">
+                  Review applicant degrees, institutional background, teaching subjects, and enforce the ₹3,000 monthly fee cap.
+                </p>
+                <div className="pt-1">
+                  <ClayButton
+                    variant="primary"
+                    size="sm"
+                    onClick={() => setMainSection('tutors')}
+                    className="w-full flex items-center justify-center gap-1.5"
+                  >
+                    <span>Open Tutor Review Desk</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </ClayButton>
+                </div>
+              </ClayCard>
+
+              <ClayCard className="p-5 border border-[#DFD8F3] bg-white space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-rose-50 flex items-center justify-center text-rose-600">
+                      <IndianRupee className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-extrabold text-sm text-[#1C1938]">Manual Payments Desk</h3>
+                      <p className="text-[11px] text-[#686487]">Zero-commission guardian fee coordination</p>
+                    </div>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-full bg-rose-100 text-rose-800 text-[10px] font-bold">
+                    {payments.length} Records
+                  </span>
+                </div>
+                <p className="text-xs text-[#4A4668]">
+                  Verify direct guardian payment transfers, update settlement statuses, and log administrative audit trails.
+                </p>
+                <div className="pt-1">
+                  <ClayButton
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setMainSection('payments')}
+                    className="w-full flex items-center justify-center gap-1.5"
+                  >
+                    <span>Open Payments Desk</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </ClayButton>
+                </div>
+              </ClayCard>
+
+              <ClayCard className="p-5 border border-[#DFD8F3] bg-white space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600">
+                      <BookOpen className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-extrabold text-sm text-[#1C1938]">Batch Capacity & Schedules</h3>
+                      <p className="text-[11px] text-[#686487]">Micro-batch rule enforcement (Max 4 students)</p>
+                    </div>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-full bg-purple-100 text-purple-800 text-[10px] font-bold">
+                    {derivedBatches.length || adminStats.active_batches} Batches
+                  </span>
+                </div>
+                <p className="text-xs text-[#4A4668]">
+                  Supervise active 3-hour study blocks (Mon · Wed · Fri / Tue · Thu · Sat) and student allocations.
+                </p>
+                <div className="pt-1">
+                  <ClayButton
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setMainSection('batches')}
+                    className="w-full flex items-center justify-center gap-1.5"
+                  >
+                    <span>View Batch Capacity Monitor</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </ClayButton>
+                </div>
+              </ClayCard>
+
+              <ClayCard className="p-5 border border-[#DFD8F3] bg-white space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center text-[#4136CA]">
+                      <Users className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-extrabold text-sm text-[#1C1938]">Student Registry & Export</h3>
+                      <p className="text-[11px] text-[#686487]">Karnataka school students & curriculum boards</p>
+                    </div>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-full bg-indigo-100 text-[#4136CA] text-[10px] font-bold">
+                    {students.length} Registered
+                  </span>
+                </div>
+                <p className="text-xs text-[#4A4668]">
+                  Search student records by class (1–10), curriculum board, guardian contact, and export CSV rosters.
+                </p>
+                <div className="pt-1">
+                  <ClayButton
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setMainSection('students')}
+                    className="w-full flex items-center justify-center gap-1.5"
+                  >
+                    <span>Open Student Directory</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </ClayButton>
+                </div>
+              </ClayCard>
+            </div>
           </div>
         )}
 
@@ -837,7 +1197,7 @@ export const AdminDashboardPage: React.FC = () => {
           </div>
         )}
 
-        {/* SECTION 3: INQUIRIES & BATCH CAPACITY MONITOR */}
+        {/* SECTION 3: INQUIRIES & REQUESTS */}
         {mainSection === 'inquiries' && (
           <div className="space-y-4 text-left">
             <ClayCard className="p-5 border border-[#DFD8F3] space-y-4 bg-white">
@@ -906,6 +1266,132 @@ export const AdminDashboardPage: React.FC = () => {
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+            </ClayCard>
+          </div>
+        )}
+
+        {/* SECTION: BATCH CAPACITY MONITOR */}
+        {mainSection === 'batches' && (
+          <div className="space-y-4 text-left">
+            <ClayCard className="p-5 border border-[#DFD8F3] space-y-4 bg-white">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#DFD8F3] pb-3">
+                <div>
+                  <h3 className="text-lg font-black text-[#1C1938] flex items-center gap-2">
+                    <BookOpen className="w-5 h-5 text-[#4136CA]" />
+                    Academic Micro-Batches & Capacity
+                  </h3>
+                  <p className="text-xs text-[#686487]">
+                    Monitoring 4-student maximum capacity, 3-hour fixed schedules, and verified tutor batch ownership.
+                  </p>
+                </div>
+                <span className="text-xs font-bold text-[#4136CA] bg-[#EFEAFF] px-3 py-1 rounded-full self-start sm:self-auto">
+                  {derivedBatches.length} Monitored Batches
+                </span>
+              </div>
+
+              {derivedBatches.length === 0 ? (
+                <div className="p-8 text-center text-xs text-[#686487]">
+                  No active student batch allocations found in system requests. When tutors create batches and accept students, they appear here.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {derivedBatches.map((batch) => {
+                    const isFull = batch.enrolledCount >= 4;
+                    return (
+                      <div
+                        key={batch.id}
+                        className="p-4 rounded-2xl bg-[#F8F7FD] border border-[#DFD8F3] space-y-3"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <h4 className="font-extrabold text-sm text-[#1C1938]">{batch.name}</h4>
+                            <p className="text-xs font-semibold text-[#4136CA]">
+                              Mentor: {batch.tutorName}
+                              {batch.tutorPhone && (
+                                <span className="ml-1 text-[11px] text-[#686487]">({batch.tutorPhone})</span>
+                              )}
+                            </p>
+                          </div>
+                          <span
+                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                              isFull
+                                ? 'bg-rose-100 text-rose-800'
+                                : 'bg-emerald-100 text-emerald-800'
+                            }`}
+                          >
+                            {isFull ? 'Batch Full (4/4)' : 'Active'}
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 text-xs bg-white p-2.5 rounded-xl border border-[#DFD8F3]">
+                          <div>
+                            <span className="text-[10px] text-[#686487] block">Schedule</span>
+                            <span className="font-bold text-[#1C1938]">Mon · Wed · Fri</span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-[#686487] block">Time & Duration</span>
+                            <span className="font-bold text-[#1C1938]">4:00 PM – 7:00 PM (3 hrs)</span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-[#686487] block">Subject</span>
+                            <span className="font-bold text-[#1C1938]">{batch.subject}</span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-[#686487] block">Class Level</span>
+                            <span className="font-bold text-[#1C1938]">{batch.classLevel}</span>
+                          </div>
+                        </div>
+
+                        {/* Capacity Progress Bar */}
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between text-[11px]">
+                            <span className="font-bold text-[#4A4668]">Seat Capacity</span>
+                            <span className="font-bold text-[#1C1938]">
+                              {batch.enrolledCount} of 4 seats filled
+                            </span>
+                          </div>
+                          <div className="w-full bg-[#E5DFF8] rounded-full h-2 overflow-hidden">
+                            <div
+                              className={`h-2 rounded-full transition-all duration-300 ${
+                                isFull ? 'bg-rose-500' : 'bg-[#4136CA]'
+                              }`}
+                              style={{ width: `${Math.min(100, (batch.enrolledCount / 4) * 100)}%` }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Students in Batch */}
+                        {batch.students.length > 0 && (
+                          <div className="pt-2 border-t border-[#DFD8F3] space-y-1.5">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-[#686487]">
+                              Enrolled Students ({batch.students.length})
+                            </span>
+                            <div className="space-y-1">
+                              {batch.students.map((st, idx) => (
+                                <div
+                                  key={idx}
+                                  className="text-xs flex items-center justify-between p-1.5 rounded-lg bg-white border border-[#DFD8F3]"
+                                >
+                                  <span className="font-semibold text-[#1C1938] truncate">{st.name}</span>
+                                  <span
+                                    className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                                      st.status === 'accepted'
+                                        ? 'bg-emerald-100 text-emerald-800'
+                                        : 'bg-amber-100 text-amber-800'
+                                    }`}
+                                  >
+                                    {st.status}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </ClayCard>
@@ -1047,6 +1533,142 @@ export const AdminDashboardPage: React.FC = () => {
                   ))}
                 </div>
               )}
+            </ClayCard>
+          </div>
+        )}
+
+        {/* SECTION 6: GOVERNANCE & ADMIN PROFILE */}
+        {mainSection === 'profile' && (
+          <div className="space-y-6 text-left">
+            {/* Admin Profile Card */}
+            <ClayCard className="p-6 border border-[#DFD8F3] bg-white space-y-5">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#DFD8F3] pb-4">
+                <div>
+                  <h3 className="text-lg font-black text-[#1C1938] flex items-center gap-2">
+                    <ShieldCheck className="w-5 h-5 text-[#4136CA]" />
+                    Administrator Profile & Governance Credentials
+                  </h3>
+                  <p className="text-xs text-[#686487]">
+                    Platform management account with full authority to approve tutors and coordinate fees.
+                  </p>
+                </div>
+                <span className="px-3 py-1 rounded-full bg-[#EFEAFF] text-[#4136CA] text-xs font-bold">
+                  System Admin
+                </span>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
+                <ClayUploadButton
+                  currentPhotoUrl={profile?.photo_url || user?.photo_url}
+                  onPhotoSelected={handleAdminPhotoUpload}
+                  onPhotoRemoved={handleAdminPhotoRemove}
+                  label="Admin Avatar"
+                  subLabel="JPG or PNG (Max 4MB)"
+                  size="lg"
+                  isUploading={isUploadingPhoto}
+                />
+
+                <div className="flex-1 space-y-3 w-full">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div className="p-3 rounded-xl bg-[#F8F7FD] border border-[#DFD8F3]">
+                      <span className="text-[10px] text-[#686487] block font-bold">Name</span>
+                      <span className="font-extrabold text-[#1C1938] text-sm">
+                        {profile?.name || user?.name || 'Administrator'}
+                      </span>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-[#F8F7FD] border border-[#DFD8F3]">
+                      <span className="text-[10px] text-[#686487] block font-bold">Role</span>
+                      <span className="font-extrabold text-[#4136CA] text-sm">
+                        Platform Administrator
+                      </span>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-[#F8F7FD] border border-[#DFD8F3]">
+                      <span className="text-[10px] text-[#686487] block font-bold">Official Email</span>
+                      <span className="font-medium text-[#1C1938]">
+                        {profile?.email || user?.email || 'admin@shikshan.org'}
+                      </span>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-[#F8F7FD] border border-[#DFD8F3]">
+                      <span className="text-[10px] text-[#686487] block font-bold">Official Contact</span>
+                      <span className="font-medium text-[#1C1938]">
+                        {profile?.phone || user?.phone || '+91 94821 00000'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </ClayCard>
+
+            {/* Platform Governance Standards Card */}
+            <ClayCard className="p-6 border border-[#DFD8F3] bg-white space-y-4">
+              <h4 className="font-extrabold text-sm text-[#1C1938] flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                Shikshan Quality & Safety Charter (Karnataka)
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div className="p-3.5 rounded-xl bg-[#F8F7FD] border border-[#DFD8F3] space-y-1">
+                  <div className="flex items-center gap-2 font-bold text-[#1C1938]">
+                    <Check className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Degree & Background Verification</span>
+                  </div>
+                  <p className="text-[11px] text-[#686487]">
+                    100% manual check of academic qualifications, institutional enrollment, and ID proofs.
+                  </p>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-[#F8F7FD] border border-[#DFD8F3] space-y-1">
+                  <div className="flex items-center gap-2 font-bold text-[#1C1938]">
+                    <Check className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>₹3,000 / month Maximum Fee Cap</span>
+                  </div>
+                  <p className="text-[11px] text-[#686487]">
+                    Hard ceiling enforced on tutor rates to keep quality education affordable for all families.
+                  </p>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-[#F8F7FD] border border-[#DFD8F3] space-y-1">
+                  <div className="flex items-center gap-2 font-bold text-[#1C1938]">
+                    <Check className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Strict 4-Student Micro-Batches</span>
+                  </div>
+                  <p className="text-[11px] text-[#686487]">
+                    System enforces a maximum of 4 students per batch to guarantee individualized attention.
+                  </p>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-[#F8F7FD] border border-[#DFD8F3] space-y-1">
+                  <div className="flex items-center gap-2 font-bold text-[#1C1938]">
+                    <Check className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>3-Hour Structured Study Blocks</span>
+                  </div>
+                  <p className="text-[11px] text-[#686487]">
+                    Alternating Mon · Wed · Fri / Tue · Thu · Sat evening schedules (4:00 PM – 7:00 PM).
+                  </p>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-[#F8F7FD] border border-[#DFD8F3] space-y-1">
+                  <div className="flex items-center gap-2 font-bold text-[#1C1938]">
+                    <Check className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Direct Zero-Commission Model</span>
+                  </div>
+                  <p className="text-[11px] text-[#686487]">
+                    Guardians transfer monthly fees directly to tutors or verified desk without payment cuts.
+                  </p>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-[#F8F7FD] border border-[#DFD8F3] space-y-1">
+                  <div className="flex items-center gap-2 font-bold text-[#1C1938]">
+                    <Check className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Guardian & Student Privacy Guard</span>
+                  </div>
+                  <p className="text-[11px] text-[#686487]">
+                    Phone numbers are protected until a tutor explicitly reviews and accepts a learning request.
+                  </p>
+                </div>
+              </div>
             </ClayCard>
           </div>
         )}
