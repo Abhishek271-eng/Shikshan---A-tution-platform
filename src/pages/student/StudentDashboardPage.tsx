@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Compass,
   Send,
@@ -13,7 +14,6 @@ import {
   Clock,
   CreditCard,
   X,
-  GraduationCap,
 } from 'lucide-react';
 import { Header } from '../../components/common/Header';
 import { SetupNotice } from '../../components/common/SetupNotice';
@@ -50,6 +50,7 @@ export const StudentDashboardPage: React.FC = () => {
   } = useAuth();
 
   const { pushBackHandler } = useNavigation();
+  const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState<BottomNavTab>('home');
   const [tutors, setTutors] = useState<TutorApplication[]>([]);
@@ -252,25 +253,21 @@ export const StudentDashboardPage: React.FC = () => {
         {activeTab === 'home' && (
           <div className="space-y-6 animate-fade-in">
             {/* 1. Creative Educational Hero Section (Prominent 3D Clay Student Studying at Desk) */}
-            <div className="overflow-hidden rounded-[28px] p-4 sm:p-5 bg-gradient-to-br from-white/95 via-[#FAF9FE]/95 to-[#F1EDFB]/95 border border-[#E5DFF8] shadow-clay text-left flex items-center justify-between gap-3 sm:gap-5">
-              <div className="space-y-1.5 max-w-md">
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#EDE9FE] text-[#6D28D9] text-[10px] font-black">
-                  <Sparkles className="w-3.5 h-3.5 text-[#7C3AED]" />
+            <div className="overflow-hidden rounded-[28px] p-5 sm:p-6 bg-gradient-to-br from-white/95 via-[#FAF9FE]/95 to-[#F1EDFB]/95 border border-[#DFD8F3] shadow-clay text-left flex items-center justify-between gap-3 sm:gap-5">
+              <div className="space-y-2 max-w-md">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#EDE9FE] text-[#4136CA] text-[10px] font-black">
+                  <Sparkles className="w-3.5 h-3.5 text-[#4136CA]" />
                   <span>Karnataka State Syllabus • Classes 1–10</span>
                 </div>
 
                 <div className="pt-0.5">
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#7C3AED] block">
-                    Academic Mentorship Platform
-                  </span>
-                  <h2 className="text-lg sm:text-xl font-black text-[#1C1938] tracking-tight">
+                  <h2 className="font-display text-xl sm:text-2xl font-black text-[#1C1938] tracking-tight">
                     Welcome, {studentDisplayName}
                   </h2>
+                  <p className="text-xs sm:text-sm text-[#4A4668] font-medium leading-relaxed mt-1">
+                    Connect with dedicated Karnataka educators for bilingual Classes 1–10 academic mentorship in focused micro-batches.
+                  </p>
                 </div>
-
-                <p className="text-xs sm:text-sm text-[#4A4668] font-medium leading-relaxed">
-                  Master Karnataka curriculum topics with verified mentors in focused, 4-student batches.
-                </p>
 
                 {/* Browse Mentors button */}
                 <div className="pt-1.5">
@@ -279,9 +276,9 @@ export const StudentDashboardPage: React.FC = () => {
                     size="sm"
                     onClick={() => setActiveTab('discover')}
                     icon={<Compass className="w-4 h-4" />}
-                    aria-label="Browse Mentors"
+                    aria-label="Explore Mentors"
                   >
-                    Browse Mentors
+                    Explore Mentors
                   </ClayButton>
                 </div>
               </div>
@@ -667,171 +664,119 @@ export const StudentDashboardPage: React.FC = () => {
                     .toUpperCase();
                   const tutorQual = tutorInfo?.course_qualification || tutorInfo?.education_level;
 
-                  return (
+                  return req.status === 'accepted' ? (
+                    /* ACCEPTED ENQUIRY: Sleek Profile Card with Revealed Phone & Confirm Payment */
                     <div
                       key={req.id}
-                      className="p-5 rounded-[28px] bg-white border border-[#E5DFF8] shadow-clay flex flex-col gap-3.5"
+                      className="p-4 sm:p-5 rounded-[24px] bg-white border border-[#DFD8F3] shadow-clay flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-left"
                     >
-                      {/* Top Row: Tutor Identity + Status */}
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-3 min-w-0">
-                          {/* Tutor Photo / 3D Clay Monogram Fallback */}
-                          <div className="w-12 h-12 rounded-2xl overflow-hidden border-2 border-white shadow-clay-sm flex-shrink-0 bg-gradient-to-br from-[#EDE9FE] to-[#DDD6FE] flex items-center justify-center font-black text-[#6D28D9]">
-                            {tutorPhoto ? (
-                              <img src={tutorPhoto} alt={req.tutor_name || 'Tutor'} className="w-full h-full object-cover" />
-                            ) : (
-                              <span>{tutorInitials}</span>
-                            )}
-                          </div>
-
-                          <div className="min-w-0 space-y-0.5">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <h4 className="text-sm font-black text-[#1C1938] leading-tight truncate">
-                                {req.tutor_name || 'Verified Educator'}
-                              </h4>
-                              {req.status === 'accepted' && (
-                                <span className="inline-flex items-center gap-0.5 text-[#10B981]" title="Verified Tutor">
-                                  <ShieldCheck className="w-3.5 h-3.5" />
-                                </span>
-                              )}
-                            </div>
-                            {tutorQual && (
-                              <p className="text-[11px] text-[#686487] font-semibold flex items-center gap-1 truncate">
-                                <GraduationCap className="w-3 h-3 text-[#7C3AED]" />
-                                <span>{tutorQual}</span>
-                              </p>
-                            )}
-                          </div>
+                      <div className="flex items-center gap-3.5 min-w-0">
+                        {/* Tutor Profile Photograph */}
+                        <div className="w-14 h-14 rounded-2xl overflow-hidden border-2 border-white shadow-clay-sm flex-shrink-0 bg-[#FAF9FE] flex items-center justify-center font-extrabold text-[#4136CA]">
+                          {tutorPhoto ? (
+                            <img src={tutorPhoto} alt={req.tutor_name || 'Tutor'} className="w-full h-full object-cover" />
+                          ) : (
+                            <span>{tutorInitials}</span>
+                          )}
                         </div>
 
-                        {/* Status Badge */}
-                        <div className="flex flex-col items-end gap-1.5">
-                          <span
-                            className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                              req.status === 'accepted'
-                                ? 'bg-[#ECFDF5] text-[#065F46] border border-[#A7F3D0]'
-                                : req.status === 'declined'
-                                ? 'bg-[#FEF2F2] text-[#991B1B] border border-[#FECACA]'
-                                : req.status === 'cancelled'
-                                ? 'bg-[#F3F4F6] text-[#4B5563] border border-[#E5E7EB]'
-                                : 'bg-[#FEF3C7] text-[#92400E] border border-[#FDE68A]'
-                            }`}
-                          >
-                            {req.status}
-                          </span>
+                        {/* Tutor Name & Relevant Subject/Class */}
+                        <div className="min-w-0 space-y-0.5">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <h4 className="font-extrabold text-base text-[#1C1938] leading-tight truncate">
+                              {req.tutor_name || 'Verified Educator'}
+                            </h4>
+                            <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
+                              <ShieldCheck className="w-3 h-3 text-emerald-600" />
+                              Accepted
+                            </span>
+                          </div>
 
-                          {req.status === 'pending' && (
-                            <button
-                              type="button"
-                              onClick={() => handleCancelRequest(req.id)}
-                              className="text-[11px] font-bold text-[#DC2626] hover:underline cursor-pointer"
-                            >
-                              Cancel Request
-                            </button>
-                          )}
+                          <p className="text-xs text-[#686487] font-semibold">
+                            {tutorQual ? `${tutorQual} • ` : ''}
+                            {SCHOOL_SUBJECTS.find((s) => s.id === req.subject)?.label || req.subject} • Class {req.class_level?.toUpperCase()}
+                            {(req as any).batch_name && (
+                              <span className="ml-1.5 font-bold text-[#4136CA]">({(req as any).batch_name})</span>
+                            )}
+                          </p>
                         </div>
                       </div>
 
-                      {/* Subject & Class Details */}
-                      <div className="flex items-center gap-2 flex-wrap text-xs text-[#686487]">
-                        <span>
-                          Subject:{' '}
-                          <strong className="text-[#1C1938]">
-                            {SCHOOL_SUBJECTS.find((s) => s.id === req.subject)?.label || req.subject}
-                          </strong>
-                        </span>
-                        <span>•</span>
-                        <span>
-                          Class: <strong className="text-[#1C1938]">{req.class_level?.toUpperCase()}</strong>
-                        </span>
-                        {(req as any).batch_name && (
-                          <>
-                            <span>•</span>
-                            <span className="inline-flex items-center gap-1 text-[#4136CA] font-bold bg-[#EFEAFF] px-2.5 py-0.5 rounded-lg text-[11px]">
-                              <Clock className="w-3 h-3" />
-                              {(req as any).batch_name} ({(req as any).batch_time || '3 hrs'})
-                            </span>
-                          </>
+                      {/* Actions: Revealed Phone & Confirm Payment Button */}
+                      <div className="flex items-center gap-2 w-full sm:w-auto justify-end pt-2 sm:pt-0 border-t sm:border-t-0 border-[#DFD8F3]">
+                        {/* Revealed Tutor Phone Number */}
+                        {req.tutor_phone && (
+                          <a
+                            href={`tel:${req.tutor_phone}`}
+                            className="px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs"
+                          >
+                            <Phone className="w-3.5 h-3.5" />
+                            <span>{req.tutor_phone}</span>
+                          </a>
+                        )}
+
+                        {/* Clearly Visible Confirm Payment Button */}
+                        {payCoord?.status === 'paid_verified' ? (
+                          <span className="px-3.5 py-2 rounded-xl bg-[#EDE9FE] text-[#4136CA] font-extrabold text-xs border border-[#DFD8F3]">
+                            Enrolled
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setSelectedReqForPayment(req)}
+                            className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#4136CA] to-[#5348E0] text-white text-xs font-extrabold shadow-clay-button hover:opacity-95 active:scale-95 transition-all cursor-pointer whitespace-nowrap"
+                          >
+                            {payCoord ? 'Payment Pending' : 'Confirm Payment'}
+                          </button>
                         )}
                       </div>
-
-                      {req.learning_needs && (
-                        <p className="text-xs text-[#4A4668] bg-[#FAF9FE] p-2.5 rounded-xl border border-[#EFEBF8]">
-                          &quot;{req.learning_needs}&quot;
-                        </p>
-                      )}
-
-                      {/* TUTOR CONTACT PHONE (Revealed strictly on request acceptance) */}
-                      {req.status === 'accepted' && (
-                        <div className="mt-1 p-3.5 rounded-2xl bg-[#F0FDF4] border border-[#BBF7D0] flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fade-in">
-                          <div>
-                            <span className="text-[10px] font-bold text-[#166534] uppercase tracking-wider block">
-                              Verified Tutor Contact (Strictly after Acceptance)
-                            </span>
-                            <span className="text-sm font-black text-[#14532D]">
-                              {req.tutor_phone || 'Phone verified with Shikshan'}
-                            </span>
-                            <p className="text-[11px] text-[#166534]">
-                              Contact your tutor directly to align on batch schedule and learning targets.
-                            </p>
-                          </div>
-                          {req.tutor_phone && (
-                            <a
-                              href={`tel:${req.tutor_phone}`}
-                              className="px-4 py-2 rounded-xl bg-[#16A34A] text-white font-bold text-xs flex items-center justify-center gap-2 hover:bg-[#15803D] transition-colors shadow-sm self-start sm:self-auto cursor-pointer"
-                            >
-                              <Phone className="w-4 h-4" />
-                              Call Tutor
-                            </a>
+                    </div>
+                  ) : (
+                    /* PENDING / DECLINED ENQUIRY: Clean and minimal */
+                    <div
+                      key={req.id}
+                      className="p-4 sm:p-5 rounded-[24px] bg-white border border-[#DFD8F3] shadow-clay flex items-center justify-between gap-3 text-left"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-12 h-12 rounded-2xl overflow-hidden border border-[#DFD8F3] flex-shrink-0 bg-[#FAF9FE] flex items-center justify-center font-bold text-[#686487]">
+                          {tutorPhoto ? (
+                            <img src={tutorPhoto} alt={req.tutor_name || 'Tutor'} className="w-full h-full object-cover" />
+                          ) : (
+                            <span>{tutorInitials}</span>
                           )}
                         </div>
-                      )}
 
-                      {/* PAY FEES ACTION & COORDINATION STATUS (Strictly after Acceptance) */}
-                      {req.status === 'accepted' && (
-                        payCoord ? (
-                          <div className="p-3.5 rounded-2xl bg-[#EDE9FE] border border-[#DDD6FE] text-xs">
-                            <div className="flex items-center justify-between">
-                              <span className="font-bold text-[#5B21B6] flex items-center gap-1.5">
-                                <ShieldCheck className="w-4 h-4 text-[#7C3AED]" />
-                                Payment Coordination Status:
-                              </span>
-                              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-[#7C3AED] text-white">
-                                {payCoord.status === 'paid_verified'
-                                  ? 'Enrollment Confirmed'
-                                  : payCoord.status === 'contacted'
-                                  ? 'Admin Contacting'
-                                  : 'Coordination Requested'}
-                              </span>
-                            </div>
-                            <p className="text-[11px] text-[#6D28D9] mt-1.5">
-                              {payCoord.status === 'paid_verified'
-                                ? `Monthly fee of ₹${payCoord.amount_collected || req.fee || 3000} verified by Shikshan Admin. Your 3-hour batch seat is officially confirmed.`
-                                : 'Shikshan administrator is coordinating direct fee verification with your guardian. No payment gateways or transaction commissions.'}
-                            </p>
-                          </div>
-                        ) : (
-                          <div className="p-3.5 rounded-2xl bg-[#F4F1FA] border border-[#DFD8F3] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                            <div>
-                              <p className="text-xs font-bold text-[#1C1938]">
-                                Ready to confirm your batch seat with {req.tutor_name || 'this tutor'}?
-                              </p>
-                              <p className="text-[11px] text-[#686487]">
-                                Fee capped at ₹3,000/month. Shikshan admin assists your family with direct seat verification.
-                              </p>
-                            </div>
-                            <ClayButton
-                              size="sm"
-                              variant="primary"
-                              onClick={() => setSelectedReqForPayment(req)}
-                              icon={<CreditCard className="w-4 h-4" />}
-                              className="self-start sm:self-auto"
-                            >
-                              Pay Fees
-                            </ClayButton>
-                          </div>
-                        )
-                      )}
+                        <div className="min-w-0 space-y-0.5">
+                          <h4 className="font-extrabold text-sm text-[#1C1938] truncate">{req.tutor_name || 'Tutor'}</h4>
+                          <p className="text-xs text-[#686487]">
+                            {SCHOOL_SUBJECTS.find((s) => s.id === req.subject)?.label || req.subject} • Class {req.class_level?.toUpperCase()}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span
+                          className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${
+                            req.status === 'declined'
+                              ? 'bg-rose-50 text-rose-800 border border-rose-200'
+                              : req.status === 'cancelled'
+                              ? 'bg-slate-100 text-slate-600'
+                              : 'bg-amber-50 text-amber-800 border border-amber-200'
+                          }`}
+                        >
+                          {req.status}
+                        </span>
+
+                        {req.status === 'pending' && (
+                          <button
+                            type="button"
+                            onClick={() => handleCancelRequest(req.id)}
+                            className="text-[11px] font-bold text-rose-600 hover:underline px-2 py-1 cursor-pointer"
+                          >
+                            Cancel
+                          </button>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
@@ -963,7 +908,10 @@ export const StudentDashboardPage: React.FC = () => {
             <div className="pt-2 flex flex-col sm:flex-row items-center gap-3">
               <button
                 type="button"
-                onClick={() => signOut()}
+                onClick={async () => {
+                  await signOut();
+                  navigate('/login', { replace: true });
+                }}
                 className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-[#FEE2E2] border border-[#FECACA] text-xs font-bold text-[#DC2626] hover:bg-red-100 flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer"
               >
                 <LogOut className="w-4 h-4" />
@@ -1012,19 +960,19 @@ export const StudentDashboardPage: React.FC = () => {
       {/* Fee Coordination / Pay Fees Modal */}
       {selectedReqForPayment && (
         <div
-          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in"
+          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
           role="dialog"
           aria-modal="true"
         >
-          <div className="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-purple-100 text-left space-y-4">
+          <div className="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-[#DFD8F3] text-left space-y-4">
             <div className="flex items-center justify-between pb-2 border-b border-[#F3EFFB]">
               <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-2xl bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center shadow-xs">
+                <div className="w-10 h-10 rounded-2xl bg-[#EDE9FE] text-[#4136CA] flex items-center justify-center shadow-xs">
                   <CreditCard className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-black text-base text-[#1C1938]">Shikshan Fee Coordination</h3>
-                  <p className="text-[11px] text-[#686487]">Direct Tutor-Student Support</p>
+                  <h3 className="font-black text-base text-[#1C1938]">Enrollment & Tuition Fee</h3>
+                  <p className="text-[11px] text-[#686487]">10% Platform Fee Included</p>
                 </div>
               </div>
               <button
@@ -1036,7 +984,7 @@ export const StudentDashboardPage: React.FC = () => {
               </button>
             </div>
 
-            <div className="p-4 rounded-2xl bg-[#FAF9FE] border border-[#E5DFF8] space-y-2 text-xs">
+            <div className="p-4 rounded-2xl bg-[#FAF9FE] border border-[#DFD8F3] space-y-2 text-xs">
               <div className="flex items-center justify-between">
                 <span className="text-[#686487]">Tutor:</span>
                 <span className="font-black text-[#1C1938]">{selectedReqForPayment.tutor_name || 'Verified Educator'}</span>
@@ -1047,21 +995,21 @@ export const StudentDashboardPage: React.FC = () => {
                   {SCHOOL_SUBJECTS.find((s) => s.id === selectedReqForPayment.subject)?.label || selectedReqForPayment.subject} • Class {selectedReqForPayment.class_level?.toUpperCase()}
                 </span>
               </div>
-              <div className="flex items-center justify-between border-t border-[#EFEBF8] pt-2">
-                <span className="text-[#686487]">Monthly Fee (Fixed Cap):</span>
-                <span className="font-black text-sm text-[#7C3AED]">₹{selectedReqForPayment.fee || 3000} / month</span>
+              <div className="flex items-center justify-between border-t border-[#DFD8F3] pt-2">
+                <span className="text-[#686487]">Monthly Tuition:</span>
+                <span className="font-black text-sm text-[#4136CA]">₹{selectedReqForPayment.fee || 2500} / month</span>
               </div>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-[#F0FDF4] border border-[#BBF7D0] space-y-1.5 text-xs">
-              <div className="font-black text-[#14532D] flex items-center gap-1.5">
-                <ShieldCheck className="w-4 h-4 text-[#16A34A]" />
-                <span>Fair Direct Fee Guarantee</span>
+            <div className="p-3.5 rounded-2xl bg-[#FAF9FE] border border-[#DFD8F3] space-y-1.5 text-xs">
+              <div className="font-black text-[#1C1938] flex items-center gap-1.5">
+                <ShieldCheck className="w-4 h-4 text-[#4136CA]" />
+                <span>Tuition & Enrollment Terms</span>
               </div>
-              <p className="text-[11px] text-[#166534] leading-relaxed">
-                • Strictly capped at maximum ₹3,000/month. No platform commissions.<br />
-                • Maximum 4 students in your child's 3-hour learning batch.<br />
-                • Shikshan administrators assist your family with verified UPI/direct transfer to the tutor after seat confirmation.
+              <p className="text-[11px] text-[#686487] leading-relaxed">
+                • Standard 10% platform fee included in monthly tuition.<br />
+                • Focused 4-student micro-batch personalized instruction.<br />
+                • Tutors and parents coordinate batch schedule directly.
               </p>
             </div>
 
@@ -1084,7 +1032,7 @@ export const StudentDashboardPage: React.FC = () => {
                 }}
                 icon={<CheckCircle2 className="w-4 h-4" />}
               >
-                Confirm Payment Interest
+                Confirm Payment
               </ClayButton>
             </div>
           </div>

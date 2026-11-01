@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Check,
   X,
@@ -20,6 +21,7 @@ import {
   ArrowRight,
   Send,
   ShieldCheck,
+  LogOut,
 } from 'lucide-react';
 import { Header } from '../../components/common/Header';
 import { ClayCard } from '../../components/common/ClayCard';
@@ -45,7 +47,15 @@ interface StudentRecord {
 }
 
 export const AdminDashboardPage: React.FC = () => {
-  const { user, profile, uploadPhoto, removePhoto } = useAuth();
+  const navigate = useNavigate();
+  const { user, profile, uploadPhoto, removePhoto, signOut } = useAuth();
+  const [isConfirmSignOutOpen, setIsConfirmSignOutOpen] = useState(false);
+
+  const handleSignOut = async () => {
+    setIsConfirmSignOutOpen(false);
+    await signOut();
+    navigate('/login', { replace: true });
+  };
 
   const [mainSection, setMainSection] = useState<
     'dashboard' | 'tutors' | 'students' | 'batches' | 'inquiries' | 'payments' | 'audit' | 'profile'
@@ -666,7 +676,7 @@ export const AdminDashboardPage: React.FC = () => {
                   </span>
                 </div>
                 <p className="text-xs text-[#4A4668]">
-                  Review applicant degrees, institutional background, teaching subjects, and enforce the ₹3,000 monthly fee cap.
+                  Review applicant degrees, institutional background, teaching subjects, and standardized monthly tuition.
                 </p>
                 <div className="pt-1">
                   <ClayButton
@@ -689,7 +699,7 @@ export const AdminDashboardPage: React.FC = () => {
                     </div>
                     <div>
                       <h3 className="font-extrabold text-sm text-[#1C1938]">Manual Payments Desk</h3>
-                      <p className="text-[11px] text-[#686487]">Zero-commission guardian fee coordination</p>
+                      <p className="text-[11px] text-[#686487]">Guardian fee coordination & 10% platform fee</p>
                     </div>
                   </div>
                   <span className="px-2.5 py-1 rounded-full bg-rose-100 text-rose-800 text-[10px] font-bold">
@@ -943,10 +953,10 @@ export const AdminDashboardPage: React.FC = () => {
                       </p>
                     </div>
 
-                    {/* Monthly Fee Control (Max ₹3,000) */}
+                    {/* Monthly Fee Control */}
                     <div className="p-3.5 rounded-2xl bg-[#EDE9FE] border border-[#DDD6FE] space-y-2">
                       <label htmlFor="approved-fee-input" className="block text-xs font-bold text-[#5B21B6]">
-                        Admin Approved Monthly Fee (Max Cap ₹3,000)
+                        Admin Approved Monthly Fee (₹)
                       </label>
                       <div className="flex items-center gap-2">
                         <div className="relative flex-1">
@@ -1600,6 +1610,18 @@ export const AdminDashboardPage: React.FC = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Administrator Sign Out Action */}
+              <div className="pt-4 border-t border-[#F3EFFB]">
+                <button
+                  type="button"
+                  onClick={() => setIsConfirmSignOutOpen(true)}
+                  className="w-full py-3.5 px-5 rounded-2xl bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 shadow-clay-sm flex items-center justify-center gap-2 font-black text-xs active:scale-[0.98] transition-all cursor-pointer"
+                >
+                  <LogOut className="w-4 h-4 stroke-[2.2]" />
+                  <span>Sign Out of Shikshan Administration</span>
+                </button>
+              </div>
             </ClayCard>
 
             {/* Platform Governance Standards Card */}
@@ -1622,10 +1644,10 @@ export const AdminDashboardPage: React.FC = () => {
                 <div className="p-3.5 rounded-xl bg-[#F8F7FD] border border-[#DFD8F3] space-y-1">
                   <div className="flex items-center gap-2 font-bold text-[#1C1938]">
                     <Check className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>₹3,000 / month Maximum Fee Cap</span>
+                    <span>Standardized Monthly Tuition</span>
                   </div>
                   <p className="text-[11px] text-[#686487]">
-                    Hard ceiling enforced on tutor rates to keep quality education affordable for all families.
+                    Transparent rates reviewed and verified by platform administration to keep quality education accessible.
                   </p>
                 </div>
 
@@ -1652,10 +1674,10 @@ export const AdminDashboardPage: React.FC = () => {
                 <div className="p-3.5 rounded-xl bg-[#F8F7FD] border border-[#DFD8F3] space-y-1">
                   <div className="flex items-center gap-2 font-bold text-[#1C1938]">
                     <Check className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Direct Zero-Commission Model</span>
+                    <span>Transparent 10% Platform Fee</span>
                   </div>
                   <p className="text-[11px] text-[#686487]">
-                    Guardians transfer monthly fees directly to tutors or verified desk without payment cuts.
+                    10% Shikshan platform fee supports operations, educator vetting, and technology infrastructure.
                   </p>
                 </div>
 
@@ -1673,6 +1695,47 @@ export const AdminDashboardPage: React.FC = () => {
           </div>
         )}
       </main>
+
+      {/* Administrator Logout Confirmation Modal */}
+      {isConfirmSignOutOpen && (
+        <div
+          className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl border border-purple-100 text-center space-y-4">
+            <div className="w-14 h-14 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center mx-auto">
+              <LogOut className="w-7 h-7" />
+            </div>
+
+            <div>
+              <h3 className="font-black text-base text-[#1C1938]">
+                Confirm Logout
+              </h3>
+              <p className="text-xs text-[#686487] mt-1 leading-relaxed">
+                Are you sure you want to log out of the Shikshan administrator dashboard?
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setIsConfirmSignOutOpen(false)}
+                className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="flex-1 py-2.5 px-4 rounded-xl bg-rose-600 text-white text-xs font-bold hover:bg-rose-700 shadow-sm transition-colors cursor-pointer"
+              >
+                Confirm Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </ClayBackground>
   );
 };

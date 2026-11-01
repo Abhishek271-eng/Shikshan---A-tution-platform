@@ -614,7 +614,7 @@ api.get('/tutor/batches', authMiddleware, requireRole(['tutor', 'admin']), async
   try {
     const { results } = await c.env.DB.prepare(
       `SELECT b.*,
-              (SELECT count(*) FROM tutor_requests r WHERE r.batch_id = b.id AND r.status IN ('pending', 'accepted')) as enrolled_count
+              (SELECT count(DISTINCT r.student_id) FROM tutor_requests r WHERE r.batch_id = b.id AND r.status = 'accepted') as enrolled_count
        FROM tutor_batches b
        WHERE b.tutor_id = ?
        ORDER BY b.start_time ASC`
@@ -622,13 +622,16 @@ api.get('/tutor/batches', authMiddleware, requireRole(['tutor', 'admin']), async
       .bind(authUser.id)
       .all();
 
-    const batches = (results || []).map((b: any) => ({
-      ...b,
-      enrolled_count: b.enrolled_count || 0,
-      max_capacity: 4,
-      remaining_seats: Math.max(0, 4 - (b.enrolled_count || 0)),
-      is_full: (b.enrolled_count || 0) >= 4,
-    }));
+    const batches = (results || []).map((b: any) => {
+      const distinctCount = Number(b.enrolled_count || 0);
+      return {
+        ...b,
+        enrolled_count: distinctCount,
+        max_capacity: 4,
+        remaining_seats: Math.max(0, 4 - distinctCount),
+        is_full: distinctCount >= 4,
+      };
+    });
 
     return c.json({ batches });
   } catch {
@@ -743,6 +746,7 @@ api.get('/tutor/batches/:id/students', authMiddleware, requireRole(['tutor', 'ad
        FROM tutor_requests r
        JOIN users u ON r.student_id = u.id
        WHERE r.batch_id = ? AND r.status = 'accepted'
+       GROUP BY r.student_id
        ORDER BY r.updated_at DESC`
     )
       .bind(batchId)
@@ -765,6 +769,7 @@ api.post('/tutor/batches/:id/assign', authMiddleware, requireRole(['tutor', 'adm
   }
 
   try {
+    // 1. Validate batch exists
     const batch: any = await c.env.DB.prepare(
       'SELECT id, name, start_time, end_time, days, tutor_id FROM tutor_batches WHERE id = ?'
     )
@@ -775,20 +780,12 @@ api.post('/tutor/batches/:id/assign', authMiddleware, requireRole(['tutor', 'adm
       return c.json({ error: 'Batch not found' }, 404);
     }
 
+    // 2. Validate tutor owns batch
     if (authUser.role !== 'admin' && batch.tutor_id !== authUser.id) {
-      return c.json({ error: 'Forbidden' }, 403);
+      return c.json({ error: 'Forbidden: Access denied to manage this batch' }, 403);
     }
 
-    const countRes: any = await c.env.DB.prepare(
-      `SELECT count(*) as count FROM tutor_requests WHERE batch_id = ? AND status = 'accepted'`
-    )
-      .bind(batchId)
-      .first();
-
-    if (countRes && countRes.count >= 4) {
-      return c.json({ error: 'Batch is full (maximum 4 students allowed)' }, 400);
-    }
-
+    // 3. Validate student request exists and belongs to this tutor
     const reqItem: any = await c.env.DB.prepare(
       'SELECT id, student_id, tutor_id, status FROM tutor_requests WHERE id = ?'
     )
@@ -800,11 +797,34 @@ api.post('/tutor/batches/:id/assign', authMiddleware, requireRole(['tutor', 'adm
     }
 
     if (authUser.role !== 'admin' && reqItem.tutor_id !== authUser.id) {
-      return c.json({ error: 'Forbidden' }, 403);
+      return c.json({ error: 'Forbidden: Student request does not belong to this tutor' }, 403);
     }
 
     if (reqItem.status !== 'accepted') {
       return c.json({ error: 'Only accepted student requests can be assigned to a batch' }, 400);
+    }
+
+    // 4. Strict duplicate assignment prevention: Check if student already enrolled in this batch
+    const alreadyEnrolled: any = await c.env.DB.prepare(
+      `SELECT id FROM tutor_requests WHERE batch_id = ? AND student_id = ? AND status = 'accepted'`
+    )
+      .bind(batchId, reqItem.student_id)
+      .first();
+
+    if (alreadyEnrolled) {
+      return c.json({ error: 'This student is already enrolled in this batch.' }, 400);
+    }
+
+    // 5. Strict maximum capacity check (concurrency-safe distinct active count)
+    const countRes: any = await c.env.DB.prepare(
+      `SELECT count(DISTINCT student_id) as count FROM tutor_requests WHERE batch_id = ? AND status = 'accepted'`
+    )
+      .bind(batchId)
+      .first();
+
+    const currentCount = Number(countRes?.count || 0);
+    if (currentCount >= 4) {
+      return c.json({ error: 'Batch is full (maximum 4 students allowed)' }, 400);
     }
 
     const batchTimeStr = `${batch.start_time} - ${batch.end_time}`;
@@ -876,7 +896,7 @@ api.get('/tutors/:id/batches', optionalAuthMiddleware, async (c) => {
 
     const { results } = await c.env.DB.prepare(
       `SELECT b.*,
-              (SELECT count(*) FROM tutor_requests r WHERE r.batch_id = b.id AND r.status IN ('pending', 'accepted')) as enrolled_count
+              (SELECT count(DISTINCT r.student_id) FROM tutor_requests r WHERE r.batch_id = b.id AND r.status = 'accepted') as enrolled_count
        FROM tutor_batches b
        WHERE b.tutor_id = ?
        ORDER BY b.start_time ASC`
@@ -884,13 +904,16 @@ api.get('/tutors/:id/batches', optionalAuthMiddleware, async (c) => {
       .bind(actualUserId)
       .all();
 
-    const batches = (results || []).map((b: any) => ({
-      ...b,
-      enrolled_count: b.enrolled_count || 0,
-      max_capacity: 4,
-      remaining_seats: Math.max(0, 4 - (b.enrolled_count || 0)),
-      is_full: (b.enrolled_count || 0) >= 4,
-    }));
+    const batches = (results || []).map((b: any) => {
+      const distinctCount = Number(b.enrolled_count || 0);
+      return {
+        ...b,
+        enrolled_count: distinctCount,
+        max_capacity: 4,
+        remaining_seats: Math.max(0, 4 - distinctCount),
+        is_full: distinctCount >= 4,
+      };
+    });
 
     return c.json({ batches });
   } catch {
@@ -1089,15 +1112,15 @@ api.post('/requests', authMiddleware, requireRole(['student']), async (c) => {
       return c.json({ error: 'You have already applied to this tutor.' }, 400);
     }
 
-    // 2. Batch capacity check (max 4 students)
+    // 2. Batch capacity check (max 4 distinct accepted students)
     if (batch_id) {
       const countRes: any = await c.env.DB.prepare(
-        `SELECT count(*) as count FROM tutor_requests WHERE batch_id = ? AND status IN ('pending', 'accepted')`
+        `SELECT count(DISTINCT student_id) as count FROM tutor_requests WHERE batch_id = ? AND status = 'accepted'`
       )
         .bind(batch_id)
         .first();
 
-      if (countRes && countRes.count >= 4) {
+      if (countRes && Number(countRes.count) >= 4) {
         return c.json({ error: 'This batch is full (4 of 4 students reached).' }, 400);
       }
     }
@@ -1157,7 +1180,7 @@ api.get('/requests/tutor', authMiddleware, requireRole(['tutor', 'admin']), asyn
   try {
     const { results } = await c.env.DB.prepare(
       `SELECT r.*, u.name as student_name, u.email as student_email, u.phone as student_phone, u.photo_url as student_photo,
-              (SELECT count(*) FROM tutor_requests sub WHERE sub.batch_id = r.batch_id AND sub.status IN ('pending', 'accepted')) as batch_enrolled_count
+              (SELECT count(DISTINCT sub.student_id) FROM tutor_requests sub WHERE sub.batch_id = r.batch_id AND sub.status = 'accepted') as batch_enrolled_count
        FROM tutor_requests r
        JOIN users u ON r.student_id = u.id
        WHERE r.tutor_id = ?
@@ -1596,7 +1619,7 @@ api.get('/admin/requests', authMiddleware, requireRole(['admin']), async (c) => 
               s.name as student_name, s.email as student_email, s.phone as student_phone,
               t.name as tutor_name, t.email as tutor_email, t.phone as tutor_phone,
               b.start_time as batch_start_time, b.end_time as batch_end_time,
-              (SELECT count(*) FROM tutor_requests sub WHERE sub.batch_id = r.batch_id AND sub.status IN ('pending', 'accepted')) as batch_enrolled_count
+              (SELECT count(DISTINCT sub.student_id) FROM tutor_requests sub WHERE sub.batch_id = r.batch_id AND sub.status = 'accepted') as batch_enrolled_count
        FROM tutor_requests r
        JOIN users s ON r.student_id = s.id
        JOIN users t ON r.tutor_id = t.id

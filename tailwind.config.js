@@ -7,8 +7,16 @@ export default {
   theme: {
     extend: {
       fontFamily: {
+        display: ['Outfit', 'sans-serif'],
         sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
         kannada: ['"Noto Sans Kannada"', 'sans-serif'],
+      },
+      zIndex: {
+        60: '60',
+        70: '70',
+        80: '80',
+        90: '90',
+        100: '100',
       },
       colors: {
         // Design Reference Palette

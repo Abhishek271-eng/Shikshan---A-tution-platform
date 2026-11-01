@@ -247,8 +247,8 @@ export const TutorDashboardPage: React.FC = () => {
       return;
     }
 
-    if (batchFee > 3000) {
-      setBatchError('Monthly fee cannot exceed the platform limit of ₹3,000 per student.');
+    if (batchFee <= 0 || batchFee > 10000) {
+      setBatchError('Please specify a valid monthly tuition fee (between ₹100 and ₹10,000).');
       return;
     }
 
@@ -305,11 +305,52 @@ export const TutorDashboardPage: React.FC = () => {
     }
   };
 
+  // Authoritative Distinct Enrolled Count for a batch
+  const getBatchEnrolledCount = (batchId: string): number => {
+    const distinctStudentIds = new Set<string>();
+    requests.forEach((r) => {
+      if (r.status === 'accepted' && (r as any).batch_id === batchId) {
+        distinctStudentIds.add(r.student_id || r.id);
+      }
+    });
+    if (distinctStudentIds.size > 0) {
+      return distinctStudentIds.size;
+    }
+    const b = batches.find((item) => item.id === batchId);
+    return b?.enrolled_count || 0;
+  };
+
   // Assign student request to batch
   const handleAssignStudent = async (batchId: string, requestId: string) => {
     setRosterActionLoading(requestId);
     setRosterMessage(null);
     try {
+      const reqToAssign = requests.find((r) => r.id === requestId);
+      if (!reqToAssign) {
+        setRosterMessage({ type: 'error', text: 'Request not found.' });
+        setRosterActionLoading(null);
+        return;
+      }
+
+      // 1. Strict Duplicate Check: Has this student already been enrolled in this batch?
+      const isAlreadyEnrolled =
+        batchStudents.some((bs) => (bs.student_id && bs.student_id === reqToAssign.student_id) || (bs.request_id || bs.id) === requestId) ||
+        requests.some((r) => r.status === 'accepted' && (r as any).batch_id === batchId && r.student_id === reqToAssign.student_id);
+
+      if (isAlreadyEnrolled) {
+        setRosterMessage({ type: 'error', text: 'This student is already enrolled in this batch.' });
+        setRosterActionLoading(null);
+        return;
+      }
+
+      // 2. Strict Capacity Check: Batch must not exceed 4 students
+      const currentCount = getBatchEnrolledCount(batchId);
+      if (currentCount >= 4) {
+        setRosterMessage({ type: 'error', text: 'Batch is full (maximum 4 students allowed).' });
+        setRosterActionLoading(null);
+        return;
+      }
+
       let isAssigned = false;
       try {
         const res = await api.assignStudentToBatch(batchId, requestId);
@@ -341,9 +382,20 @@ export const TutorDashboardPage: React.FC = () => {
         );
         setBatches((prev) =>
           prev.map((b) =>
-            b.id === batchId ? { ...b, enrolled_count: Math.min(4, (b.enrolled_count || 0) + 1) } : b
+            b.id === batchId ? { ...b, enrolled_count: Math.min(4, currentCount + 1) } : b
           )
         );
+        setBatchStudents((prev) => [
+          ...prev.filter((s) => (s.request_id || s.id) !== requestId && s.student_id !== reqToAssign.student_id),
+          {
+            ...reqToAssign,
+            request_id: requestId,
+            student_id: reqToAssign.student_id,
+            student_name: reqToAssign.student_name,
+            class_level: reqToAssign.class_level,
+            subject: reqToAssign.subject,
+          },
+        ]);
         if (assigningRequestForBatch) {
           setAssigningRequestForBatch(null);
         }
@@ -360,6 +412,9 @@ export const TutorDashboardPage: React.FC = () => {
     setRosterActionLoading(requestId);
     setRosterMessage(null);
     try {
+      const reqToUnassign = requests.find((r) => r.id === requestId);
+      const studentIdToRemove = reqToUnassign?.student_id;
+
       let isUnassigned = false;
       try {
         const res = await api.unassignStudentFromBatch(batchId, requestId);
@@ -381,12 +436,15 @@ export const TutorDashboardPage: React.FC = () => {
               : r
           )
         );
+        const newCount = Math.max(0, getBatchEnrolledCount(batchId) - 1);
         setBatches((prev) =>
           prev.map((b) =>
-            b.id === batchId ? { ...b, enrolled_count: Math.max(0, (b.enrolled_count || 1) - 1) } : b
+            b.id === batchId ? { ...b, enrolled_count: newCount } : b
           )
         );
-        setBatchStudents((prev) => prev.filter((s) => (s.request_id || s.id) !== requestId));
+        setBatchStudents((prev) =>
+          prev.filter((s) => (s.request_id || s.id) !== requestId && (studentIdToRemove ? s.student_id !== studentIdToRemove : true))
+        );
       }
     } catch (err: any) {
       setRosterMessage({ type: 'error', text: err?.message || 'Failed to remove student from batch.' });
@@ -442,9 +500,20 @@ export const TutorDashboardPage: React.FC = () => {
     }
   };
 
-  // Derived Metric Computations
+  // Derived Metric Computations: Authoritative Distinct Enrolled Students
   const enrolledStudents = useMemo(() => {
-    return requests.filter((r) => r.status === 'accepted');
+    const seen = new Set<string>();
+    const distinct: TutorRequest[] = [];
+    requests.forEach((r) => {
+      if (r.status === 'accepted') {
+        const key = r.student_id || r.id;
+        if (!seen.has(key)) {
+          seen.add(key);
+          distinct.push(r);
+        }
+      }
+    });
+    return distinct;
   }, [requests]);
 
   const pendingRequests = useMemo(() => {
@@ -664,19 +733,23 @@ export const TutorDashboardPage: React.FC = () => {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {batches.slice(0, 2).map((b) => (
-                    <div key={b.id} className="p-4 rounded-[22px] bg-white border border-[#E5DFF8] shadow-clay-sm flex justify-between items-center">
-                      <div>
-                        <h5 className="font-extrabold text-xs text-[#1C1938]">{b.name || b.batch_name}</h5>
-                        <p className="text-[11px] text-[#686487]">
-                          {formatTimeLabel(b.start_time)} – {formatTimeLabel(b.end_time)} • {b.days}
-                        </p>
+                  {batches.slice(0, 2).map((b) => {
+                    const count = getBatchEnrolledCount(b.id);
+                    const isFull = count >= 4;
+                    return (
+                      <div key={b.id} className="p-4 rounded-[22px] bg-white border border-[#E5DFF8] shadow-clay-sm flex justify-between items-center">
+                        <div>
+                          <h5 className="font-extrabold text-xs text-[#1C1938]">{b.name || b.batch_name}</h5>
+                          <p className="text-[11px] text-[#686487]">
+                            {formatTimeLabel(b.start_time)} – {formatTimeLabel(b.end_time)} • {b.days}
+                          </p>
+                        </div>
+                        <span className={`text-[10px] font-black px-2.5 py-1 rounded-full ${isFull ? 'bg-rose-100 text-rose-800' : 'bg-[#EDE9FE] text-[#6D28D9]'}`}>
+                          {count}/4 {isFull ? 'Full' : `${4 - count} open`}
+                        </span>
                       </div>
-                      <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-[#EDE9FE] text-[#6D28D9]">
-                        {b.enrolled_count || 0}/4 Enrolled
-                      </span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -724,8 +797,9 @@ export const TutorDashboardPage: React.FC = () => {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 {batches.map((batch) => {
-                  const enrolled = batch.enrolled_count ?? 0;
+                  const enrolled = getBatchEnrolledCount(batch.id);
                   const max = batch.max_capacity ?? 4;
+                  const remaining = Math.max(0, max - enrolled);
                   const isFull = enrolled >= max;
                   const bName = batch.name || batch.batch_name;
 
@@ -773,7 +847,7 @@ export const TutorDashboardPage: React.FC = () => {
                               3 Hours Session
                             </span>
                             <span className="text-[#7C3AED] font-bold">
-                              ₹{(batch.fee_amount || batch.fee || application?.fee_amount || 3000).toLocaleString('en-IN')} / mo
+                              ₹{(batch.fee_amount || batch.fee || application?.fee_amount || 1500).toLocaleString('en-IN')} / mo
                             </span>
                           </div>
                         </div>
@@ -782,10 +856,10 @@ export const TutorDashboardPage: React.FC = () => {
                       <div className="pt-2.5 border-t border-[#F3EFFB] flex flex-col gap-2">
                         <div className="flex items-center justify-between text-xs">
                           <span className="font-bold text-slate-700">
-                            {enrolled} of {max} seats filled
+                            {enrolled}/{max} students
                           </span>
-                          <span className="text-[11px] text-[#686487]">
-                            {isFull ? 'No seats left' : `${max - enrolled} seats open`}
+                          <span className={`text-[11px] font-semibold ${isFull ? 'text-rose-600' : 'text-[#686487]'}`}>
+                            {isFull ? 'Batch Full' : `${remaining} seat${remaining === 1 ? '' : 's'} available`}
                           </span>
                         </div>
 
@@ -1027,7 +1101,7 @@ export const TutorDashboardPage: React.FC = () => {
                     ₹{application.fee_amount || 1500} / month
                   </span>
                   <span className="text-[10px] text-[#686487] block mt-0.5">
-                    Controlled by Admin (₹3,000 max cap)
+                    Transparent Tuition (10% Shikshan Platform Fee)
                   </span>
                 </div>
               </div>
@@ -1211,14 +1285,14 @@ export const TutorDashboardPage: React.FC = () => {
 
               <div>
                 <label className="block text-[11px] font-bold text-[#1C1938] mb-1">
-                  Monthly Fee per Student (Max ₹3,000)
+                  Monthly Fee per Student (₹)
                 </label>
                 <div className="relative">
                   <span className="absolute left-3 top-2.5 text-slate-400 font-bold">₹</span>
                   <input
                     type="number"
-                    min="500"
-                    max="3000"
+                    min="100"
+                    max="10000"
                     value={batchFee}
                     onChange={(e) => setBatchFee(Number(e.target.value))}
                     className="w-full pl-7 pr-3 py-2.5 rounded-xl border border-[#DFD8F3] bg-[#FAF9FE] text-xs font-black text-[#1C1938]"
@@ -1346,11 +1420,22 @@ export const TutorDashboardPage: React.FC = () => {
                 </div>
               ) : (
                 (() => {
-                  const availableRequests = requests.filter(
-                    (r) =>
-                      r.status === 'accepted' &&
-                      !batchStudents.some((bs) => (bs.request_id || bs.id) === r.id)
-                  );
+                  const enrolledStudentIds = new Set(batchStudents.map((bs) => bs.student_id).filter(Boolean));
+                  requests.forEach((r) => {
+                    if (r.status === 'accepted' && (r as any).batch_id === selectedBatchForRoster.id && r.student_id) {
+                      enrolledStudentIds.add(r.student_id);
+                    }
+                  });
+
+                  const seenCandidateIds = new Set<string>();
+                  const availableRequests = requests.filter((r) => {
+                    if (r.status !== 'accepted') return false;
+                    const sid = r.student_id || r.id;
+                    if (enrolledStudentIds.has(sid)) return false;
+                    if (seenCandidateIds.has(sid)) return false;
+                    seenCandidateIds.add(sid);
+                    return true;
+                  });
 
                   if (availableRequests.length === 0) {
                     return (
@@ -1540,7 +1625,7 @@ export const TutorDashboardPage: React.FC = () => {
       {/* ========================================================================= */}
       {isConfirmSignOutOpen && (
         <div
-          className="fixed inset-0 z-60 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in"
+          className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
           role="dialog"
           aria-modal="true"
         >
