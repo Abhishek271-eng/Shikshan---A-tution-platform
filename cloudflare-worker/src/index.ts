@@ -1672,7 +1672,7 @@ api.get('/admin/batches', authMiddleware, requireRole(['admin']), async (c) => {
     const { results: batches } = await c.env.DB.prepare(
       `SELECT b.*,
               t.name as tutor_name, t.email as tutor_email, t.phone as tutor_phone,
-              p.subject_specialization, p.experience_years, p.hourly_rate
+              p.subjects, p.teaching_experience, p.fee_amount
        FROM tutor_batches b
        JOIN users t ON b.tutor_id = t.id
        LEFT JOIN tutor_profiles p ON p.user_id = t.id
@@ -1711,6 +1711,20 @@ api.get('/admin/batches', authMiddleware, requireRole(['admin']), async (c) => {
     const formattedBatches = (batches || []).map((b: any) => {
       const enrolledStudents = enrollmentMap[b.id] || [];
       const distinctCount = enrolledStudents.length;
+      let displaySubject = 'Karnataka State Curriculum';
+      if (b.subjects) {
+        try {
+          const parsed = JSON.parse(b.subjects);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            displaySubject = parsed.join(', ');
+          } else if (typeof parsed === 'string') {
+            displaySubject = parsed;
+          }
+        } catch {
+          displaySubject = String(b.subjects);
+        }
+      }
+
       return {
         id: b.id,
         name: b.name,
@@ -1718,7 +1732,7 @@ api.get('/admin/batches', authMiddleware, requireRole(['admin']), async (c) => {
         tutor_name: b.tutor_name,
         tutor_email: b.tutor_email,
         tutor_phone: b.tutor_phone,
-        subject: b.subject_specialization || 'Karnataka State Curriculum',
+        subject: displaySubject,
         class_level: b.class_level || 'Classes 1–10',
         start_time: b.start_time,
         end_time: b.end_time,
@@ -1749,14 +1763,32 @@ api.post('/admin/batches/:id/remove-student', authMiddleware, requireRole(['admi
   }
 
   try {
-    const batch: any = await c.env.DB.prepare(
+    let batch: any = await c.env.DB.prepare(
       'SELECT id, tutor_id, name FROM tutor_batches WHERE id = ?'
     )
       .bind(batchId)
       .first();
 
     if (!batch) {
-      return c.json({ error: 'Batch not found' }, 404);
+      // Check if batchId or requestId exists in tutor_requests
+      const existingReq: any = await c.env.DB.prepare(
+        `SELECT r.batch_id, r.batch_name, r.tutor_id, t.name as tutor_name
+         FROM tutor_requests r
+         JOIN users t ON r.tutor_id = t.id
+         WHERE (r.batch_id = ? OR r.id = ?) LIMIT 1`
+      )
+        .bind(batchId, requestId || batchId)
+        .first();
+
+      if (existingReq) {
+        batch = {
+          id: existingReq.batch_id || batchId,
+          tutor_id: existingReq.tutor_id,
+          name: existingReq.batch_name || 'Assigned Batch',
+        };
+      } else {
+        return c.json({ error: 'Batch not found' }, 404);
+      }
     }
 
     let reqItem: any = null;
@@ -1767,9 +1799,9 @@ api.post('/admin/batches/:id/remove-student', authMiddleware, requireRole(['admi
          FROM tutor_requests r
          JOIN users s ON r.student_id = s.id
          JOIN users t ON r.tutor_id = t.id
-         WHERE r.id = ? AND r.batch_id = ?`
+         WHERE r.id = ? AND (r.batch_id = ? OR r.batch_id IS NULL OR ? = 'direct')`
       )
-        .bind(requestId, batchId)
+        .bind(requestId, batchId, batchId)
         .first();
     }
     if (!reqItem && studentId) {
@@ -1779,9 +1811,9 @@ api.post('/admin/batches/:id/remove-student', authMiddleware, requireRole(['admi
          FROM tutor_requests r
          JOIN users s ON r.student_id = s.id
          JOIN users t ON r.tutor_id = t.id
-         WHERE r.student_id = ? AND r.batch_id = ? AND r.status = 'accepted'`
+         WHERE r.student_id = ? AND (r.batch_id = ? OR ? = 'direct') AND r.status = 'accepted'`
       )
-        .bind(studentId, batchId)
+        .bind(studentId, batchId, batchId)
         .first();
     }
 
@@ -1793,9 +1825,9 @@ api.post('/admin/batches/:id/remove-student', authMiddleware, requireRole(['admi
     await c.env.DB.prepare(
       `UPDATE tutor_requests
        SET batch_id = NULL, batch_name = NULL, batch_time = NULL, updated_at = CURRENT_TIMESTAMP
-       WHERE id = ? AND batch_id = ?`
+       WHERE id = ?`
     )
-      .bind(reqItem.id, batchId)
+      .bind(reqItem.id)
       .run();
 
     // Record administrative audit log
