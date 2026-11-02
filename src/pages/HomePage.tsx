@@ -19,6 +19,7 @@ import { ClayBackground } from '../components/common/ClayBackground';
 import { ClayStudentReading } from '../components/common/Clay3DIllustrations';
 import { useAuth } from '../context/AuthContext';
 import { SCHOOL_SUBJECTS, INDIVIDUAL_CLASSES } from '../config/options';
+import { getDeveloperPhoto } from '../lib/developerProfile';
 
 export const HomePage: React.FC = () => {
   const navigate = useNavigate();
@@ -32,18 +33,6 @@ export const HomePage: React.FC = () => {
 
   // Parent / Guardian modal state
   const [showParentModal, setShowParentModal] = useState<boolean>(false);
-
-  // Dynamic developer photo from configured profile or fallback
-  const getDeveloperPhoto = () => {
-    try {
-      const saved = localStorage.getItem('shikshan_developer_profile');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed.photoUrl) return parsed.photoUrl;
-      }
-    } catch {}
-    return '/images/abhishek.jpg';
-  };
 
   const [devPhoto, setDevPhoto] = useState<string>(getDeveloperPhoto);
 

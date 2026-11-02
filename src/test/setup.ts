@@ -191,6 +191,7 @@ vi.mock('../lib/api', () => ({
     getBatchStudents: vi.fn().mockResolvedValue({ batch: { id: 'batch-1', name: 'Math Batch' }, students: [] }),
     assignStudentToBatch: vi.fn().mockResolvedValue({ success: true, message: 'Student assigned' }),
     unassignStudentFromBatch: vi.fn().mockResolvedValue({ success: true, message: 'Student removed' }),
+    adminRemoveStudentFromBatch: vi.fn().mockResolvedValue({ success: true, message: 'Student removed from batch enrollment', enrolledCount: 0 }),
     acknowledgeTutorApproval: vi.fn().mockResolvedValue({ success: true, message: 'Acknowledged' }),
     getStudentPayments: vi.fn().mockResolvedValue({ payments: [] }),
     getStudentPaymentCoordinations: vi.fn().mockResolvedValue({ payments: [] }),

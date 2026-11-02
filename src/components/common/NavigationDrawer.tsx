@@ -12,6 +12,7 @@ import {
 import { ShikshanLogo } from './ShikshanLogo';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigation } from '../../context/NavigationContext';
+import { getDeveloperPhoto } from '../../lib/developerProfile';
 
 interface NavigationDrawerProps {
   isOpen: boolean;
@@ -119,6 +120,9 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({ isOpen, onCl
               <nav className="mt-4 space-y-2 text-left">
                 {menuItems.map((item, idx) => {
                   const Icon = item.icon;
+                  const isDeveloper = item.label === 'Developer';
+                  const devPhoto = isDeveloper ? getDeveloperPhoto() : null;
+
                   return (
                     <Link
                       key={`${item.path}-${idx}`}
@@ -126,8 +130,19 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({ isOpen, onCl
                       onClick={onClose}
                       className="flex items-center gap-3.5 px-4 py-3 rounded-2xl text-sm font-bold text-[#1C1938] hover:text-[#4136CA] hover:bg-[#FAF9FE] border border-transparent hover:border-[#DFD8F3] transition-all active:scale-95 shadow-none hover:shadow-clay-sm"
                     >
-                      <div className="w-9 h-9 rounded-xl bg-[#FAF9FE] border border-[#DFD8F3] text-[#4136CA] flex items-center justify-center flex-shrink-0 shadow-xs">
-                        <Icon className="w-4 h-4 stroke-[2.2]" />
+                      <div className="w-9 h-9 rounded-full bg-[#FAF9FE] border border-[#DFD8F3] text-[#4136CA] flex items-center justify-center flex-shrink-0 shadow-xs overflow-hidden">
+                        {isDeveloper && devPhoto ? (
+                          <img
+                            src={devPhoto}
+                            alt="Developer Profile"
+                            className="w-full h-full object-cover rounded-full"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = '/images/abhishek.jpg';
+                            }}
+                          />
+                        ) : (
+                          <Icon className="w-4 h-4 stroke-[2.2]" />
+                        )}
                       </div>
                       <span>{item.label}</span>
                     </Link>

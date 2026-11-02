@@ -878,8 +878,8 @@ api.post('/tutor/batches/:id/assign', authMiddleware, requireRole(['tutor', 'adm
   }
 });
 
-api.post('/tutor/batches/:id/unassign', authMiddleware, requireRole(['tutor', 'admin']), async (c) => {
-  const authUser = c.get('user');
+// Administrative Student Removal (Strictly Admin only - Tutors/Students return 403)
+api.post('/tutor/batches/:id/unassign', authMiddleware, requireRole(['admin']), async (c) => {
   const batchId = c.req.param('id');
   const body = await c.req.json().catch(() => ({}));
   const { requestId } = body;
@@ -897,10 +897,6 @@ api.post('/tutor/batches/:id/unassign', authMiddleware, requireRole(['tutor', 'a
 
     if (!batch) {
       return c.json({ error: 'Batch not found' }, 404);
-    }
-
-    if (authUser.role !== 'admin' && batch.tutor_id !== authUser.id) {
-      return c.json({ error: 'Forbidden' }, 403);
     }
 
     await c.env.DB.prepare(
@@ -1668,6 +1664,93 @@ api.get('/admin/requests', authMiddleware, requireRole(['admin']), async (c) => 
     return c.json({ requests: results || [] });
   } catch {
     return c.json({ error: 'Failed to fetch admin requests' }, 500);
+  }
+});
+
+api.post('/admin/batches/:id/remove-student', authMiddleware, requireRole(['admin']), async (c) => {
+  const authUser = c.get('user');
+  const batchId = c.req.param('id');
+  const body = await c.req.json().catch(() => ({}));
+  const { requestId, reason, note } = body;
+
+  if (!requestId) {
+    return c.json({ error: 'requestId is required' }, 400);
+  }
+
+  try {
+    const batch: any = await c.env.DB.prepare(
+      'SELECT id, tutor_id, name FROM tutor_batches WHERE id = ?'
+    )
+      .bind(batchId)
+      .first();
+
+    if (!batch) {
+      return c.json({ error: 'Batch not found' }, 404);
+    }
+
+    const reqItem: any = await c.env.DB.prepare(
+      `SELECT r.id, r.student_id, r.tutor_id, r.batch_id,
+              s.name as student_name, t.name as tutor_name
+       FROM tutor_requests r
+       JOIN users s ON r.student_id = s.id
+       JOIN users t ON r.tutor_id = t.id
+       WHERE r.id = ? AND r.batch_id = ?`
+    )
+      .bind(requestId, batchId)
+      .first();
+
+    if (!reqItem) {
+      return c.json({ error: 'Active enrollment not found for this batch' }, 404);
+    }
+
+    // Safe unassign: removes student from this batch, releases 1 seat, preserves student profile, tutor profile & payments
+    await c.env.DB.prepare(
+      `UPDATE tutor_requests
+       SET batch_id = NULL, batch_name = NULL, batch_time = NULL, updated_at = CURRENT_TIMESTAMP
+       WHERE id = ? AND batch_id = ?`
+    )
+      .bind(requestId, batchId)
+      .run();
+
+    // Record administrative audit log
+    const logId = crypto.randomUUID();
+    await c.env.DB.prepare(
+      `INSERT INTO admin_audit_logs (id, admin_id, action, target_type, target_id, details)
+       VALUES (?, ?, 'REMOVE_STUDENT_ENROLLMENT', 'BATCH', ?, ?)`
+    )
+      .bind(
+        logId,
+        authUser.id,
+        batchId,
+        JSON.stringify({
+          batchId,
+          batchName: batch.name,
+          requestId,
+          studentId: reqItem.student_id,
+          studentName: reqItem.student_name,
+          tutorId: reqItem.tutor_id,
+          tutorName: reqItem.tutor_name,
+          reason: reason || 'Administrative removal',
+          note: note || null,
+        })
+      )
+      .run();
+
+    // Query updated distinct enrolled count
+    const countRes: any = await c.env.DB.prepare(
+      `SELECT count(DISTINCT student_id) as count FROM tutor_requests WHERE batch_id = ? AND status = 'accepted'`
+    )
+      .bind(batchId)
+      .first();
+
+    return c.json({
+      success: true,
+      message: 'Student removed from batch enrollment successfully',
+      enrolledCount: Number(countRes?.count || 0),
+    });
+  } catch (err: any) {
+    console.error('Admin remove student error:', err);
+    return c.json({ error: 'Failed to remove student from batch enrollment' }, 500);
   }
 });
 

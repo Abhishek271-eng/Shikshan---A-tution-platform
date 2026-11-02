@@ -22,6 +22,7 @@ import {
   Send,
   ShieldCheck,
   LogOut,
+  AlertCircle,
 } from 'lucide-react';
 import { Header } from '../../components/common/Header';
 import { ClayCard } from '../../components/common/ClayCard';
@@ -44,6 +45,14 @@ interface StudentRecord {
   subjects?: string[];
   guardian_phone?: string;
   learning_goals?: string;
+}
+
+interface StudentRemovalTarget {
+  requestId: string;
+  studentName: string;
+  tutorName: string;
+  batchId: string;
+  batchName: string;
 }
 
 export const AdminDashboardPage: React.FC = () => {
@@ -110,6 +119,12 @@ export const AdminDashboardPage: React.FC = () => {
   const [applicantMessage, setApplicantMessage] = useState('');
   const [approvedFeeInput, setApprovedFeeInput] = useState('3000');
   const [isUpdatingFee, setIsUpdatingFee] = useState(false);
+
+  // Admin-only Student Removal State
+  const [studentRemovalTarget, setStudentRemovalTarget] = useState<StudentRemovalTarget | null>(null);
+  const [removalReason, setRemovalReason] = useState<'payment_not_completed' | 'administrative_removal' | 'other'>('payment_not_completed');
+  const [removalNote, setRemovalNote] = useState<string>('');
+  const [isRemovingStudent, setIsRemovingStudent] = useState<boolean>(false);
 
   const isAdmin = profile?.role === 'admin' || user?.role === 'admin';
 
@@ -256,7 +271,15 @@ export const AdminDashboardPage: React.FC = () => {
         startTime?: string;
         endTime?: string;
         enrolledCount: number;
-        students: { name: string; email: string; phone?: string; status: string }[];
+        students: {
+          id: string;
+          studentId: string;
+          name: string;
+          email: string;
+          phone?: string;
+          status: string;
+          batchId: string;
+        }[];
       }
     > = {};
 
@@ -277,12 +300,15 @@ export const AdminDashboardPage: React.FC = () => {
           students: [],
         };
       }
-      if (r.student_name && !batchMap[key].students.some((s) => s.name === r.student_name)) {
+      if (r.student_name && !batchMap[key].students.some((s) => s.id === r.id || s.name === r.student_name)) {
         batchMap[key].students.push({
+          id: r.id,
+          studentId: r.student_id,
           name: r.student_name,
           email: r.student_email,
           phone: r.student_phone,
           status: r.status,
+          batchId: r.batch_id || key,
         });
         if (r.status === 'accepted') {
           batchMap[key].enrolledCount += 1;
@@ -292,6 +318,53 @@ export const AdminDashboardPage: React.FC = () => {
 
     return Object.values(batchMap);
   }, [requests]);
+
+  // Admin-only Student Removal from Batch Enrollment
+  const handleAdminRemoveStudent = async () => {
+    if (!studentRemovalTarget) return;
+    setIsRemovingStudent(true);
+    setStatusMessage(null);
+
+    const reasonLabels = {
+      payment_not_completed: 'Payment not completed',
+      administrative_removal: 'Administrative removal',
+      other: 'Other',
+    };
+
+    try {
+      const res = await api.adminRemoveStudentFromBatch(
+        studentRemovalTarget.batchId,
+        studentRemovalTarget.requestId,
+        {
+          reason: reasonLabels[removalReason],
+          note: removalNote.trim() || undefined,
+        }
+      );
+
+      if (res.success) {
+        setStatusMessage(
+          `Student "${studentRemovalTarget.studentName}" removed from "${studentRemovalTarget.batchName}". Seat released.`
+        );
+        // Update local requests state to clear batch assignment immediately
+        setRequests((prev) =>
+          prev.map((r) =>
+            r.id === studentRemovalTarget.requestId
+              ? { ...r, batch_id: null, batch_name: null, batch_time: null }
+              : r
+          )
+        );
+        setStudentRemovalTarget(null);
+        setRemovalNote('');
+      } else {
+        setStatusMessage(res.message || 'Failed to remove student from batch.');
+      }
+    } catch (err: any) {
+      console.error('Error removing student:', err);
+      setStatusMessage(err?.message || 'Failed to remove student from batch enrollment.');
+    } finally {
+      setIsRemovingStudent(false);
+    }
+  };
 
   const handleStatusUpdate = async (newStatus: 'approved' | 'rejected') => {
     if (!selectedApp) return;
@@ -1478,19 +1551,50 @@ export const AdminDashboardPage: React.FC = () => {
                             <div className="space-y-1">
                               {batch.students.map((st, idx) => (
                                 <div
-                                  key={idx}
-                                  className="text-xs flex items-center justify-between p-1.5 rounded-lg bg-white border border-[#DFD8F3]"
+                                  key={st.id || idx}
+                                  className="text-xs flex items-center justify-between p-2 rounded-xl bg-white border border-[#DFD8F3] gap-2 min-w-0"
                                 >
-                                  <span className="font-semibold text-[#1C1938] truncate">{st.name}</span>
-                                  <span
-                                    className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase ${
-                                      st.status === 'accepted'
-                                        ? 'bg-emerald-100 text-emerald-800'
-                                        : 'bg-amber-100 text-amber-800'
-                                    }`}
-                                  >
-                                    {st.status}
-                                  </span>
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-1.5 min-w-0">
+                                      <span className="font-semibold text-[#1C1938] truncate min-w-0" title={st.name}>
+                                        {st.name}
+                                      </span>
+                                      <span
+                                        className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase flex-shrink-0 ${
+                                          st.status === 'accepted'
+                                            ? 'bg-emerald-100 text-emerald-800'
+                                            : 'bg-amber-100 text-amber-800'
+                                        }`}
+                                      >
+                                        {st.status}
+                                      </span>
+                                    </div>
+                                    {st.phone && (
+                                      <span className="text-[10px] text-[#686487] block truncate">{st.phone}</span>
+                                    )}
+                                  </div>
+
+                                  {/* Admin-only Remove Student Action (Only for enrolled students) */}
+                                  {st.status === 'accepted' && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setStudentRemovalTarget({
+                                          requestId: st.id,
+                                          studentName: st.name,
+                                          tutorName: batch.tutorName,
+                                          batchId: batch.id,
+                                          batchName: batch.name,
+                                        });
+                                        setRemovalReason('payment_not_completed');
+                                        setRemovalNote('');
+                                      }}
+                                      className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold text-[11px] transition-all cursor-pointer flex-shrink-0 active:scale-95 shadow-xs"
+                                      title={`Remove ${st.name} from batch`}
+                                    >
+                                      Remove Student
+                                    </button>
+                                  )}
                                 </div>
                               ))}
                             </div>
@@ -1792,6 +1896,130 @@ export const AdminDashboardPage: React.FC = () => {
           </div>
         )}
       </main>
+
+      {/* Admin Student Removal Confirmation Modal */}
+      {studentRemovalTarget && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Confirm Student Removal"
+        >
+          <div className="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-rose-100 text-left space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-[#F3EFFB]">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center flex-shrink-0">
+                  <AlertCircle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-black text-base text-[#1C1938]">Remove Student from Batch</h3>
+                  <p className="text-[11px] text-[#686487]">Administrator Enrollment Control</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setStudentRemovalTarget(null)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-[#FAF9FE] border border-[#E5DFF8] space-y-2 text-xs">
+              <div className="flex justify-between items-center">
+                <span className="text-[#686487] font-semibold">Student Name:</span>
+                <span className="font-extrabold text-[#1C1938]">{studentRemovalTarget.studentName}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-[#686487] font-semibold">Tutor Name:</span>
+                <span className="font-extrabold text-[#4136CA]">{studentRemovalTarget.tutorName}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-[#686487] font-semibold">Relevant Batch:</span>
+                <span className="font-extrabold text-[#1C1938]">{studentRemovalTarget.batchName}</span>
+              </div>
+            </div>
+
+            <div className="space-y-2 text-xs">
+              <label className="block text-[11px] font-bold text-[#1C1938]">
+                Reason for Removal:
+              </label>
+              <div className="space-y-1.5">
+                <label className="flex items-center gap-2.5 p-2.5 rounded-xl border border-[#DFD8F3] hover:bg-slate-50 cursor-pointer transition-colors">
+                  <input
+                    type="radio"
+                    name="removalReason"
+                    value="payment_not_completed"
+                    checked={removalReason === 'payment_not_completed'}
+                    onChange={() => setRemovalReason('payment_not_completed')}
+                    className="text-[#7C3AED] focus:ring-purple-400"
+                  />
+                  <span className="font-semibold text-slate-800">Payment not completed</span>
+                </label>
+                <label className="flex items-center gap-2.5 p-2.5 rounded-xl border border-[#DFD8F3] hover:bg-slate-50 cursor-pointer transition-colors">
+                  <input
+                    type="radio"
+                    name="removalReason"
+                    value="administrative_removal"
+                    checked={removalReason === 'administrative_removal'}
+                    onChange={() => setRemovalReason('administrative_removal')}
+                    className="text-[#7C3AED] focus:ring-purple-400"
+                  />
+                  <span className="font-semibold text-slate-800">Administrative removal</span>
+                </label>
+                <label className="flex items-center gap-2.5 p-2.5 rounded-xl border border-[#DFD8F3] hover:bg-slate-50 cursor-pointer transition-colors">
+                  <input
+                    type="radio"
+                    name="removalReason"
+                    value="other"
+                    checked={removalReason === 'other'}
+                    onChange={() => setRemovalReason('other')}
+                    className="text-[#7C3AED] focus:ring-purple-400"
+                  />
+                  <span className="font-semibold text-slate-800">Other</span>
+                </label>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-[#1C1938] mt-2 mb-1">
+                  Additional Notes (Optional):
+                </label>
+                <textarea
+                  value={removalNote}
+                  onChange={(e) => setRemovalNote(e.target.value)}
+                  placeholder="Reason details or adjustment notes..."
+                  rows={2}
+                  className="w-full p-2.5 rounded-xl border border-[#DFD8F3] bg-[#FAF9FE] text-xs text-[#1C1938] resize-none outline-none focus:border-purple-400"
+                />
+              </div>
+            </div>
+
+            <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-[11px] text-amber-900 leading-relaxed">
+              <strong>Data Safety Guarantee:</strong> Removing the student releases 1 batch seat immediately. The student's account, tutor account, batch schedule, and historical payment records remain preserved.
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#F3EFFB]">
+              <ClayButton
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => setStudentRemovalTarget(null)}
+                disabled={isRemovingStudent}
+              >
+                Cancel
+              </ClayButton>
+              <button
+                type="button"
+                onClick={handleAdminRemoveStudent}
+                disabled={isRemovingStudent}
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-sm transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 disabled:opacity-50"
+              >
+                {isRemovingStudent ? 'Removing...' : 'Confirm Removal'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Administrator Logout Confirmation Modal */}
       {isConfirmSignOutOpen && (

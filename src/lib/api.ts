@@ -294,6 +294,19 @@ export const api = {
 
   getAdminRequests: () => request<{ requests: any[] }>('/admin/requests'),
 
+  adminRemoveStudentFromBatch: (
+    batchId: string,
+    requestId: string,
+    reasonData: { reason: string; note?: string }
+  ) =>
+    request<{ success: boolean; message: string }>(
+      `/admin/batches/${batchId}/remove-student`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ requestId, ...reasonData }),
+      }
+    ),
+
   getAdminAuditLogs: () => request<{ audit_logs: any[] }>('/admin/audit-logs'),
 
   getAdminStats: () => request<{ stats: any }>('/admin/stats'),

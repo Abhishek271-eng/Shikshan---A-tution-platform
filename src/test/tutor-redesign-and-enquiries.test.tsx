@@ -62,7 +62,7 @@ describe('Tutor Redesign & Enquiries Priority Tests', () => {
     expect(screen.getByRole('button', { name: /confirm logout/i })).toBeInTheDocument();
   });
 
-  it('renders DeveloperPage with concise profile, back button, and commitments', () => {
+  it('renders DeveloperPage with concise profile, back button, email and linkedin contact tiles', () => {
     render(
       <AuthProvider>
         <MemoryRouter>
@@ -73,9 +73,14 @@ describe('Tutor Redesign & Enquiries Priority Tests', () => {
 
     expect(screen.getByRole('heading', { level: 1, name: /developer & founder/i })).toBeInTheDocument();
     expect(screen.getByText(/abhishek devanagaon/i)).toBeInTheDocument();
-    expect(screen.getByText(/karnataka state syllabus & bilingual learning/i)).toBeInTheDocument();
-    expect(screen.getByText(/micro-batches \(strictly max 4 students\)/i)).toBeInTheDocument();
-    expect(screen.getByText(/fair fee cap & verified educators/i)).toBeInTheDocument();
+    expect(screen.getByText(/founder & full-stack developer/i)).toBeInTheDocument();
+    expect(screen.getByText(/email me/i)).toBeInTheDocument();
+    expect(screen.getByText(/abhishekdevanagaon2712005@gmail.com/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /linkedin/i })).toBeInTheDocument();
+
+    // Verify photo editing controls / camera upload buttons are NOT present
+    expect(screen.queryByTitle(/upload developer photograph/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/edit profile/i)).not.toBeInTheDocument();
 
     // Back button should be present
     const backBtn = screen.getByRole('button', { name: /go back/i });

@@ -456,52 +456,6 @@ export const TutorDashboardPage: React.FC = () => {
     }
   };
 
-  // Unassign student request from batch
-  const handleUnassignStudent = async (batchId: string, requestId: string) => {
-    setRosterActionLoading(requestId);
-    setRosterMessage(null);
-    try {
-      const reqToUnassign = requests.find((r) => r.id === requestId);
-      const studentIdToRemove = reqToUnassign?.student_id;
-
-      let isUnassigned = false;
-      try {
-        const res = await api.unassignStudentFromBatch(batchId, requestId);
-        if (res.success) isUnassigned = true;
-      } catch (backendErr: any) {
-        if (backendErr?.message?.includes('404')) {
-          isUnassigned = true;
-        } else {
-          throw backendErr;
-        }
-      }
-
-      if (isUnassigned) {
-        setRosterMessage({ type: 'success', text: 'Student removed from batch.' });
-        setRequests((prev) =>
-          prev.map((r) =>
-            r.id === requestId
-              ? { ...r, batch_id: undefined, batch_name: undefined, batch_time: undefined }
-              : r
-          )
-        );
-        const newCount = Math.max(0, getBatchEnrolledCount(batchId) - 1);
-        setBatches((prev) =>
-          prev.map((b) =>
-            b.id === batchId ? { ...b, enrolled_count: newCount } : b
-          )
-        );
-        setBatchStudents((prev) =>
-          prev.filter((s) => (s.request_id || s.id) !== requestId && (studentIdToRemove ? s.student_id !== studentIdToRemove : true))
-        );
-      }
-    } catch (err: any) {
-      setRosterMessage({ type: 'error', text: err?.message || 'Failed to remove student from batch.' });
-    } finally {
-      setRosterActionLoading(null);
-    }
-  };
-
   const handleOpenResponse = (req: TutorRequest, action: 'accepted' | 'declined') => {
     setActiveRequest(req);
     setResponseAction(action);
@@ -981,40 +935,46 @@ export const TutorDashboardPage: React.FC = () => {
                 {enrolledStudents.map((st) => (
                   <div
                     key={st.id}
-                    className="p-4.5 rounded-[24px] bg-white border border-[#E5DFF8] shadow-clay-sm flex flex-col justify-between gap-3 text-left"
+                    className="p-4 sm:p-4.5 rounded-[24px] bg-white border border-[#E5DFF8] shadow-clay-sm flex flex-col justify-between gap-3 text-left overflow-hidden min-w-0"
                   >
-                    <div>
-                      <div className="flex items-center justify-between gap-2">
-                        <h4 className="font-extrabold text-sm text-[#1C1938]">{st.student_name || 'Enrolled Student'}</h4>
-                        <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                    <div className="min-w-0">
+                      <div className="flex items-start justify-between gap-2 min-w-0">
+                        <div className="min-w-0 flex-1">
+                          <h4
+                            className="font-extrabold text-sm text-[#1C1938] leading-snug break-words"
+                            title={st.student_name}
+                          >
+                            {st.student_name || 'Enrolled Student'}
+                          </h4>
+                          <p className="text-xs text-[#686487] mt-0.5 truncate">
+                            Class: <strong className="text-[#1C1938]">{st.class_level?.toUpperCase()}</strong> • Karnataka State Board
+                          </p>
+                        </div>
+                        <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 flex-shrink-0 mt-0.5">
                           Enrolled
                         </span>
                       </div>
 
-                      <p className="text-xs text-[#686487] mt-0.5">
-                        Class: <strong className="text-[#1C1938]">{st.class_level?.toUpperCase()}</strong> • Karnataka State Board
-                      </p>
-
-                      <div className="mt-2 p-2.5 rounded-xl bg-[#FAF9FE] border border-[#E5DFF8] text-xs space-y-1">
-                        <div className="text-[#4136CA] font-bold flex items-center gap-1">
-                          <Clock className="w-3.5 h-3.5" />
-                          <span>{(st as any).batch_name || 'Assigned Batch'}</span>
+                      <div className="mt-2.5 p-2.5 rounded-xl bg-[#FAF9FE] border border-[#E5DFF8] text-xs space-y-1 min-w-0 overflow-hidden">
+                        <div className="text-[#4136CA] font-bold flex items-center gap-1.5 min-w-0">
+                          <Clock className="w-3.5 h-3.5 flex-shrink-0 text-[#4136CA]" />
+                          <span className="truncate min-w-0">{(st as any).batch_name || 'Assigned 3-Hour Batch'}</span>
                         </div>
-                        <div className="text-[11px] text-[#686487]">
+                        <div className="text-[11px] text-[#686487] truncate min-w-0">
                           Subject: <strong className="text-slate-800">{st.subject}</strong>
                         </div>
                       </div>
                     </div>
 
                     {st.guardian_phone && (
-                      <div className="pt-2 border-t border-[#F3EFFB] flex items-center justify-between gap-2 text-xs">
-                        <span className="text-[11px] text-[#686487] font-semibold">Guardian Contact:</span>
+                      <div className="pt-2.5 border-t border-[#F3EFFB] flex items-center justify-between gap-2 text-xs min-w-0">
+                        <span className="text-[11px] text-[#686487] font-semibold flex-shrink-0">Guardian:</span>
                         <a
                           href={`tel:${st.guardian_phone}`}
-                          className="font-bold text-[#10B981] hover:underline flex items-center gap-1"
+                          className="font-bold text-[#10B981] hover:underline flex items-center gap-1 min-w-0 truncate"
                         >
-                          <Phone className="w-3 h-3" />
-                          <span>{st.guardian_phone}</span>
+                          <Phone className="w-3 h-3 flex-shrink-0" />
+                          <span className="truncate">{st.guardian_phone}</span>
                         </a>
                       </div>
                     )}
@@ -1064,14 +1024,16 @@ export const TutorDashboardPage: React.FC = () => {
                   return (
                     <div
                       key={req.id}
-                      className="p-5 rounded-[26px] bg-white border border-[#E5DFF8] shadow-clay-sm flex flex-col gap-3 text-left"
+                      className="p-4 sm:p-5 rounded-[26px] bg-white border border-[#E5DFF8] shadow-clay-sm flex flex-col gap-3 text-left overflow-hidden min-w-0"
                     >
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h4 className="font-black text-sm text-[#1C1938]">{req.student_name || 'Student Inquiry'}</h4>
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 min-w-0">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                            <h4 className="font-black text-sm text-[#1C1938] break-words" title={req.student_name}>
+                              {req.student_name || 'Student Inquiry'}
+                            </h4>
                             <span
-                              className={`text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase ${
+                              className={`text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase flex-shrink-0 ${
                                 isAccepted
                                   ? 'bg-emerald-100 text-emerald-800'
                                   : isDeclined
@@ -1082,25 +1044,25 @@ export const TutorDashboardPage: React.FC = () => {
                               {req.status}
                             </span>
                           </div>
-                          <p className="text-xs text-[#686487] mt-0.5">
+                          <p className="text-xs text-[#686487] mt-0.5 truncate">
                             Class: <strong className="text-slate-800">{req.class_level?.toUpperCase()}</strong> • Subject: <strong className="text-slate-800">{req.subject}</strong>
                           </p>
                         </div>
 
                         {/* Actions for Pending */}
                         {isPending && (
-                          <div className="flex items-center gap-2 self-start sm:self-auto">
+                          <div className="flex items-center gap-2 self-start sm:self-auto flex-shrink-0 pt-1 sm:pt-0">
                             <button
                               type="button"
                               onClick={() => handleOpenResponse(req, 'declined')}
-                              className="px-3.5 py-1.5 rounded-xl border border-rose-200 text-rose-700 hover:bg-rose-50 text-xs font-bold transition-all cursor-pointer"
+                              className="px-3.5 py-1.5 rounded-xl border border-rose-200 text-rose-700 hover:bg-rose-50 text-xs font-bold transition-all cursor-pointer flex-shrink-0"
                             >
                               Decline
                             </button>
                             <button
                               type="button"
                               onClick={() => handleOpenResponse(req, 'accepted')}
-                              className="px-4 py-1.5 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white text-xs font-bold shadow-sm transition-all cursor-pointer"
+                              className="px-4 py-1.5 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white text-xs font-bold shadow-sm transition-all cursor-pointer flex-shrink-0"
                             >
                               Accept
                             </button>
@@ -1473,22 +1435,19 @@ export const TutorDashboardPage: React.FC = () => {
                   {batchStudents.map((st) => (
                     <div
                       key={st.request_id || st.id}
-                      className="p-3 rounded-2xl bg-[#FAF9FE] border border-[#E5DFF8] flex items-center justify-between text-xs"
+                      className="p-3 rounded-2xl bg-[#FAF9FE] border border-[#E5DFF8] flex items-center justify-between text-xs min-w-0 gap-2"
                     >
-                      <div>
-                        <span className="font-bold text-[#1C1938] block">{st.student_name || 'Enrolled Student'}</span>
-                        <span className="text-[11px] text-[#686487]">
+                      <div className="min-w-0 flex-1">
+                        <span className="font-bold text-[#1C1938] block break-words" title={st.student_name}>
+                          {st.student_name || 'Enrolled Student'}
+                        </span>
+                        <span className="text-[11px] text-[#686487] block truncate">
                           Class: {st.class_level?.toUpperCase()} • {st.subject}
                         </span>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleUnassignStudent(selectedBatchForRoster.id, st.request_id || st.id)}
-                        disabled={rosterActionLoading === (st.request_id || st.id)}
-                        className="px-2.5 py-1 rounded-lg text-rose-600 hover:bg-rose-50 text-xs font-bold transition-colors cursor-pointer"
-                      >
-                        Remove
-                      </button>
+                      <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-black uppercase flex-shrink-0">
+                        Enrolled
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -1537,11 +1496,13 @@ export const TutorDashboardPage: React.FC = () => {
                       {availableRequests.map((cand) => (
                         <div
                           key={cand.id}
-                          className="p-2.5 rounded-xl bg-[#FAF9FE] border border-[#E5DFF8] flex items-center justify-between text-xs"
+                          className="p-2.5 rounded-xl bg-[#FAF9FE] border border-[#E5DFF8] flex items-center justify-between text-xs min-w-0 gap-2"
                         >
-                          <div>
-                            <span className="font-bold text-[#1C1938] block">{cand.student_name || 'Accepted Student'}</span>
-                            <span className="text-[10px] text-[#686487]">
+                          <div className="min-w-0 flex-1">
+                            <span className="font-bold text-[#1C1938] block break-words" title={cand.student_name}>
+                              {cand.student_name || 'Accepted Student'}
+                            </span>
+                            <span className="text-[10px] text-[#686487] block truncate">
                               Class: {cand.class_level?.toUpperCase()} • {cand.subject}
                             </span>
                           </div>
@@ -1549,7 +1510,7 @@ export const TutorDashboardPage: React.FC = () => {
                             type="button"
                             onClick={() => handleAssignStudent(selectedBatchForRoster.id, cand.id)}
                             disabled={rosterActionLoading === cand.id}
-                            className="px-3 py-1 rounded-xl bg-[#7C3AED] text-white hover:bg-[#6D28D9] text-xs font-bold transition-all shadow-xs cursor-pointer"
+                            className="px-3 py-1 rounded-xl bg-[#7C3AED] text-white hover:bg-[#6D28D9] text-xs font-bold transition-all shadow-xs cursor-pointer flex-shrink-0"
                           >
                             {rosterActionLoading === cand.id ? 'Adding...' : 'Add to Batch'}
                           </button>
