@@ -1667,14 +1667,85 @@ api.get('/admin/requests', authMiddleware, requireRole(['admin']), async (c) => 
   }
 });
 
+api.get('/admin/batches', authMiddleware, requireRole(['admin']), async (c) => {
+  try {
+    const { results: batches } = await c.env.DB.prepare(
+      `SELECT b.*,
+              t.name as tutor_name, t.email as tutor_email, t.phone as tutor_phone,
+              p.subject_specialization, p.experience_years, p.hourly_rate
+       FROM tutor_batches b
+       JOIN users t ON b.tutor_id = t.id
+       LEFT JOIN tutor_profiles p ON p.user_id = t.id
+       ORDER BY b.created_at DESC`
+    ).all();
+
+    const { results: enrollments } = await c.env.DB.prepare(
+      `SELECT r.id as request_id, r.batch_id, r.student_id, r.status, r.created_at, r.updated_at,
+              r.subject, r.class_level,
+              s.name as student_name, s.email as student_email, s.phone as student_phone
+       FROM tutor_requests r
+       JOIN users s ON r.student_id = s.id
+       WHERE r.batch_id IS NOT NULL AND r.status = 'accepted'
+       ORDER BY r.created_at ASC`
+    ).all();
+
+    const enrollmentMap: Record<string, any[]> = {};
+    for (const e of (enrollments || []) as any[]) {
+      if (!enrollmentMap[e.batch_id]) {
+        enrollmentMap[e.batch_id] = [];
+      }
+      enrollmentMap[e.batch_id].push({
+        id: e.request_id,
+        requestId: e.request_id,
+        studentId: e.student_id,
+        name: e.student_name,
+        email: e.student_email,
+        phone: e.student_phone,
+        status: e.status,
+        subject: e.subject,
+        classLevel: e.class_level,
+        enrolledAt: e.created_at,
+      });
+    }
+
+    const formattedBatches = (batches || []).map((b: any) => {
+      const enrolledStudents = enrollmentMap[b.id] || [];
+      const distinctCount = enrolledStudents.length;
+      return {
+        id: b.id,
+        name: b.name,
+        tutor_id: b.tutor_id,
+        tutor_name: b.tutor_name,
+        tutor_email: b.tutor_email,
+        tutor_phone: b.tutor_phone,
+        subject: b.subject_specialization || 'Karnataka State Curriculum',
+        class_level: b.class_level || 'Classes 1–10',
+        start_time: b.start_time,
+        end_time: b.end_time,
+        days: b.days,
+        max_capacity: 4,
+        enrolled_count: distinctCount,
+        available_seats: Math.max(0, 4 - distinctCount),
+        students: enrolledStudents,
+        created_at: b.created_at,
+      };
+    });
+
+    return c.json({ batches: formattedBatches });
+  } catch (err: any) {
+    console.error('Failed to fetch admin batches:', err);
+    return c.json({ error: 'Failed to fetch admin batches' }, 500);
+  }
+});
+
 api.post('/admin/batches/:id/remove-student', authMiddleware, requireRole(['admin']), async (c) => {
   const authUser = c.get('user');
   const batchId = c.req.param('id');
   const body = await c.req.json().catch(() => ({}));
-  const { requestId, reason, note } = body;
+  const { requestId, studentId, reason, note } = body;
 
-  if (!requestId) {
-    return c.json({ error: 'requestId is required' }, 400);
+  if (!requestId && !studentId) {
+    return c.json({ error: 'requestId or studentId is required' }, 400);
   }
 
   try {
@@ -1688,16 +1759,31 @@ api.post('/admin/batches/:id/remove-student', authMiddleware, requireRole(['admi
       return c.json({ error: 'Batch not found' }, 404);
     }
 
-    const reqItem: any = await c.env.DB.prepare(
-      `SELECT r.id, r.student_id, r.tutor_id, r.batch_id,
-              s.name as student_name, t.name as tutor_name
-       FROM tutor_requests r
-       JOIN users s ON r.student_id = s.id
-       JOIN users t ON r.tutor_id = t.id
-       WHERE r.id = ? AND r.batch_id = ?`
-    )
-      .bind(requestId, batchId)
-      .first();
+    let reqItem: any = null;
+    if (requestId) {
+      reqItem = await c.env.DB.prepare(
+        `SELECT r.id, r.student_id, r.tutor_id, r.batch_id,
+                s.name as student_name, t.name as tutor_name
+         FROM tutor_requests r
+         JOIN users s ON r.student_id = s.id
+         JOIN users t ON r.tutor_id = t.id
+         WHERE r.id = ? AND r.batch_id = ?`
+      )
+        .bind(requestId, batchId)
+        .first();
+    }
+    if (!reqItem && studentId) {
+      reqItem = await c.env.DB.prepare(
+        `SELECT r.id, r.student_id, r.tutor_id, r.batch_id,
+                s.name as student_name, t.name as tutor_name
+         FROM tutor_requests r
+         JOIN users s ON r.student_id = s.id
+         JOIN users t ON r.tutor_id = t.id
+         WHERE r.student_id = ? AND r.batch_id = ? AND r.status = 'accepted'`
+      )
+        .bind(studentId, batchId)
+        .first();
+    }
 
     if (!reqItem) {
       return c.json({ error: 'Active enrollment not found for this batch' }, 404);
@@ -1709,7 +1795,7 @@ api.post('/admin/batches/:id/remove-student', authMiddleware, requireRole(['admi
        SET batch_id = NULL, batch_name = NULL, batch_time = NULL, updated_at = CURRENT_TIMESTAMP
        WHERE id = ? AND batch_id = ?`
     )
-      .bind(requestId, batchId)
+      .bind(reqItem.id, batchId)
       .run();
 
     // Record administrative audit log
@@ -1725,7 +1811,7 @@ api.post('/admin/batches/:id/remove-student', authMiddleware, requireRole(['admi
         JSON.stringify({
           batchId,
           batchName: batch.name,
-          requestId,
+          requestId: reqItem.id,
           studentId: reqItem.student_id,
           studentName: reqItem.student_name,
           tutorId: reqItem.tutor_id,
@@ -1743,10 +1829,16 @@ api.post('/admin/batches/:id/remove-student', authMiddleware, requireRole(['admi
       .bind(batchId)
       .first();
 
+    const newEnrolledCount = Number(countRes?.count || 0);
+
     return c.json({
       success: true,
-      message: 'Student removed from batch enrollment successfully',
-      enrolledCount: Number(countRes?.count || 0),
+      message: `Student ${reqItem.student_name} removed from batch successfully`,
+      batchId,
+      requestId: reqItem.id,
+      studentId: reqItem.student_id,
+      enrolledCount: newEnrolledCount,
+      availableSeats: Math.max(0, 4 - newEnrolledCount),
     });
   } catch (err: any) {
     console.error('Admin remove student error:', err);

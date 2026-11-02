@@ -30,7 +30,7 @@ import { ClayButton } from '../../components/common/ClayButton';
 import { ClayBackground } from '../../components/common/ClayBackground';
 import { ClayUploadButton } from '../../components/common/ClayUploadButton';
 import { useAuth } from '../../context/AuthContext';
-import { api } from '../../lib/api';
+import { api, AdminBatchRecord } from '../../lib/api';
 import { TutorApplication } from '../../types';
 
 interface StudentRecord {
@@ -57,7 +57,7 @@ interface StudentRemovalTarget {
 
 export const AdminDashboardPage: React.FC = () => {
   const navigate = useNavigate();
-  const { user, profile, uploadPhoto, removePhoto, signOut } = useAuth();
+  const { user, profile, uploadPhoto, removePhoto, signOut, isLoading: isAuthLoading } = useAuth();
   const [isConfirmSignOutOpen, setIsConfirmSignOutOpen] = useState(false);
 
   const handleSignOut = async () => {
@@ -109,6 +109,10 @@ export const AdminDashboardPage: React.FC = () => {
   // Audit logs state
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [isLoadingAudit, setIsLoadingAudit] = useState(false);
+
+  // Authoritative batches state
+  const [batches, setBatches] = useState<AdminBatchRecord[]>([]);
+  const [isLoadingBatches, setIsLoadingBatches] = useState(false);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -211,6 +215,18 @@ export const AdminDashboardPage: React.FC = () => {
     }
   };
 
+  const fetchBatches = async () => {
+    setIsLoadingBatches(true);
+    try {
+      const res = await api.getAdminBatches();
+      setBatches(res.batches || []);
+    } catch (err) {
+      console.error('Failed to load authoritative admin batches:', err);
+    } finally {
+      setIsLoadingBatches(false);
+    }
+  };
+
   useEffect(() => {
     if (isAdmin) {
       fetchStats();
@@ -218,6 +234,7 @@ export const AdminDashboardPage: React.FC = () => {
       fetchStudents();
       fetchPayments();
       fetchRequests();
+      fetchBatches();
       fetchAuditLogs();
     } else {
       setIsLoading(false);
@@ -270,9 +287,12 @@ export const AdminDashboardPage: React.FC = () => {
         classLevel: string;
         startTime?: string;
         endTime?: string;
+        days?: string;
         enrolledCount: number;
+        availableSeats: number;
         students: {
           id: string;
+          requestId: string;
           studentId: string;
           name: string;
           email: string;
@@ -296,13 +316,16 @@ export const AdminDashboardPage: React.FC = () => {
           classLevel: r.class_level || 'School Curriculum',
           startTime: r.batch_start_time || '16:00',
           endTime: r.batch_end_time || '19:00',
+          days: 'Mon · Wed · Fri',
           enrolledCount: 0,
+          availableSeats: 4,
           students: [],
         };
       }
       if (r.student_name && !batchMap[key].students.some((s) => s.id === r.id || s.name === r.student_name)) {
         batchMap[key].students.push({
           id: r.id,
+          requestId: r.id,
           studentId: r.student_id,
           name: r.student_name,
           email: r.student_email,
@@ -312,12 +335,42 @@ export const AdminDashboardPage: React.FC = () => {
         });
         if (r.status === 'accepted') {
           batchMap[key].enrolledCount += 1;
+          batchMap[key].availableSeats = Math.max(0, 4 - batchMap[key].enrolledCount);
         }
       }
     });
 
     return Object.values(batchMap);
   }, [requests]);
+
+  const displayBatches = React.useMemo(() => {
+    if (batches && batches.length > 0) {
+      return batches.map((b) => ({
+        id: b.id,
+        name: b.name,
+        tutorName: b.tutor_name,
+        tutorPhone: b.tutor_phone,
+        subject: b.subject,
+        classLevel: b.class_level,
+        startTime: b.start_time,
+        endTime: b.end_time,
+        days: b.days,
+        enrolledCount: b.enrolled_count,
+        availableSeats: b.available_seats !== undefined ? b.available_seats : Math.max(0, 4 - b.enrolled_count),
+        students: (b.students || []).map((s) => ({
+          id: s.requestId || s.id,
+          requestId: s.requestId || s.id,
+          studentId: s.studentId,
+          name: s.name,
+          email: s.email,
+          phone: s.phone,
+          status: s.status,
+          batchId: b.id,
+        })),
+      }));
+    }
+    return derivedBatches;
+  }, [batches, derivedBatches]);
 
   // Admin-only Student Removal from Batch Enrollment
   const handleAdminRemoveStudent = async () => {
@@ -345,6 +398,24 @@ export const AdminDashboardPage: React.FC = () => {
         setStatusMessage(
           `Student "${studentRemovalTarget.studentName}" removed from "${studentRemovalTarget.batchName}". Seat released.`
         );
+        // Update local batches state immediately
+        setBatches((prev) =>
+          prev.map((b) => {
+            if (b.id === studentRemovalTarget.batchId) {
+              const updatedStudents = (b.students || []).filter(
+                (s) => s.requestId !== studentRemovalTarget.requestId && s.id !== studentRemovalTarget.requestId
+              );
+              const newEnrolled = updatedStudents.filter((s) => s.status === 'accepted').length;
+              return {
+                ...b,
+                students: updatedStudents,
+                enrolled_count: newEnrolled,
+                available_seats: Math.max(0, 4 - newEnrolled),
+              };
+            }
+            return b;
+          })
+        );
         // Update local requests state to clear batch assignment immediately
         setRequests((prev) =>
           prev.map((r) =>
@@ -355,6 +426,9 @@ export const AdminDashboardPage: React.FC = () => {
         );
         setStudentRemovalTarget(null);
         setRemovalNote('');
+        // Re-sync authoritative batches and requests in background
+        fetchBatches();
+        fetchRequests();
       } else {
         setStatusMessage(res.message || 'Failed to remove student from batch.');
       }
@@ -469,6 +543,19 @@ export const AdminDashboardPage: React.FC = () => {
     document.body.removeChild(link);
   };
 
+  if (isAuthLoading) {
+    return (
+      <ClayBackground>
+        <Header title="Admin Review Desk" subtitle="Authenticating Administrator..." />
+        <main className="flex-1 max-w-md mx-auto w-full px-5 py-12 flex flex-col justify-center text-center">
+          <ClayCard className="p-8 text-center text-xs text-[#686487] border border-[#DFD8F3]">
+            Verifying administrator credentials...
+          </ClayCard>
+        </main>
+      </ClayBackground>
+    );
+  }
+
   if (!isAdmin) {
     return (
       <ClayBackground>
@@ -533,9 +620,10 @@ export const AdminDashboardPage: React.FC = () => {
                 fetchStudents();
                 fetchPayments();
                 fetchRequests();
+                fetchBatches();
                 fetchAuditLogs();
               }}
-              isLoading={isLoading || isLoadingStudents || isLoadingPayments}
+              isLoading={isLoading || isLoadingStudents || isLoadingPayments || isLoadingBatches}
               className="flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold"
             >
               <RefreshCw className="w-3.5 h-3.5" />
@@ -544,12 +632,13 @@ export const AdminDashboardPage: React.FC = () => {
           </div>
         </ClayCard>
 
-        {/* Section Navigation Tabs: 8 Distinct Admin Sections */}
-        <div className="flex items-center gap-2 border-b border-[#DFD8F3] pb-3 overflow-x-auto select-none">
+        {/* Section Navigation Tabs: 7 Organized Mobile-First Sections */}
+        <div className="flex items-center gap-2 border-b border-[#DFD8F3] pb-3 overflow-x-auto select-none scrollbar-none">
+          {/* 1. Overview */}
           <button
             type="button"
             onClick={() => setMainSection('dashboard')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold transition-all whitespace-nowrap ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
               mainSection === 'dashboard'
                 ? 'bg-[#312E81] text-white shadow-sm'
                 : 'bg-white text-[#686487] border border-[#DFD8F3] hover:text-[#1C1938]'
@@ -559,95 +648,88 @@ export const AdminDashboardPage: React.FC = () => {
             <span>Overview</span>
           </button>
 
+          {/* 2. Students */}
           <button
             type="button"
             onClick={() => setMainSection('students')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold transition-all whitespace-nowrap ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
               mainSection === 'students'
                 ? 'bg-[#312E81] text-white shadow-sm'
                 : 'bg-white text-[#686487] border border-[#DFD8F3] hover:text-[#1C1938]'
             }`}
           >
             <Users className="w-4 h-4" />
-            <span>Students ({students.length})</span>
+            <span>Students ({students.length || adminStats.total_students})</span>
           </button>
 
+          {/* 3. Tutors & Approvals */}
           <button
             type="button"
-            onClick={() => setMainSection('tutors')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold transition-all whitespace-nowrap ${
-              mainSection === 'tutors'
+            onClick={() => setMainSection('applications')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+              mainSection === 'applications' || mainSection === 'tutors'
                 ? 'bg-[#312E81] text-white shadow-sm'
                 : 'bg-white text-[#686487] border border-[#DFD8F3] hover:text-[#1C1938]'
             }`}
           >
             <GraduationCap className="w-4 h-4" />
-            <span>Tutors ({applications.filter((a) => a.status === 'approved').length})</span>
+            <span>Tutors & Approvals ({applications.length})</span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => setMainSection('applications')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold transition-all whitespace-nowrap ${
-              mainSection === 'applications'
-                ? 'bg-[#312E81] text-white shadow-sm'
-                : 'bg-white text-[#686487] border border-[#DFD8F3] hover:text-[#1C1938]'
-            }`}
-          >
-            <ShieldCheck className="w-4 h-4" />
-            <span>Applications ({applications.filter((a) => a.status === 'pending' || a.status === 'pending_review').length})</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setMainSection('requests')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold transition-all whitespace-nowrap ${
-              mainSection === 'requests' || mainSection === 'inquiries'
-                ? 'bg-[#312E81] text-white shadow-sm'
-                : 'bg-white text-[#686487] border border-[#DFD8F3] hover:text-[#1C1938]'
-            }`}
-          >
-            <Clock className="w-4 h-4" />
-            <span>Requests ({requests.length})</span>
-          </button>
-
+          {/* 4. Batch Management */}
           <button
             type="button"
             onClick={() => setMainSection('batches')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold transition-all whitespace-nowrap ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
               mainSection === 'batches'
                 ? 'bg-[#312E81] text-white shadow-sm'
                 : 'bg-white text-[#686487] border border-[#DFD8F3] hover:text-[#1C1938]'
             }`}
           >
             <BookOpen className="w-4 h-4" />
-            <span>Batches ({derivedBatches.length || adminStats.active_batches})</span>
+            <span>Batch Management (Batches) ({displayBatches.length || adminStats.active_batches})</span>
           </button>
 
+          {/* 5. Enrollment Requests */}
+          <button
+            type="button"
+            onClick={() => setMainSection('requests')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+              mainSection === 'requests' || mainSection === 'inquiries'
+                ? 'bg-[#312E81] text-white shadow-sm'
+                : 'bg-white text-[#686487] border border-[#DFD8F3] hover:text-[#1C1938]'
+            }`}
+          >
+            <Clock className="w-4 h-4" />
+            <span>Enrollment Requests ({requests.length || adminStats.total_requests})</span>
+          </button>
+
+          {/* 6. Payments */}
           <button
             type="button"
             onClick={() => setMainSection('payments')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold transition-all whitespace-nowrap ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
               mainSection === 'payments'
                 ? 'bg-[#312E81] text-white shadow-sm'
                 : 'bg-white text-[#686487] border border-[#DFD8F3] hover:text-[#1C1938]'
             }`}
           >
             <IndianRupee className="w-4 h-4" />
-            <span>Payments ({payments.length})</span>
+            <span>Payments ({payments.length || adminStats.payment_interests})</span>
           </button>
 
+          {/* 7. App Analytics */}
           <button
             type="button"
             onClick={() => setMainSection('audit')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold transition-all whitespace-nowrap ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
               mainSection === 'audit'
                 ? 'bg-[#312E81] text-white shadow-sm'
                 : 'bg-white text-[#686487] border border-[#DFD8F3] hover:text-[#1C1938]'
             }`}
           >
             <FileText className="w-4 h-4" />
-            <span>Audit Logs ({auditLogs.length})</span>
+            <span>App Analytics & Audit ({auditLogs.length})</span>
           </button>
         </div>
 
@@ -1461,18 +1543,19 @@ export const AdminDashboardPage: React.FC = () => {
                   </p>
                 </div>
                 <span className="text-xs font-bold text-[#4136CA] bg-[#EFEAFF] px-3 py-1 rounded-full self-start sm:self-auto">
-                  {derivedBatches.length} Monitored Batches
+                  {displayBatches.length} Monitored Batches
                 </span>
               </div>
 
-              {derivedBatches.length === 0 ? (
+              {displayBatches.length === 0 ? (
                 <div className="p-8 text-center text-xs text-[#686487]">
-                  No active student batch allocations found in system requests. When tutors create batches and accept students, they appear here.
+                  No active student batch allocations found. When tutors create batches and accept students, they appear here.
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {derivedBatches.map((batch, idx) => {
+                  {displayBatches.map((batch, idx) => {
                     const isFull = batch.enrolledCount >= 4;
+                    const availableSeats = Math.max(0, 4 - batch.enrolledCount);
                     const bNumber = `BATCH ${String(idx + 1).padStart(2, '0')}`;
                     return (
                       <div
@@ -1501,18 +1584,20 @@ export const AdminDashboardPage: React.FC = () => {
                                 : 'bg-emerald-100 text-emerald-800'
                             }`}
                           >
-                            {isFull ? 'Batch Full (4/4)' : 'Active'}
+                            {isFull ? 'Batch Full (4/4)' : `Active (${batch.enrolledCount}/4) · ${availableSeats} Available`}
                           </span>
                         </div>
 
                         <div className="grid grid-cols-2 gap-2 text-xs bg-white p-2.5 rounded-xl border border-[#DFD8F3]">
                           <div>
                             <span className="text-[10px] text-[#686487] block">Schedule</span>
-                            <span className="font-bold text-[#1C1938]">Mon · Wed · Fri</span>
+                            <span className="font-bold text-[#1C1938]">{batch.days || 'Mon · Wed · Fri'}</span>
                           </div>
                           <div>
                             <span className="text-[10px] text-[#686487] block">Time & Duration</span>
-                            <span className="font-bold text-[#1C1938]">4:00 PM – 7:00 PM (3 hrs)</span>
+                            <span className="font-bold text-[#1C1938]">
+                              {batch.startTime || '16:00'} – {batch.endTime || '19:00'} (3 hrs)
+                            </span>
                           </div>
                           <div>
                             <span className="text-[10px] text-[#686487] block">Subject</span>
@@ -1529,7 +1614,7 @@ export const AdminDashboardPage: React.FC = () => {
                           <div className="flex items-center justify-between text-[11px]">
                             <span className="font-bold text-[#4A4668]">Seat Capacity</span>
                             <span className="font-bold text-[#1C1938]">
-                              {batch.enrolledCount} of 4 seats filled
+                              {batch.enrolledCount} of 4 seats filled ({availableSeats} available)
                             </span>
                           </div>
                           <div className="w-full bg-[#E5DFF8] rounded-full h-2 overflow-hidden">
@@ -1543,7 +1628,13 @@ export const AdminDashboardPage: React.FC = () => {
                         </div>
 
                         {/* Students in Batch */}
-                        {batch.students.length > 0 && (
+                        {batch.students.length === 0 ? (
+                          <div className="pt-2 border-t border-[#DFD8F3]">
+                            <div className="p-2.5 text-center text-[11px] text-[#686487] bg-white rounded-xl border border-[#DFD8F3]">
+                              No students currently enrolled in this batch. (4 seats available)
+                            </div>
+                          </div>
+                        ) : (
                           <div className="pt-2 border-t border-[#DFD8F3] space-y-1.5">
                             <span className="text-[10px] font-bold uppercase tracking-wider text-[#686487]">
                               Enrolled Students ({batch.students.length})
@@ -1580,7 +1671,7 @@ export const AdminDashboardPage: React.FC = () => {
                                       type="button"
                                       onClick={() => {
                                         setStudentRemovalTarget({
-                                          requestId: st.id,
+                                          requestId: st.requestId || st.id,
                                           studentName: st.name,
                                           tutorName: batch.tutorName,
                                           batchId: batch.id,

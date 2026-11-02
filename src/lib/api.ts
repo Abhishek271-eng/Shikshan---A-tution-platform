@@ -91,6 +91,38 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
   }
 }
 
+export interface AdminBatchStudent {
+  id: string;
+  requestId: string;
+  studentId: string;
+  name: string;
+  email: string;
+  phone?: string;
+  status: string;
+  subject?: string;
+  classLevel?: string;
+  enrolledAt?: string;
+}
+
+export interface AdminBatchRecord {
+  id: string;
+  name: string;
+  tutor_id: string;
+  tutor_name: string;
+  tutor_email?: string;
+  tutor_phone?: string;
+  subject: string;
+  class_level: string;
+  start_time: string;
+  end_time: string;
+  days: string;
+  max_capacity: number;
+  enrolled_count: number;
+  available_seats: number;
+  students: AdminBatchStudent[];
+  created_at?: string;
+}
+
 export const api = {
   // Auth
   register: (payload: {
@@ -294,18 +326,31 @@ export const api = {
 
   getAdminRequests: () => request<{ requests: any[] }>('/admin/requests'),
 
+  getAdminBatches: () => request<{ batches: AdminBatchRecord[] }>('/admin/batches'),
+
   adminRemoveStudentFromBatch: (
     batchId: string,
-    requestId: string,
-    reasonData: { reason: string; note?: string }
-  ) =>
-    request<{ success: boolean; message: string }>(
-      `/admin/batches/${batchId}/remove-student`,
-      {
-        method: 'POST',
-        body: JSON.stringify({ requestId, ...reasonData }),
-      }
-    ),
+    requestIdOrPayload: string | { requestId?: string; studentId?: string },
+    reasonData?: { reason?: string; note?: string }
+  ) => {
+    const payload =
+      typeof requestIdOrPayload === 'string'
+        ? { requestId: requestIdOrPayload, ...reasonData }
+        : { ...requestIdOrPayload, ...reasonData };
+
+    return request<{
+      success: boolean;
+      message: string;
+      batchId?: string;
+      requestId?: string;
+      studentId?: string;
+      enrolledCount?: number;
+      availableSeats?: number;
+    }>(`/admin/batches/${batchId}/remove-student`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
 
   getAdminAuditLogs: () => request<{ audit_logs: any[] }>('/admin/audit-logs'),
 

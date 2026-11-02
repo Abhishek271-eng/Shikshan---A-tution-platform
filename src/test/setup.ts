@@ -200,6 +200,7 @@ vi.mock('../lib/api', () => ({
     updateAdminPayment: vi.fn().mockResolvedValue({ success: true }),
     updateAdminTutorFee: vi.fn().mockResolvedValue({ success: true, monthly_fee: 3000 }),
     getAdminRequests: vi.fn().mockResolvedValue({ requests: [] }),
+    getAdminBatches: vi.fn().mockResolvedValue({ batches: [] }),
     getAdminAuditLogs: vi.fn().mockResolvedValue({ audit_logs: [] }),
     getAdminStats: vi.fn().mockResolvedValue({ stats: {} }),
     updateAdminProfile: vi.fn().mockResolvedValue({ success: true }),
