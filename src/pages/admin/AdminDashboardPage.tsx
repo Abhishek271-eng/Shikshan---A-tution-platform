@@ -23,6 +23,7 @@ import {
   ShieldCheck,
   LogOut,
   AlertCircle,
+  UserMinus,
 } from 'lucide-react';
 import { Header } from '../../components/common/Header';
 import { ClayCard } from '../../components/common/ClayCard';
@@ -126,6 +127,7 @@ export const AdminDashboardPage: React.FC = () => {
 
   // Admin-only Student Removal State
   const [studentRemovalTarget, setStudentRemovalTarget] = useState<StudentRemovalTarget | null>(null);
+  const [selectedBatchModal, setSelectedBatchModal] = useState<any | null>(null);
   const [removalReason, setRemovalReason] = useState<'payment_not_completed' | 'administrative_removal' | 'other'>('payment_not_completed');
   const [removalNote, setRemovalNote] = useState<string>('');
   const [isRemovingStudent, setIsRemovingStudent] = useState<boolean>(false);
@@ -298,21 +300,23 @@ export const AdminDashboardPage: React.FC = () => {
           email: string;
           phone?: string;
           status: string;
+          classLevel?: string;
+          subject?: string;
           batchId: string;
         }[];
       }
     > = {};
 
     requests.forEach((r) => {
-      const key = r.batch_id || (r.batch_name ? `${r.tutor_id}-${r.batch_name}` : null);
+      const key = r.batch_id || (r.batch_name ? `${r.tutor_id}-${r.batch_name}` : (r.status === 'accepted' ? `${r.tutor_id}-mentorship` : null));
       if (!key) return;
       if (!batchMap[key]) {
         batchMap[key] = {
           id: r.batch_id || key,
-          name: r.batch_name || 'Academic Mentorship Batch',
+          name: r.batch_name || `${r.tutor_name || 'Academic Mentor'} Batch`,
           tutorName: r.tutor_name || 'Approved Mentor',
           tutorPhone: r.tutor_phone,
-          subject: r.subject || 'Core Subjects',
+          subject: r.subject || 'Karnataka State Curriculum',
           classLevel: r.class_level || 'School Curriculum',
           startTime: r.batch_start_time || '16:00',
           endTime: r.batch_end_time || '19:00',
@@ -331,6 +335,8 @@ export const AdminDashboardPage: React.FC = () => {
           email: r.student_email,
           phone: r.student_phone,
           status: r.status,
+          classLevel: r.class_level || 'Class 8',
+          subject: r.subject || 'Karnataka State Curriculum',
           batchId: r.batch_id || key,
         });
         if (r.status === 'accepted') {
@@ -365,6 +371,8 @@ export const AdminDashboardPage: React.FC = () => {
           email: s.email,
           phone: s.phone,
           status: s.status,
+          classLevel: s.classLevel || (s as any).class_level || b.class_level || 'Class 8',
+          subject: s.subject || b.subject || 'Karnataka State Curriculum',
           batchId: b.id,
         })),
       }));
@@ -405,7 +413,7 @@ export const AdminDashboardPage: React.FC = () => {
               const updatedStudents = (b.students || []).filter(
                 (s) => s.requestId !== studentRemovalTarget.requestId && s.id !== studentRemovalTarget.requestId
               );
-              const newEnrolled = updatedStudents.filter((s) => s.status === 'accepted').length;
+              const newEnrolled = updatedStudents.filter((s) => s.status === 'accepted' || s.status === 'Active' || s.status === 'active').length;
               return {
                 ...b,
                 students: updatedStudents,
@@ -416,6 +424,19 @@ export const AdminDashboardPage: React.FC = () => {
             return b;
           })
         );
+        // Update selectedBatchModal state if open
+        setSelectedBatchModal((prev: any) => {
+          if (!prev || prev.id !== studentRemovalTarget.batchId) return prev;
+          const updated = (prev.students || []).filter(
+            (s: any) => s.requestId !== studentRemovalTarget.requestId && s.id !== studentRemovalTarget.requestId
+          );
+          return {
+            ...prev,
+            students: updated,
+            enrolledCount: updated.length,
+            availableSeats: Math.max(0, 4 - updated.length),
+          };
+        });
         // Update local requests state to clear batch assignment immediately
         setRequests((prev) =>
           prev.map((r) =>
@@ -1519,6 +1540,29 @@ export const AdminDashboardPage: React.FC = () => {
                         <p className="p-2 rounded-xl bg-white border border-[#DFD8F3] text-slate-700">
                           &quot;{req.learning_needs}&quot;
                         </p>
+                        {(req.batch_id || req.batch_name) && req.status === 'accepted' && (
+                          <div className="pt-1 flex justify-end">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setStudentRemovalTarget({
+                                  requestId: req.id,
+                                  studentName: req.student_name,
+                                  tutorName: req.tutor_name,
+                                  batchId: req.batch_id || 'direct',
+                                  batchName: req.batch_name || 'Academic Batch',
+                                });
+                                setRemovalReason('payment_not_completed');
+                                setRemovalNote('');
+                              }}
+                              className="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95"
+                              title={`Remove ${req.student_name} from batch`}
+                            >
+                              <UserMinus className="w-3.5 h-3.5" />
+                              Remove Student from Batch
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -1627,6 +1671,21 @@ export const AdminDashboardPage: React.FC = () => {
                           </div>
                         </div>
 
+                        {/* Interactive Open Batch & Manage Students CTA */}
+                        <div className="pt-2">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedBatchModal(batch)}
+                            className="w-full flex items-center justify-between p-2.5 rounded-xl bg-[#EDE9FE] hover:bg-[#DDD6FE] text-[#4136CA] font-extrabold text-xs transition-colors cursor-pointer border border-[#DDD6FE]"
+                          >
+                            <span className="flex items-center gap-1.5">
+                              <BookOpen className="w-4 h-4" />
+                              Select / Open Batch ({batch.enrolledCount}/4 Enrolled)
+                            </span>
+                            <span className="text-[11px] font-bold underline">Manage Roster →</span>
+                          </button>
+                        </div>
+
                         {/* Students in Batch */}
                         {batch.students.length === 0 ? (
                           <div className="pt-2 border-t border-[#DFD8F3]">
@@ -1635,57 +1694,65 @@ export const AdminDashboardPage: React.FC = () => {
                             </div>
                           </div>
                         ) : (
-                          <div className="pt-2 border-t border-[#DFD8F3] space-y-1.5">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-[#686487]">
-                              Enrolled Students ({batch.students.length})
-                            </span>
-                            <div className="space-y-1">
+                          <div className="pt-2 border-t border-[#DFD8F3] space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-black uppercase tracking-wider text-[#686487]">
+                                Enrolled Students ({batch.students.length})
+                              </span>
+                              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full">
+                                {batch.enrolledCount} Active
+                              </span>
+                            </div>
+                            <div className="space-y-2">
                               {batch.students.map((st, idx) => (
                                 <div
                                   key={st.id || idx}
-                                  className="text-xs flex items-center justify-between p-2 rounded-xl bg-white border border-[#DFD8F3] gap-2 min-w-0"
+                                  className="p-3 rounded-xl bg-white border border-[#DFD8F3] shadow-xs space-y-2 text-left"
                                 >
-                                  <div className="min-w-0 flex-1">
-                                    <div className="flex items-center gap-1.5 min-w-0">
-                                      <span className="font-semibold text-[#1C1938] truncate min-w-0" title={st.name}>
-                                        {st.name}
-                                      </span>
-                                      <span
-                                        className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase flex-shrink-0 ${
-                                          st.status === 'accepted'
-                                            ? 'bg-emerald-100 text-emerald-800'
-                                            : 'bg-amber-100 text-amber-800'
-                                        }`}
-                                      >
-                                        {st.status}
-                                      </span>
+                                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                                    <div className="space-y-1 text-xs min-w-0">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-[#686487] font-semibold text-[11px]">Student:</span>
+                                        <span className="font-extrabold text-sm text-[#1C1938]">{st.name}</span>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-[#686487] font-semibold text-[11px]">Class:</span>
+                                        <span className="font-bold text-[#1C1938]">
+                                          {st.classLevel || batch.classLevel || 'Class 8'}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-[#686487] font-semibold text-[11px]">Enrollment:</span>
+                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-100 text-emerald-800">
+                                          Active
+                                        </span>
+                                        {st.phone && <span className="text-[11px] text-[#686487]">({st.phone})</span>}
+                                      </div>
                                     </div>
-                                    {st.phone && (
-                                      <span className="text-[10px] text-[#686487] block truncate">{st.phone}</span>
-                                    )}
-                                  </div>
 
-                                  {/* Admin-only Remove Student Action (Only for enrolled students) */}
-                                  {st.status === 'accepted' && (
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setStudentRemovalTarget({
-                                          requestId: st.requestId || st.id,
-                                          studentName: st.name,
-                                          tutorName: batch.tutorName,
-                                          batchId: batch.id,
-                                          batchName: batch.name,
-                                        });
-                                        setRemovalReason('payment_not_completed');
-                                        setRemovalNote('');
-                                      }}
-                                      className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold text-[11px] transition-all cursor-pointer flex-shrink-0 active:scale-95 shadow-xs"
-                                      title={`Remove ${st.name} from batch`}
-                                    >
-                                      Remove Student
-                                    </button>
-                                  )}
+                                    {/* Prominent, unconditional Remove Student action */}
+                                    <div className="flex items-center gap-2 pt-1 sm:pt-0">
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setStudentRemovalTarget({
+                                            requestId: st.requestId || st.id,
+                                            studentName: st.name,
+                                            tutorName: batch.tutorName,
+                                            batchId: batch.id,
+                                            batchName: batch.name,
+                                          });
+                                          setRemovalReason('payment_not_completed');
+                                          setRemovalNote('');
+                                        }}
+                                        className="w-full sm:w-auto px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
+                                        aria-label={`Remove Student ${st.name}`}
+                                      >
+                                        <UserMinus className="w-3.5 h-3.5" />
+                                        Remove Student
+                                      </button>
+                                    </div>
+                                  </div>
                                 </div>
                               ))}
                             </div>
@@ -1987,6 +2054,149 @@ export const AdminDashboardPage: React.FC = () => {
           </div>
         )}
       </main>
+
+      {/* Dedicated Open Batch Details & Enrolled Students Modal */}
+      {selectedBatchModal && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Batch Details and Enrolled Students"
+        >
+          <div className="w-full max-w-lg bg-white rounded-3xl p-6 shadow-2xl border border-[#DFD8F3] text-left space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-[#F3EFFB]">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-[#EDE9FE] border border-[#DDD6FE] text-[#4136CA] flex items-center justify-center flex-shrink-0">
+                  <BookOpen className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-black text-base text-[#1C1938]">{selectedBatchModal.name}</h3>
+                  <p className="text-[11px] text-[#686487]">
+                    Mentor: {selectedBatchModal.tutorName} {selectedBatchModal.tutorPhone && `(${selectedBatchModal.tutorPhone})`}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedBatchModal(null)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 cursor-pointer"
+                aria-label="Close Batch Modal"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Batch Overview Specs */}
+            <div className="grid grid-cols-2 gap-2.5 text-xs bg-[#FAF9FE] p-3.5 rounded-2xl border border-[#DFD8F3]">
+              <div>
+                <span className="text-[10px] text-[#686487] block font-semibold">Subject & Class</span>
+                <span className="font-bold text-[#1C1938]">{selectedBatchModal.subject} • {selectedBatchModal.classLevel}</span>
+              </div>
+              <div>
+                <span className="text-[10px] text-[#686487] block font-semibold">Fixed 3-Hour Schedule</span>
+                <span className="font-bold text-[#1C1938]">{selectedBatchModal.days} ({selectedBatchModal.startTime} – {selectedBatchModal.endTime})</span>
+              </div>
+              <div className="col-span-2 pt-2 border-t border-[#E5DFF8]">
+                <div className="flex justify-between items-center text-[11px] font-bold">
+                  <span className="text-[#4A4668]">Batch Capacity</span>
+                  <span className="text-[#1C1938]">
+                    {selectedBatchModal.enrolledCount} of 4 seats filled ({selectedBatchModal.availableSeats} available)
+                  </span>
+                </div>
+                <div className="w-full bg-[#E5DFF8] rounded-full h-2 mt-1.5 overflow-hidden">
+                  <div
+                    className={`h-2 rounded-full transition-all duration-300 ${
+                      selectedBatchModal.enrolledCount >= 4 ? 'bg-rose-500' : 'bg-[#4136CA]'
+                    }`}
+                    style={{ width: `${Math.min(100, (selectedBatchModal.enrolledCount / 4) * 100)}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Enrolled Students List */}
+            <div className="space-y-2.5 pt-1">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-black uppercase tracking-wider text-[#1C1938] flex items-center gap-1.5">
+                  <Users className="w-4 h-4 text-[#4136CA]" />
+                  Enrolled Students ({selectedBatchModal.students.length})
+                </h4>
+                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full">
+                  {selectedBatchModal.enrolledCount} Active
+                </span>
+              </div>
+
+              {selectedBatchModal.students.length === 0 ? (
+                <div className="p-6 text-center text-xs text-[#686487] bg-[#F8F7FD] rounded-2xl border border-[#DFD8F3]">
+                  No students currently enrolled in this batch. All 4 seats are available.
+                </div>
+              ) : (
+                <div className="space-y-2.5">
+                  {selectedBatchModal.students.map((st: any, idx: number) => (
+                    <div
+                      key={st.id || idx}
+                      className="p-3.5 rounded-2xl bg-white border border-[#DFD8F3] shadow-xs space-y-2 text-left"
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="space-y-1 text-xs min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[#686487] font-semibold text-[11px]">Student:</span>
+                            <span className="font-extrabold text-sm text-[#1C1938]">{st.name}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[#686487] font-semibold text-[11px]">Class:</span>
+                            <span className="font-bold text-[#1C1938]">{st.classLevel || selectedBatchModal.classLevel || 'Class 8'}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[#686487] font-semibold text-[11px]">Enrollment:</span>
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-100 text-emerald-800">
+                              Active
+                            </span>
+                            {st.phone && <span className="text-[11px] text-[#686487]">({st.phone})</span>}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 pt-1 sm:pt-0">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setStudentRemovalTarget({
+                                requestId: st.requestId || st.id,
+                                studentName: st.name,
+                                tutorName: selectedBatchModal.tutorName,
+                                batchId: selectedBatchModal.id,
+                                batchName: selectedBatchModal.name,
+                              });
+                              setRemovalReason('payment_not_completed');
+                              setRemovalNote('');
+                            }}
+                            className="w-full sm:w-auto px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
+                            aria-label={`Remove Student ${st.name}`}
+                          >
+                            <UserMinus className="w-4 h-4" />
+                            Remove Student
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="pt-2 border-t border-[#F3EFFB] flex justify-end">
+              <ClayButton
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => setSelectedBatchModal(null)}
+              >
+                Close
+              </ClayButton>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Admin Student Removal Confirmation Modal */}
       {studentRemovalTarget && (
