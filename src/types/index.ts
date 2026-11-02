@@ -4,7 +4,7 @@ export type TutorApplicationStatus = 'pending' | 'pending_review' | 'approved' |
 
 export type FeeUnit = 'per_hour' | 'per_session' | 'per_month';
 
-export type TutorRequestStatus = 'pending' | 'accepted' | 'declined' | 'cancelled' | 'completed';
+export type TutorRequestStatus = 'pending' | 'accepted' | 'declined' | 'cancelled' | 'completed' | 'terminated';
 
 export interface UserProfile {
   id: string;
@@ -86,6 +86,10 @@ export interface TutorRequest {
   batch_id?: string;
   batch_name?: string;
   batch_time?: string;
+  is_terminated?: number;
+  terminated_at?: string;
+  terminated_by?: string;
+  termination_reason?: string;
   fee?: number;
   status: TutorRequestStatus;
   response_message?: string;

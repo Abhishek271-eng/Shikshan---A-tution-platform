@@ -49,11 +49,14 @@ interface StudentRecord {
 }
 
 interface StudentRemovalTarget {
-  requestId: string;
+  requestId?: string;
+  studentId?: string;
   studentName: string;
+  tutorId?: string;
   tutorName: string;
-  batchId: string;
-  batchName: string;
+  batchId?: string;
+  batchName?: string;
+  status?: string;
 }
 
 export const AdminDashboardPage: React.FC = () => {
@@ -283,6 +286,8 @@ export const AdminDashboardPage: React.FC = () => {
       {
         id: string;
         name: string;
+        tutorId?: string;
+        tutor_id?: string;
         tutorName: string;
         tutorPhone?: string;
         subject: string;
@@ -314,6 +319,8 @@ export const AdminDashboardPage: React.FC = () => {
         batchMap[key] = {
           id: r.batch_id || key,
           name: r.batch_name || `${r.tutor_name || 'Academic Mentor'} Batch`,
+          tutorId: r.tutor_id,
+          tutor_id: r.tutor_id,
           tutorName: r.tutor_name || 'Approved Mentor',
           tutorPhone: r.tutor_phone,
           subject: r.subject || 'Karnataka State Curriculum',
@@ -393,42 +400,55 @@ export const AdminDashboardPage: React.FC = () => {
     };
 
     try {
-      const res = await api.adminRemoveStudentFromBatch(
-        studentRemovalTarget.batchId,
-        studentRemovalTarget.requestId,
-        {
-          reason: reasonLabels[removalReason],
-          note: removalNote.trim() || undefined,
-        }
-      );
+      const res =
+        studentRemovalTarget.batchId && studentRemovalTarget.batchId !== 'direct' && studentRemovalTarget.requestId
+          ? await api.adminRemoveStudentFromBatch(
+              studentRemovalTarget.batchId,
+              studentRemovalTarget.requestId,
+              {
+                reason: reasonLabels[removalReason],
+                note: removalNote.trim() || undefined,
+              }
+            )
+          : await api.adminTerminateMentorship({
+              requestId: studentRemovalTarget.requestId,
+              studentId: studentRemovalTarget.studentId,
+              tutorId: studentRemovalTarget.tutorId,
+              batchId: studentRemovalTarget.batchId,
+              reason: reasonLabels[removalReason],
+              note: removalNote.trim() || undefined,
+            });
 
       if (res.success) {
         setStatusMessage(
-          `Student "${studentRemovalTarget.studentName}" removed from "${studentRemovalTarget.batchName}". Seat released.`
+          `Student "${studentRemovalTarget.studentName}" removed from mentorship with tutor "${studentRemovalTarget.tutorName}". Relationship terminated on both sides and seat released.`
         );
         // Update local batches state immediately
         setBatches((prev) =>
           prev.map((b) => {
-            if (b.id === studentRemovalTarget.batchId) {
-              const updatedStudents = (b.students || []).filter(
-                (s) => s.requestId !== studentRemovalTarget.requestId && s.id !== studentRemovalTarget.requestId
-              );
-              const newEnrolled = updatedStudents.filter((s) => s.status === 'accepted' || s.status === 'Active' || s.status === 'active').length;
-              return {
-                ...b,
-                students: updatedStudents,
-                enrolled_count: newEnrolled,
-                available_seats: Math.max(0, 4 - newEnrolled),
-              };
-            }
-            return b;
+            const updatedStudents = (b.students || []).filter(
+              (s) =>
+                s.requestId !== studentRemovalTarget.requestId &&
+                s.id !== studentRemovalTarget.requestId &&
+                s.studentId !== studentRemovalTarget.studentId
+            );
+            const newEnrolled = updatedStudents.filter((s) => s.status === 'accepted' || s.status === 'Active' || s.status === 'active').length;
+            return {
+              ...b,
+              students: updatedStudents,
+              enrolled_count: newEnrolled,
+              available_seats: Math.max(0, 4 - newEnrolled),
+            };
           })
         );
         // Update selectedBatchModal state if open
         setSelectedBatchModal((prev: any) => {
-          if (!prev || prev.id !== studentRemovalTarget.batchId) return prev;
+          if (!prev) return prev;
           const updated = (prev.students || []).filter(
-            (s: any) => s.requestId !== studentRemovalTarget.requestId && s.id !== studentRemovalTarget.requestId
+            (s: any) =>
+              s.requestId !== studentRemovalTarget.requestId &&
+              s.id !== studentRemovalTarget.requestId &&
+              s.studentId !== studentRemovalTarget.studentId
           );
           return {
             ...prev,
@@ -437,11 +457,12 @@ export const AdminDashboardPage: React.FC = () => {
             availableSeats: Math.max(0, 4 - updated.length),
           };
         });
-        // Update local requests state to clear batch assignment immediately
+        // Update local requests state to mark terminated immediately
         setRequests((prev) =>
           prev.map((r) =>
-            r.id === studentRemovalTarget.requestId
-              ? { ...r, batch_id: null, batch_name: null, batch_time: null }
+            r.id === studentRemovalTarget.requestId ||
+            (studentRemovalTarget.studentId && r.student_id === studentRemovalTarget.studentId && studentRemovalTarget.tutorId && r.tutor_id === studentRemovalTarget.tutorId)
+              ? { ...r, status: 'terminated', is_terminated: 1, batch_id: null, batch_name: null, batch_time: null }
               : r
           )
         );
@@ -451,11 +472,11 @@ export const AdminDashboardPage: React.FC = () => {
         fetchBatches();
         fetchRequests();
       } else {
-        setStatusMessage(res.message || 'Failed to remove student from batch.');
+        setStatusMessage(res.message || 'Failed to terminate mentorship.');
       }
     } catch (err: any) {
-      console.error('Error removing student:', err);
-      setStatusMessage(err?.message || 'Failed to remove student from batch enrollment.');
+      console.error('Error terminating mentorship:', err);
+      setStatusMessage(err?.message || 'Failed to terminate student-tutor mentorship.');
     } finally {
       setIsRemovingStudent(false);
     }
@@ -1540,26 +1561,30 @@ export const AdminDashboardPage: React.FC = () => {
                         <p className="p-2 rounded-xl bg-white border border-[#DFD8F3] text-slate-700">
                           &quot;{req.learning_needs}&quot;
                         </p>
-                        {(req.batch_id || req.batch_name) && req.status === 'accepted' && (
+                        {req.status === 'accepted' && (
                           <div className="pt-1 flex justify-end">
                             <button
                               type="button"
                               onClick={() => {
                                 setStudentRemovalTarget({
                                   requestId: req.id,
+                                  studentId: req.student_id,
                                   studentName: req.student_name,
+                                  tutorId: req.tutor_id,
                                   tutorName: req.tutor_name,
-                                  batchId: req.batch_id || 'direct',
-                                  batchName: req.batch_name || 'Academic Batch',
+                                  batchId: req.batch_id || undefined,
+                                  batchName: req.batch_name || (req.batch_id ? 'Assigned Batch' : 'Individual Mentorship'),
+                                  status: 'Active Mentorship',
                                 });
                                 setRemovalReason('payment_not_completed');
                                 setRemovalNote('');
                               }}
-                              className="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95"
-                              title={`Remove ${req.student_name} from batch`}
+                              className="px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95"
+                              title={`Remove ${req.student_name} from mentorship`}
+                              aria-label={`Remove from Mentorship ${req.student_name}`}
                             >
                               <UserMinus className="w-3.5 h-3.5" />
-                              Remove Student from Batch
+                              Remove from Mentorship
                             </button>
                           </div>
                         )}
@@ -1737,19 +1762,22 @@ export const AdminDashboardPage: React.FC = () => {
                                         onClick={() => {
                                           setStudentRemovalTarget({
                                             requestId: st.requestId || st.id,
+                                            studentId: st.studentId,
                                             studentName: st.name,
+                                            tutorId: (batch as any).tutor_id || (batch as any).tutorId,
                                             tutorName: batch.tutorName,
                                             batchId: batch.id,
                                             batchName: batch.name,
+                                            status: 'Active Mentorship',
                                           });
                                           setRemovalReason('payment_not_completed');
                                           setRemovalNote('');
                                         }}
                                         className="w-full sm:w-auto px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
-                                        aria-label={`Remove Student ${st.name}`}
+                                        aria-label={`Remove from Mentorship (Remove Student ${st.name})`}
                                       >
                                         <UserMinus className="w-3.5 h-3.5" />
-                                        Remove Student
+                                        Remove from Mentorship
                                       </button>
                                     </div>
                                   </div>
@@ -2162,19 +2190,22 @@ export const AdminDashboardPage: React.FC = () => {
                             onClick={() => {
                               setStudentRemovalTarget({
                                 requestId: st.requestId || st.id,
+                                studentId: st.studentId,
                                 studentName: st.name,
+                                tutorId: selectedBatchModal.tutor_id || selectedBatchModal.tutorId,
                                 tutorName: selectedBatchModal.tutorName,
                                 batchId: selectedBatchModal.id,
                                 batchName: selectedBatchModal.name,
+                                status: 'Active Mentorship',
                               });
                               setRemovalReason('payment_not_completed');
                               setRemovalNote('');
                             }}
                             className="w-full sm:w-auto px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
-                            aria-label={`Remove Student ${st.name}`}
+                            aria-label={`Remove from Mentorship (Remove Student ${st.name})`}
                           >
                             <UserMinus className="w-4 h-4" />
-                            Remove Student
+                            Remove from Mentorship
                           </button>
                         </div>
                       </div>
@@ -2198,13 +2229,13 @@ export const AdminDashboardPage: React.FC = () => {
         </div>
       )}
 
-      {/* Admin Student Removal Confirmation Modal */}
+      {/* Admin Student Mentorship Termination Confirmation Modal */}
       {studentRemovalTarget && (
         <div
           className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in"
           role="dialog"
           aria-modal="true"
-          aria-label="Confirm Student Removal"
+          aria-label="Confirm Student Removal from Mentorship"
         >
           <div className="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-rose-100 text-left space-y-4">
             <div className="flex items-center justify-between pb-2 border-b border-[#F3EFFB]">
@@ -2213,14 +2244,15 @@ export const AdminDashboardPage: React.FC = () => {
                   <AlertCircle className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-black text-base text-[#1C1938]">Remove Student from Batch</h3>
-                  <p className="text-[11px] text-[#686487]">Administrator Enrollment Control</p>
+                  <h3 className="font-black text-base text-[#1C1938]">Terminate Student–Tutor Mentorship</h3>
+                  <p className="text-[11px] text-[#686487]">Administrator Mentorship Control</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setStudentRemovalTarget(null)}
                 className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 cursor-pointer"
+                aria-label="Close dialog"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -2236,27 +2268,29 @@ export const AdminDashboardPage: React.FC = () => {
                 <span className="font-extrabold text-[#4136CA]">{studentRemovalTarget.tutorName}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-[#686487] font-semibold">Relevant Batch:</span>
-                <span className="font-extrabold text-[#1C1938]">{studentRemovalTarget.batchName}</span>
+                <span className="text-[#686487] font-semibold">Batch Details:</span>
+                <span className="font-extrabold text-[#1C1938]">
+                  {studentRemovalTarget.batchName || 'Individual Mentorship (No Batch)'}
+                </span>
               </div>
+              <div className="flex justify-between items-center">
+                <span className="text-[#686487] font-semibold">Mentorship Status:</span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-100 text-emerald-800">
+                  {studentRemovalTarget.status || 'Active Mentorship'}
+                </span>
+              </div>
+            </div>
+
+            {/* Verbatim Mandatory Confirmation Message */}
+            <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-xs text-rose-900 leading-relaxed font-semibold">
+              &quot;Are you sure you want to completely remove this student&apos;s mentorship with this tutor? The relationship will be terminated on both sides. The student can apply to this tutor again later.&quot;
             </div>
 
             <div className="space-y-2 text-xs">
               <label className="block text-[11px] font-bold text-[#1C1938]">
-                Reason for Removal:
+                Reason for Termination:
               </label>
               <div className="space-y-1.5">
-                <label className="flex items-center gap-2.5 p-2.5 rounded-xl border border-[#DFD8F3] hover:bg-slate-50 cursor-pointer transition-colors">
-                  <input
-                    type="radio"
-                    name="removalReason"
-                    value="payment_not_completed"
-                    checked={removalReason === 'payment_not_completed'}
-                    onChange={() => setRemovalReason('payment_not_completed')}
-                    className="text-[#7C3AED] focus:ring-purple-400"
-                  />
-                  <span className="font-semibold text-slate-800">Payment not completed</span>
-                </label>
                 <label className="flex items-center gap-2.5 p-2.5 rounded-xl border border-[#DFD8F3] hover:bg-slate-50 cursor-pointer transition-colors">
                   <input
                     type="radio"
@@ -2267,6 +2301,17 @@ export const AdminDashboardPage: React.FC = () => {
                     className="text-[#7C3AED] focus:ring-purple-400"
                   />
                   <span className="font-semibold text-slate-800">Administrative removal</span>
+                </label>
+                <label className="flex items-center gap-2.5 p-2.5 rounded-xl border border-[#DFD8F3] hover:bg-slate-50 cursor-pointer transition-colors">
+                  <input
+                    type="radio"
+                    name="removalReason"
+                    value="payment_not_completed"
+                    checked={removalReason === 'payment_not_completed'}
+                    onChange={() => setRemovalReason('payment_not_completed')}
+                    className="text-[#7C3AED] focus:ring-purple-400"
+                  />
+                  <span className="font-semibold text-slate-800">Payment not completed</span>
                 </label>
                 <label className="flex items-center gap-2.5 p-2.5 rounded-xl border border-[#DFD8F3] hover:bg-slate-50 cursor-pointer transition-colors">
                   <input
@@ -2296,7 +2341,7 @@ export const AdminDashboardPage: React.FC = () => {
             </div>
 
             <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-[11px] text-amber-900 leading-relaxed">
-              <strong>Data Safety Guarantee:</strong> Removing the student releases 1 batch seat immediately. The student's account, tutor account, batch schedule, and historical payment records remain preserved.
+              <strong>Data Safety Guarantee:</strong> Terminating the mentorship clears the relationship on both student and tutor dashboards and frees occupied batch seats. Student profile, tutor profile, schedules, and historical payment records remain preserved.
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#F3EFFB]">
@@ -2314,8 +2359,10 @@ export const AdminDashboardPage: React.FC = () => {
                 onClick={handleAdminRemoveStudent}
                 disabled={isRemovingStudent}
                 className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-sm transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 disabled:opacity-50"
+                aria-label="Confirm Removal from Mentorship"
               >
-                {isRemovingStudent ? 'Removing...' : 'Confirm Removal'}
+                <UserMinus className="w-4 h-4" />
+                {isRemovingStudent ? 'Terminating...' : 'Remove from Mentorship'}
               </button>
             </div>
           </div>

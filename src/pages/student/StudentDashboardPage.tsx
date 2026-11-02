@@ -88,12 +88,19 @@ export const StudentDashboardPage: React.FC = () => {
     maxPrice: 5000,
   });
 
-  // Enrolled Batches derived from genuine assignment relationship
-  const enrolledRequests = useMemo(() => {
+  // Filter out any terminated mentorships/requests so student never sees them
+  const visibleRequests = useMemo(() => {
     return myRequests.filter(
-      (r) => r.status === 'accepted' && (r.batch_id || (r as any).batch_name)
+      (r) => r.status !== 'terminated' && (r as any).is_terminated !== 1
     );
   }, [myRequests]);
+
+  // Enrolled Batches derived from genuine assignment relationship
+  const enrolledRequests = useMemo(() => {
+    return visibleRequests.filter(
+      (r) => r.status === 'accepted' && (r.batch_id || (r as any).batch_name)
+    );
+  }, [visibleRequests]);
 
   const loadData = async () => {
     try {
@@ -486,7 +493,7 @@ export const StudentDashboardPage: React.FC = () => {
                       onToggleFavorite={handleToggleFavorite}
                       onViewProfile={(t) => setSelectedTutorForProfile(t)}
                       onRequestTutor={(t) => setSelectedTutorForRequest(t)}
-                      existingRequestStatus={myRequests.find((r) => r.tutor_id === (tutor.tutor_id || tutor.id) && (r.status === 'pending' || r.status === 'accepted'))?.status}
+                      existingRequestStatus={visibleRequests.find((r) => r.tutor_id === (tutor.tutor_id || tutor.id) && (r.status === 'pending' || r.status === 'accepted'))?.status}
                     />
                   ))}
                 </div>
@@ -508,7 +515,7 @@ export const StudentDashboardPage: React.FC = () => {
                   <div>
                     <h4 className="text-xs font-black text-[#1C1938]">Learning Requests</h4>
                     <p className="text-[11px] text-[#686487]">
-                      {myRequests.length === 0 ? 'No active requests' : `${myRequests.length} inquiries sent`}
+                      {visibleRequests.length === 0 ? 'No active requests' : `${visibleRequests.length} inquiries sent`}
                     </p>
                   </div>
                 </div>
@@ -593,7 +600,7 @@ export const StudentDashboardPage: React.FC = () => {
                     onToggleFavorite={handleToggleFavorite}
                     onViewProfile={(t) => setSelectedTutorForProfile(t)}
                     onRequestTutor={(t) => setSelectedTutorForRequest(t)}
-                    existingRequestStatus={myRequests.find((r) => r.tutor_id === (tutor.tutor_id || tutor.id) && (r.status === 'pending' || r.status === 'accepted'))?.status}
+                    existingRequestStatus={visibleRequests.find((r) => r.tutor_id === (tutor.tutor_id || tutor.id) && (r.status === 'pending' || r.status === 'accepted'))?.status}
                   />
                 ))}
               </div>
@@ -612,7 +619,7 @@ export const StudentDashboardPage: React.FC = () => {
                 <p className="text-xs text-[#686487]">Track status of requests sent to mentors</p>
               </div>
               <span className="text-xs font-bold text-[#7C3AED] bg-[#EDE9FE] px-3 py-1 rounded-full">
-                {myRequests.length} Total
+                {visibleRequests.length} Total
               </span>
             </div>
 
@@ -632,7 +639,7 @@ export const StudentDashboardPage: React.FC = () => {
               </div>
             )}
 
-            {myRequests.length === 0 ? (
+            {visibleRequests.length === 0 ? (
               <div className="bg-white rounded-[32px] p-8 text-center border border-[#E5DFF8] shadow-clay space-y-3 max-w-md mx-auto my-6">
                 <div className="w-12 h-12 rounded-full bg-[#EDE9FE] text-[#7C3AED] flex items-center justify-center mx-auto">
                   <Send className="w-6 h-6" />
@@ -653,7 +660,7 @@ export const StudentDashboardPage: React.FC = () => {
               </div>
             ) : (
               <div className="space-y-3.5 text-left">
-                {myRequests.map((req) => {
+                {visibleRequests.map((req) => {
                   const payCoord = paymentRecords.find((p) => p.request_id === req.id);
                   const tutorInfo = tutors.find((t) => (t.tutor_id || t.id) === req.tutor_id);
                   const tutorPhoto = tutorInfo?.photo_url || tutorInfo?.tutor_profile?.photo_url;
@@ -831,7 +838,7 @@ export const StudentDashboardPage: React.FC = () => {
                     onToggleFavorite={handleToggleFavorite}
                     onViewProfile={(t) => setSelectedTutorForProfile(t)}
                     onRequestTutor={(t) => setSelectedTutorForRequest(t)}
-                    existingRequestStatus={myRequests.find((r) => r.tutor_id === (tutor.tutor_id || tutor.id) && (r.status === 'pending' || r.status === 'accepted'))?.status}
+                    existingRequestStatus={visibleRequests.find((r) => r.tutor_id === (tutor.tutor_id || tutor.id) && (r.status === 'pending' || r.status === 'accepted'))?.status}
                   />
                 ))}
               </div>
@@ -929,7 +936,7 @@ export const StudentDashboardPage: React.FC = () => {
       <ClayBottomNavigation
         activeTab={activeTab}
         onChangeTab={(tab) => setActiveTab(tab)}
-        requestsCount={myRequests.length}
+        requestsCount={visibleRequests.length}
         savedCount={favoriteIds.length}
       />
 
@@ -949,7 +956,7 @@ export const StudentDashboardPage: React.FC = () => {
         onToggleFavorite={handleToggleFavorite}
         existingRequestStatus={
           selectedTutorForProfile
-            ? myRequests.find(
+            ? visibleRequests.find(
                 (r) =>
                   r.tutor_id === (selectedTutorForProfile.tutor_id || selectedTutorForProfile.id) &&
                   (r.status === 'pending' || r.status === 'accepted')

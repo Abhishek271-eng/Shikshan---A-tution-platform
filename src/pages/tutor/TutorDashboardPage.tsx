@@ -336,6 +336,13 @@ export const TutorDashboardPage: React.FC = () => {
     }
   };
 
+  // Filter out any terminated mentorships/requests so tutor never sees them
+  const visibleRequests = useMemo(() => {
+    return requests.filter(
+      (r) => r.status !== 'terminated' && (r as any).is_terminated !== 1
+    );
+  }, [requests]);
+
   // Open Roster modal for a batch
   const handleOpenRoster = async (batch: any) => {
     setSelectedBatchForRoster(batch);
@@ -344,9 +351,9 @@ export const TutorDashboardPage: React.FC = () => {
     try {
       const res = await api.getBatchStudents(batch.id).catch(() => null);
       if (res && res.students) {
-        setBatchStudents(res.students);
+        setBatchStudents(res.students.filter((st: any) => st.status !== 'terminated' && !st.is_terminated));
       } else {
-        const local = requests.filter((r) => r.status === 'accepted' && (r as any).batch_id === batch.id);
+        const local = visibleRequests.filter((r) => r.status === 'accepted' && (r as any).batch_id === batch.id);
         setBatchStudents(local);
       }
     } finally {
@@ -357,7 +364,7 @@ export const TutorDashboardPage: React.FC = () => {
   // Authoritative Distinct Enrolled Count for a batch
   const getBatchEnrolledCount = (batchId: string): number => {
     const distinctStudentIds = new Set<string>();
-    requests.forEach((r) => {
+    visibleRequests.forEach((r) => {
       if (r.status === 'accepted' && (r as any).batch_id === batchId) {
         distinctStudentIds.add(r.student_id || r.id);
       }
@@ -374,7 +381,7 @@ export const TutorDashboardPage: React.FC = () => {
     setRosterActionLoading(requestId);
     setRosterMessage(null);
     try {
-      const reqToAssign = requests.find((r) => r.id === requestId);
+      const reqToAssign = visibleRequests.find((r) => r.id === requestId);
       if (!reqToAssign) {
         setRosterMessage({ type: 'error', text: 'Request not found.' });
         setRosterActionLoading(null);
@@ -384,7 +391,7 @@ export const TutorDashboardPage: React.FC = () => {
       // 1. Strict Duplicate Check: Has this student already been enrolled in this batch?
       const isAlreadyEnrolled =
         batchStudents.some((bs) => (bs.student_id && bs.student_id === reqToAssign.student_id) || (bs.request_id || bs.id) === requestId) ||
-        requests.some((r) => r.status === 'accepted' && (r as any).batch_id === batchId && r.student_id === reqToAssign.student_id);
+        visibleRequests.some((r) => r.status === 'accepted' && (r as any).batch_id === batchId && r.student_id === reqToAssign.student_id);
 
       if (isAlreadyEnrolled) {
         setRosterMessage({ type: 'error', text: 'This student is already enrolled in this batch.' });
@@ -507,7 +514,7 @@ export const TutorDashboardPage: React.FC = () => {
   const enrolledStudents = useMemo(() => {
     const seen = new Set<string>();
     const distinct: TutorRequest[] = [];
-    requests.forEach((r) => {
+    visibleRequests.forEach((r) => {
       if (r.status === 'accepted') {
         const key = r.student_id || r.id;
         if (!seen.has(key)) {
@@ -517,11 +524,11 @@ export const TutorDashboardPage: React.FC = () => {
       }
     });
     return distinct;
-  }, [requests]);
+  }, [visibleRequests]);
 
   const pendingRequests = useMemo(() => {
-    return requests.filter((r) => r.status === 'pending');
-  }, [requests]);
+    return visibleRequests.filter((r) => r.status === 'pending');
+  }, [visibleRequests]);
 
   const feePerStudent = application?.fee_amount || application?.proposed_rate || 1500;
   const expectedMonthlyEarnings = enrolledStudents.length * feePerStudent;
@@ -1005,7 +1012,7 @@ export const TutorDashboardPage: React.FC = () => {
               </span>
             </div>
 
-            {requests.length === 0 ? (
+            {visibleRequests.length === 0 ? (
               <div className="p-8 rounded-[28px] bg-white border border-[#DFD8F3] text-center space-y-2">
                 <UserPlus className="w-10 h-10 text-[#686487] mx-auto opacity-50" />
                 <h4 className="font-extrabold text-sm text-[#1C1938]">No Inquiries Yet</h4>
@@ -1015,7 +1022,7 @@ export const TutorDashboardPage: React.FC = () => {
               </div>
             ) : (
               <div className="space-y-3">
-                {requests.map((req) => {
+                {visibleRequests.map((req) => {
                   const isPending = req.status === 'pending';
                   const isAccepted = req.status === 'accepted';
                   const isDeclined = req.status === 'declined';
@@ -1467,14 +1474,14 @@ export const TutorDashboardPage: React.FC = () => {
               ) : (
                 (() => {
                   const enrolledStudentIds = new Set(batchStudents.map((bs) => bs.student_id).filter(Boolean));
-                  requests.forEach((r) => {
+                  visibleRequests.forEach((r) => {
                     if (r.status === 'accepted' && (r as any).batch_id === selectedBatchForRoster.id && r.student_id) {
                       enrolledStudentIds.add(r.student_id);
                     }
                   });
 
                   const seenCandidateIds = new Set<string>();
-                  const availableRequests = requests.filter((r) => {
+                  const availableRequests = visibleRequests.filter((r) => {
                     if (r.status !== 'accepted') return false;
                     const sid = r.student_id || r.id;
                     if (enrolledStudentIds.has(sid)) return false;

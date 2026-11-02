@@ -638,7 +638,7 @@ api.get('/tutor/batches', authMiddleware, requireRole(['tutor', 'admin']), async
   try {
     const { results } = await c.env.DB.prepare(
       `SELECT b.*,
-              (SELECT count(DISTINCT r.student_id) FROM tutor_requests r WHERE r.batch_id = b.id AND r.status = 'accepted') as enrolled_count
+              (SELECT count(DISTINCT r.student_id) FROM tutor_requests r WHERE r.batch_id = b.id AND r.status = 'accepted' AND COALESCE(r.is_terminated, 0) = 0) as enrolled_count
        FROM tutor_batches b
        WHERE b.tutor_id = ?
        ORDER BY b.start_time ASC`
@@ -772,7 +772,7 @@ api.get('/tutor/batches/:id/students', authMiddleware, requireRole(['tutor', 'ad
               u.name as student_name, u.email as student_email, u.phone as student_phone, u.photo_url as student_photo
        FROM tutor_requests r
        JOIN users u ON r.student_id = u.id
-       WHERE r.batch_id = ? AND r.status = 'accepted'
+       WHERE r.batch_id = ? AND r.status = 'accepted' AND COALESCE(r.is_terminated, 0) = 0
        GROUP BY r.student_id
        ORDER BY r.updated_at DESC`
     )
@@ -833,7 +833,7 @@ api.post('/tutor/batches/:id/assign', authMiddleware, requireRole(['tutor', 'adm
 
     // 4. Strict duplicate assignment prevention: Check if student already enrolled in this batch
     const alreadyEnrolled: any = await c.env.DB.prepare(
-      `SELECT id FROM tutor_requests WHERE batch_id = ? AND student_id = ? AND status = 'accepted'`
+      `SELECT id FROM tutor_requests WHERE batch_id = ? AND student_id = ? AND status = 'accepted' AND COALESCE(is_terminated, 0) = 0`
     )
       .bind(batchId, reqItem.student_id)
       .first();
@@ -844,7 +844,7 @@ api.post('/tutor/batches/:id/assign', authMiddleware, requireRole(['tutor', 'adm
 
     // 5. Strict maximum capacity check (concurrency-safe distinct active count)
     const countRes: any = await c.env.DB.prepare(
-      `SELECT count(DISTINCT student_id) as count FROM tutor_requests WHERE batch_id = ? AND status = 'accepted'`
+      `SELECT count(DISTINCT student_id) as count FROM tutor_requests WHERE batch_id = ? AND status = 'accepted' AND COALESCE(is_terminated, 0) = 0`
     )
       .bind(batchId)
       .first();
@@ -861,7 +861,7 @@ api.post('/tutor/batches/:id/assign', authMiddleware, requireRole(['tutor', 'adm
        WHERE id = ? AND (
          SELECT count(DISTINCT student_id)
          FROM tutor_requests
-         WHERE batch_id = ? AND status = 'accepted'
+         WHERE batch_id = ? AND status = 'accepted' AND COALESCE(is_terminated, 0) = 0
        ) < 4`
     )
       .bind(batch.id, batch.name, batchTimeStr, requestId, batch.id)
@@ -927,7 +927,7 @@ api.get('/tutors/:id/batches', optionalAuthMiddleware, async (c) => {
 
     const { results } = await c.env.DB.prepare(
       `SELECT b.*,
-              (SELECT count(DISTINCT r.student_id) FROM tutor_requests r WHERE r.batch_id = b.id AND r.status = 'accepted') as enrolled_count
+              (SELECT count(DISTINCT r.student_id) FROM tutor_requests r WHERE r.batch_id = b.id AND r.status = 'accepted' AND COALESCE(r.is_terminated, 0) = 0) as enrolled_count
        FROM tutor_batches b
        WHERE b.tutor_id = ?
        ORDER BY b.start_time ASC`
@@ -980,7 +980,7 @@ api.get('/tutors', optionalAuthMiddleware, async (c) => {
         if (authUser.role === 'student') {
           // Tutors who accepted this student's request
           const { results: acceptedReqs } = await c.env.DB.prepare(
-            `SELECT tutor_id FROM tutor_requests WHERE student_id = ? AND status = 'accepted'`
+            `SELECT tutor_id FROM tutor_requests WHERE student_id = ? AND status = 'accepted' AND COALESCE(is_terminated, 0) = 0`
           )
             .bind(authUser.id)
             .all();
@@ -1082,7 +1082,7 @@ api.get('/tutors/:id', optionalAuthMiddleware, async (c) => {
         isAuthorized = true;
       } else if (authUser.role === 'student') {
         const accepted: any = await c.env.DB.prepare(
-          `SELECT id FROM tutor_requests WHERE student_id = ? AND tutor_id = ? AND status = 'accepted'`
+          `SELECT id FROM tutor_requests WHERE student_id = ? AND tutor_id = ? AND status = 'accepted' AND COALESCE(is_terminated, 0) = 0`
         )
           .bind(authUser.id, t.user_id)
           .first();
@@ -1134,7 +1134,7 @@ api.post('/requests', authMiddleware, requireRole(['student']), async (c) => {
   try {
     // 1. Duplicate active request protection
     const existing: any = await c.env.DB.prepare(
-      `SELECT id, status FROM tutor_requests WHERE student_id = ? AND tutor_id = ? AND status IN ('pending', 'accepted')`
+      `SELECT id, status FROM tutor_requests WHERE student_id = ? AND tutor_id = ? AND status IN ('pending', 'accepted') AND COALESCE(is_terminated, 0) = 0`
     )
       .bind(authUser.id, tutor_id)
       .first();
@@ -1149,7 +1149,7 @@ api.post('/requests', authMiddleware, requireRole(['student']), async (c) => {
     // 2. Batch capacity check (max 4 distinct accepted students)
     if (batch_id) {
       const countRes: any = await c.env.DB.prepare(
-        `SELECT count(DISTINCT student_id) as count FROM tutor_requests WHERE batch_id = ? AND status = 'accepted'`
+        `SELECT count(DISTINCT student_id) as count FROM tutor_requests WHERE batch_id = ? AND status = 'accepted' AND COALESCE(is_terminated, 0) = 0`
       )
         .bind(batch_id)
         .first();
@@ -1197,7 +1197,7 @@ api.get('/requests/student', authMiddleware, requireRole(['student']), async (c)
        FROM tutor_requests r
        JOIN users u ON r.tutor_id = u.id
        LEFT JOIN payment_coordinations p ON p.request_id = r.id
-       WHERE r.student_id = ?
+       WHERE r.student_id = ? AND r.status != 'terminated' AND COALESCE(r.is_terminated, 0) = 0
        ORDER BY r.created_at DESC`
     )
       .bind(authUser.id)
@@ -1214,10 +1214,10 @@ api.get('/requests/tutor', authMiddleware, requireRole(['tutor', 'admin']), asyn
   try {
     const { results } = await c.env.DB.prepare(
       `SELECT r.*, u.name as student_name, u.email as student_email, u.phone as student_phone, u.photo_url as student_photo,
-              (SELECT count(DISTINCT sub.student_id) FROM tutor_requests sub WHERE sub.batch_id = r.batch_id AND sub.status = 'accepted') as batch_enrolled_count
+              (SELECT count(DISTINCT sub.student_id) FROM tutor_requests sub WHERE sub.batch_id = r.batch_id AND sub.status = 'accepted' AND COALESCE(sub.is_terminated, 0) = 0) as batch_enrolled_count
        FROM tutor_requests r
        JOIN users u ON r.student_id = u.id
-       WHERE r.tutor_id = ?
+       WHERE r.tutor_id = ? AND r.status != 'terminated' AND COALESCE(r.is_terminated, 0) = 0
        ORDER BY r.created_at DESC`
     )
       .bind(authUser.id)
@@ -1653,7 +1653,7 @@ api.get('/admin/requests', authMiddleware, requireRole(['admin']), async (c) => 
               s.name as student_name, s.email as student_email, s.phone as student_phone,
               t.name as tutor_name, t.email as tutor_email, t.phone as tutor_phone,
               b.start_time as batch_start_time, b.end_time as batch_end_time,
-              (SELECT count(DISTINCT sub.student_id) FROM tutor_requests sub WHERE sub.batch_id = r.batch_id AND sub.status = 'accepted') as batch_enrolled_count
+              (SELECT count(DISTINCT sub.student_id) FROM tutor_requests sub WHERE sub.batch_id = r.batch_id AND sub.status = 'accepted' AND COALESCE(sub.is_terminated, 0) = 0) as batch_enrolled_count
        FROM tutor_requests r
        JOIN users s ON r.student_id = s.id
        JOIN users t ON r.tutor_id = t.id
@@ -1685,7 +1685,7 @@ api.get('/admin/batches', authMiddleware, requireRole(['admin']), async (c) => {
               s.name as student_name, s.email as student_email, s.phone as student_phone
        FROM tutor_requests r
        JOIN users s ON r.student_id = s.id
-       WHERE r.batch_id IS NOT NULL AND r.status = 'accepted'
+       WHERE r.batch_id IS NOT NULL AND r.status = 'accepted' AND COALESCE(r.is_terminated, 0) = 0
        ORDER BY r.created_at ASC`
     ).all();
 
@@ -1821,20 +1821,30 @@ api.post('/admin/batches/:id/remove-student', authMiddleware, requireRole(['admi
       return c.json({ error: 'Active enrollment not found for this batch' }, 404);
     }
 
-    // Safe unassign: removes student from this batch, releases 1 seat, preserves student profile, tutor profile & payments
+    const terminationReason = reason || 'Removed from batch and mentorship terminated by administrator';
+
+    // Complete termination: terminates the relationship on both sides, releases batch seat, preserves accounts & payment records
     await c.env.DB.prepare(
       `UPDATE tutor_requests
-       SET batch_id = NULL, batch_name = NULL, batch_time = NULL, updated_at = CURRENT_TIMESTAMP
+       SET status = 'terminated',
+           is_terminated = 1,
+           batch_id = NULL,
+           batch_name = NULL,
+           batch_time = NULL,
+           terminated_at = CURRENT_TIMESTAMP,
+           terminated_by = ?,
+           termination_reason = ?,
+           updated_at = CURRENT_TIMESTAMP
        WHERE id = ?`
     )
-      .bind(reqItem.id)
+      .bind(authUser.id, terminationReason, reqItem.id)
       .run();
 
     // Record administrative audit log
     const logId = crypto.randomUUID();
     await c.env.DB.prepare(
       `INSERT INTO admin_audit_logs (id, admin_id, action, target_type, target_id, details)
-       VALUES (?, ?, 'REMOVE_STUDENT_ENROLLMENT', 'BATCH', ?, ?)`
+       VALUES (?, ?, 'TERMINATE_MENTORSHIP', 'BATCH', ?, ?)`
     )
       .bind(
         logId,
@@ -1848,7 +1858,7 @@ api.post('/admin/batches/:id/remove-student', authMiddleware, requireRole(['admi
           studentName: reqItem.student_name,
           tutorId: reqItem.tutor_id,
           tutorName: reqItem.tutor_name,
-          reason: reason || 'Administrative removal',
+          reason: terminationReason,
           note: note || null,
         })
       )
@@ -1856,7 +1866,7 @@ api.post('/admin/batches/:id/remove-student', authMiddleware, requireRole(['admi
 
     // Query updated distinct enrolled count
     const countRes: any = await c.env.DB.prepare(
-      `SELECT count(DISTINCT student_id) as count FROM tutor_requests WHERE batch_id = ? AND status = 'accepted'`
+      `SELECT count(DISTINCT student_id) as count FROM tutor_requests WHERE batch_id = ? AND status = 'accepted' AND COALESCE(is_terminated, 0) = 0`
     )
       .bind(batchId)
       .first();
@@ -1865,7 +1875,7 @@ api.post('/admin/batches/:id/remove-student', authMiddleware, requireRole(['admi
 
     return c.json({
       success: true,
-      message: `Student ${reqItem.student_name} removed from batch successfully`,
+      message: `Student ${reqItem.student_name} removed from mentorship and batch successfully`,
       batchId,
       requestId: reqItem.id,
       studentId: reqItem.student_id,
@@ -1875,6 +1885,138 @@ api.post('/admin/batches/:id/remove-student', authMiddleware, requireRole(['admi
   } catch (err: any) {
     console.error('Admin remove student error:', err);
     return c.json({ error: 'Failed to remove student from batch enrollment' }, 500);
+  }
+});
+
+// --------------------------------------------------------------------------
+// Admin Complete Mentorship Termination Endpoint
+// --------------------------------------------------------------------------
+api.post('/admin/mentorship/terminate', authMiddleware, requireRole(['admin']), async (c) => {
+  const authUser = c.get('user');
+  const body = await c.req.json().catch(() => ({}));
+  const { requestId, studentId, tutorId, batchId, reason, note } = body;
+
+  if (!requestId && (!studentId || !tutorId)) {
+    return c.json({ error: 'requestId or both studentId and tutorId are required' }, 400);
+  }
+
+  try {
+    // 1. Locate the active request / mentorship record
+    let reqItem: any = null;
+    if (requestId) {
+      reqItem = await c.env.DB.prepare(
+        `SELECT r.*, s.name as student_name, t.name as tutor_name
+         FROM tutor_requests r
+         JOIN users s ON r.student_id = s.id
+         JOIN users t ON r.tutor_id = t.id
+         WHERE r.id = ?`
+      )
+        .bind(requestId)
+        .first();
+    }
+
+    if (!reqItem && studentId && tutorId) {
+      reqItem = await c.env.DB.prepare(
+        `SELECT r.*, s.name as student_name, t.name as tutor_name
+         FROM tutor_requests r
+         JOIN users s ON r.student_id = s.id
+         JOIN users t ON r.tutor_id = t.id
+         WHERE r.student_id = ? AND r.tutor_id = ? AND r.status IN ('accepted', 'pending') AND COALESCE(r.is_terminated, 0) = 0
+         ORDER BY r.updated_at DESC LIMIT 1`
+      )
+        .bind(studentId, tutorId)
+        .first();
+    }
+
+    if (!reqItem) {
+      return c.json({ error: 'Active mentorship or request not found between specified student and tutor' }, 404);
+    }
+
+    const effectiveBatchId = batchId || reqItem.batch_id;
+    let batchName = reqItem.batch_name || null;
+
+    if (effectiveBatchId && !batchName) {
+      const bInfo: any = await c.env.DB.prepare('SELECT name FROM tutor_batches WHERE id = ?').bind(effectiveBatchId).first();
+      if (bInfo) batchName = bInfo.name;
+    }
+
+    // 2. Atomically terminate active relationships for this student-tutor pair
+    const terminationReason = reason || 'Terminated by administrator';
+    await c.env.DB.prepare(
+      `UPDATE tutor_requests
+       SET status = 'terminated',
+           is_terminated = 1,
+           batch_id = NULL,
+           batch_name = NULL,
+           batch_time = NULL,
+           terminated_at = CURRENT_TIMESTAMP,
+           terminated_by = ?,
+           termination_reason = ?,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = ? OR (student_id = ? AND tutor_id = ? AND status IN ('accepted', 'pending'))`
+    )
+      .bind(
+        authUser.id,
+        terminationReason,
+        reqItem.id,
+        reqItem.student_id,
+        reqItem.tutor_id
+      )
+      .run();
+
+    // 3. Record immutable admin audit log
+    const logId = crypto.randomUUID();
+    await c.env.DB.prepare(
+      `INSERT INTO admin_audit_logs (id, admin_id, action, target_type, target_id, details)
+       VALUES (?, ?, 'TERMINATE_MENTORSHIP', 'MENTORSHIP', ?, ?)`
+    )
+      .bind(
+        logId,
+        authUser.id,
+        `${reqItem.student_id}_${reqItem.tutor_id}`,
+        JSON.stringify({
+          action: 'TERMINATE_MENTORSHIP',
+          requestId: reqItem.id,
+          studentId: reqItem.student_id,
+          studentName: reqItem.student_name,
+          tutorId: reqItem.tutor_id,
+          tutorName: reqItem.tutor_name,
+          batchId: effectiveBatchId || null,
+          batchName: batchName || null,
+          reason: terminationReason,
+          note: note || null,
+          adminEmail: authUser.email,
+          timestamp: new Date().toISOString(),
+        })
+      )
+      .run();
+
+    // 4. If batch was involved, recalculate capacity accurately
+    let newEnrolledCount = 0;
+    if (effectiveBatchId) {
+      const countRes: any = await c.env.DB.prepare(
+        `SELECT count(DISTINCT student_id) as count
+         FROM tutor_requests
+         WHERE batch_id = ? AND status = 'accepted' AND COALESCE(is_terminated, 0) = 0`
+      )
+        .bind(effectiveBatchId)
+        .first();
+      newEnrolledCount = Number(countRes?.count || 0);
+    }
+
+    return c.json({
+      success: true,
+      message: `Mentorship between student "${reqItem.student_name}" and tutor "${reqItem.tutor_name}" has been completely terminated. Both student and tutor interfaces have been updated.`,
+      requestId: reqItem.id,
+      studentId: reqItem.student_id,
+      tutorId: reqItem.tutor_id,
+      batchId: effectiveBatchId || null,
+      enrolledCount: newEnrolledCount,
+      availableSeats: Math.max(0, 4 - newEnrolledCount),
+    });
+  } catch (err: any) {
+    console.error('Admin terminate mentorship error:', err);
+    return c.json({ error: 'Failed to terminate student-tutor mentorship' }, 500);
   }
 });
 

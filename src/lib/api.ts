@@ -352,6 +352,28 @@ export const api = {
     });
   },
 
+  adminTerminateMentorship: (payload: {
+    requestId?: string;
+    studentId?: string;
+    tutorId?: string;
+    batchId?: string;
+    reason?: string;
+    note?: string;
+  }) =>
+    request<{
+      success: boolean;
+      message: string;
+      batchId?: string;
+      requestId?: string;
+      studentId?: string;
+      tutorId?: string;
+      enrolledCount?: number;
+      availableSeats?: number;
+    }>('/admin/mentorship/terminate', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
   getAdminAuditLogs: () => request<{ audit_logs: any[] }>('/admin/audit-logs'),
 
   getAdminStats: () => request<{ stats: any }>('/admin/stats'),
