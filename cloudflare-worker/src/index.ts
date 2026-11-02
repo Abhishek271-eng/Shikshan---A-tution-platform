@@ -45,6 +45,30 @@ function isTimeOverlapping(s1: number, e1: number, s2: number, e2: number): bool
   return s1 < e2 && e1 > s2;
 }
 
+function parseDaysList(daysInput: any): string[] {
+  if (!daysInput) return [];
+  if (Array.isArray(daysInput)) return daysInput.map(String).map((d) => d.trim().toLowerCase());
+  if (typeof daysInput === 'string') {
+    const trimmed = daysInput.trim();
+    if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+      try {
+        const arr = JSON.parse(trimmed);
+        if (Array.isArray(arr)) return arr.map(String).map((d) => d.trim().toLowerCase());
+      } catch {}
+    }
+    return trimmed.split(/[\s,·•]+/).map((d) => d.trim().toLowerCase()).filter(Boolean);
+  }
+  return [];
+}
+
+function doDaysOverlap(days1: any, days2: any): boolean {
+  const d1 = parseDaysList(days1);
+  const d2 = parseDaysList(days2);
+  if (d1.length === 0 || d2.length === 0) return true; // Default to overlap if days unspecified
+  const s2 = new Set(d2);
+  return d1.some((day) => s2.has(day));
+}
+
 // --------------------------------------------------------------------------
 // CORS Configuration
 // --------------------------------------------------------------------------
@@ -665,15 +689,18 @@ api.post('/tutor/batches', authMiddleware, requireRole(['tutor', 'admin']), asyn
       .all();
 
     for (const eb of (existingBatches || []) as any[]) {
-      const eStart = parseTimeToMinutes(eb.start_time);
-      const eEnd = parseTimeToMinutes(eb.end_time);
-      if (isTimeOverlapping(newStartMin, newEndMin, eStart, eEnd)) {
-        return c.json(
-          {
-            error: `Batch time overlaps with existing batch "${eb.name}" (${eb.start_time} - ${eb.end_time})`,
-          },
-          400
-        );
+      // If schedule days overlap, enforce locked 3-hour non-overlapping teaching window
+      if (doDaysOverlap(days, eb.days)) {
+        const eStart = parseTimeToMinutes(eb.start_time);
+        const eEnd = parseTimeToMinutes(eb.end_time);
+        if (isTimeOverlapping(newStartMin, newEndMin, eStart, eEnd)) {
+          return c.json(
+            {
+              error: `Batch time overlaps with existing batch "${eb.name}" (${eb.start_time} - ${eb.end_time})`,
+            },
+            400
+          );
+        }
       }
     }
 
@@ -824,17 +851,25 @@ api.post('/tutor/batches/:id/assign', authMiddleware, requireRole(['tutor', 'adm
 
     const currentCount = Number(countRes?.count || 0);
     if (currentCount >= 4) {
-      return c.json({ error: 'Batch is full (maximum 4 students allowed)' }, 400);
+      return c.json({ error: 'This batch is full. Please choose another available batch.' }, 400);
     }
 
     const batchTimeStr = `${batch.start_time} - ${batch.end_time}`;
-    await c.env.DB.prepare(
+    const updateResult: any = await c.env.DB.prepare(
       `UPDATE tutor_requests
        SET batch_id = ?, batch_name = ?, batch_time = ?, updated_at = CURRENT_TIMESTAMP
-       WHERE id = ?`
+       WHERE id = ? AND (
+         SELECT count(DISTINCT student_id)
+         FROM tutor_requests
+         WHERE batch_id = ? AND status = 'accepted'
+       ) < 4`
     )
-      .bind(batch.id, batch.name, batchTimeStr, requestId)
+      .bind(batch.id, batch.name, batchTimeStr, requestId, batch.id)
       .run();
+
+    if (!updateResult || (updateResult.meta && updateResult.meta.changes === 0)) {
+      return c.json({ error: 'This batch is full. Please choose another available batch.' }, 400);
+    }
 
     return c.json({ success: true, message: 'Student successfully assigned to batch' });
   } catch (err: any) {
@@ -1109,7 +1144,10 @@ api.post('/requests', authMiddleware, requireRole(['student']), async (c) => {
       .first();
 
     if (existing) {
-      return c.json({ error: 'You have already applied to this tutor.' }, 400);
+      if (existing.status === 'pending') {
+        return c.json({ error: 'You have already requested this tutor. Please wait for the response.' }, 400);
+      }
+      return c.json({ error: 'You have already been accepted by this tutor.' }, 400);
     }
 
     // 2. Batch capacity check (max 4 distinct accepted students)
@@ -1121,7 +1159,7 @@ api.post('/requests', authMiddleware, requireRole(['student']), async (c) => {
         .first();
 
       if (countRes && Number(countRes.count) >= 4) {
-        return c.json({ error: 'This batch is full (4 of 4 students reached).' }, 400);
+        return c.json({ error: 'This batch is full. Please choose another available batch.' }, 400);
       }
     }
 

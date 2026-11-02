@@ -10,7 +10,8 @@ import { Header } from '../../components/common/Header';
 import { ClayCard } from '../../components/common/ClayCard';
 import { ClayButton } from '../../components/common/ClayButton';
 import { ClayBackground } from '../../components/common/ClayBackground';
-import { ClayGraduationCap, ClayLearningScene } from '../../components/common/Clay3DIllustrations';
+import { ClayLearningScene } from '../../components/common/Clay3DIllustrations';
+import { ShikshanLogo } from '../../components/common/ShikshanLogo';
 
 export const AboutPage: React.FC = () => {
   return (
@@ -21,16 +22,16 @@ export const AboutPage: React.FC = () => {
         {/* Mission Statement Hero */}
         <ClayCard className="p-6 sm:p-8 space-y-4 text-left border border-white/80 shadow-clay-card bg-white/90 backdrop-blur-md">
           <div className="flex items-center gap-4">
-            <ClayGraduationCap size={64} className="flex-shrink-0" />
+            <ShikshanLogo size="xl" showText={false} />
             <div>
-              <h2 className="text-2xl font-black text-slate-800 tracking-tight">
+              <h2 className="text-2xl font-black text-slate-800 tracking-tight font-display">
                 About Shikshan
               </h2>
-              <p className="text-sm font-bold text-[#7C3AED] mt-1">
-                Learn with confidence. Grow with guidance.
+              <p className="text-sm font-bold text-[#4136CA] mt-1 font-display">
+                Micro-Batch Academic Mentorship for Karnataka
               </p>
               <p className="text-xs text-slate-500 font-kannada mt-0.5">
-                ಶಿಕ್ಷಣ — ಆತ್ಮವಿಶ್ವಾಸದಿಂದ ಕಲಿಯಿರಿ. ಮಾರ್ಗದರ್ಶನದೊಂದಿಗೆ ಮುನ್ನಡೆಯಿರಿ.
+                ಶಿಕ್ಷಣ — ಗುಣಮಟ್ಟದ ಮಾರ್ಗದರ್ಶನ ಪ್ರತಿಯೊಬ್ಬ ವಿದ್ಯಾರ್ಥಿಗೂ ಲಭ್ಯವಾಗಲಿ.
               </p>
             </div>
           </div>

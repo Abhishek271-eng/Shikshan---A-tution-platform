@@ -8,7 +8,7 @@ import {
   GraduationCap,
   Sparkles,
 } from 'lucide-react';
-import { TutorApplication } from '../../types';
+import { TutorApplication, TutorRequestStatus } from '../../types';
 import { SCHOOL_SUBJECTS, WEEKDAYS } from '../../config/options';
 import { useNavigation } from '../../context/NavigationContext';
 
@@ -19,6 +19,7 @@ interface TutorProfileModalProps {
   onRequestTutor: (tutor: TutorApplication) => void;
   isFavorite: boolean;
   onToggleFavorite: (tutorId: string) => void;
+  existingRequestStatus?: TutorRequestStatus | null;
 }
 
 export const TutorProfileModal: React.FC<TutorProfileModalProps> = ({
@@ -28,6 +29,7 @@ export const TutorProfileModal: React.FC<TutorProfileModalProps> = ({
   onRequestTutor,
   isFavorite,
   onToggleFavorite,
+  existingRequestStatus,
 }) => {
   const { registerBackHandler } = useNavigation();
 
@@ -309,13 +311,26 @@ export const TutorProfileModal: React.FC<TutorProfileModalProps> = ({
 
           <button
             type="button"
+            disabled={existingRequestStatus === 'pending' || existingRequestStatus === 'accepted'}
             onClick={() => {
               onClose();
               onRequestTutor(tutor);
             }}
-            className="py-3 px-6 rounded-full bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] text-white font-black text-xs sm:text-sm shadow-clay-button hover:opacity-95 active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
+            className={`py-3 px-6 rounded-full font-black text-xs sm:text-sm shadow-clay-button transition-all flex items-center gap-2 ${
+              existingRequestStatus === 'pending'
+                ? 'bg-amber-100 text-amber-800 border border-amber-200 cursor-not-allowed opacity-90'
+                : existingRequestStatus === 'accepted'
+                ? 'bg-emerald-100 text-emerald-800 border border-emerald-200 cursor-not-allowed opacity-90'
+                : 'bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] text-white hover:opacity-95 active:scale-95 cursor-pointer'
+            }`}
           >
-            <span>Request This Tutor</span>
+            <span>
+              {existingRequestStatus === 'pending'
+                ? 'Already Requested'
+                : existingRequestStatus === 'accepted'
+                ? 'Already Enrolled'
+                : 'Request This Tutor'}
+            </span>
           </button>
         </div>
       </div>

@@ -3,7 +3,7 @@ import { X, Send, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
 import { ClayButton } from '../common/ClayButton';
 import { ClayInput } from '../common/ClayInput';
 import { PhoneInput } from '../common/PhoneInput';
-import { TutorApplication } from '../../types';
+import { TutorApplication, TutorRequest } from '../../types';
 import { SCHOOL_SUBJECTS, INDIVIDUAL_CLASSES } from '../../config/options';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigation } from '../../context/NavigationContext';
@@ -14,6 +14,7 @@ interface TutorRequestModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  existingRequests?: TutorRequest[];
 }
 
 export const TutorRequestModal: React.FC<TutorRequestModalProps> = ({
@@ -21,8 +22,9 @@ export const TutorRequestModal: React.FC<TutorRequestModalProps> = ({
   isOpen,
   onClose,
   onSuccess,
+  existingRequests,
 }) => {
-  const { createTutorRequest, studentProfile } = useAuth();
+  const { createTutorRequest, studentProfile, getStudentRequests } = useAuth();
   const { pushBackHandler } = useNavigation();
 
   const [subject, setSubject] = useState(tutor?.subjects[0] || 'mathematics');
@@ -40,6 +42,7 @@ export const TutorRequestModal: React.FC<TutorRequestModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [hasExistingRequest, setHasExistingRequest] = useState<boolean>(false);
 
   // Register hardware/global back handler when modal is open
   useEffect(() => {
@@ -50,6 +53,41 @@ export const TutorRequestModal: React.FC<TutorRequestModalProps> = ({
     });
     return unregister;
   }, [isOpen, pushBackHandler, onClose]);
+
+  // Check if student already requested this tutor
+  useEffect(() => {
+    if (!isOpen || !tutor) return;
+    let isMounted = true;
+
+    const checkRequests = (reqs: TutorRequest[]) => {
+      if (!isMounted) return;
+      const active = (reqs || []).find(
+        (r) => r.tutor_id === tutor.tutor_id && (r.status === 'pending' || r.status === 'accepted')
+      );
+      if (active) {
+        setHasExistingRequest(true);
+        if (active.status === 'pending') {
+          setError('You have already requested this tutor. Please wait for the response.');
+        } else {
+          setError('You have already been accepted by this tutor.');
+        }
+      } else {
+        setHasExistingRequest(false);
+      }
+    };
+
+    if (existingRequests && existingRequests.length > 0) {
+      checkRequests(existingRequests);
+    } else {
+      getStudentRequests()
+        .then((reqs) => checkRequests(reqs))
+        .catch(() => {});
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen, tutor, existingRequests, getStudentRequests]);
 
   // Load batches for this tutor
   useEffect(() => {
@@ -87,6 +125,13 @@ export const TutorRequestModal: React.FC<TutorRequestModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return; // Prevent rapid duplicate taps
+
+    if (hasExistingRequest) {
+      setError('You have already requested this tutor. Please wait for the response.');
+      return;
+    }
+
     setError(null);
 
     // Rule: Allow short topic/learning needs (min 2 chars)
@@ -102,7 +147,7 @@ export const TutorRequestModal: React.FC<TutorRequestModalProps> = ({
 
     const selectedBatch = batches.find((b) => b.id === selectedBatchId);
     if (selectedBatch && (selectedBatch.current_enrolled || 0) >= (selectedBatch.max_students || 4)) {
-      setError('This batch is already at full capacity (4/4 students). Please select another batch or inquire for flexible timing.');
+      setError('This batch is full. Please choose another available batch.');
       return;
     }
 
@@ -380,9 +425,10 @@ export const TutorRequestModal: React.FC<TutorRequestModalProps> = ({
                   type="submit"
                   variant="primary"
                   isLoading={isSubmitting}
+                  disabled={isSubmitting || hasExistingRequest}
                   icon={<Send className="w-4 h-4" />}
                 >
-                  Submit Request
+                  {hasExistingRequest ? 'Already Requested' : 'Submit Request'}
                 </ClayButton>
               </div>
             </form>

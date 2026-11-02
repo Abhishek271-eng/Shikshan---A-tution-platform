@@ -58,8 +58,8 @@ export const AdminDashboardPage: React.FC = () => {
   };
 
   const [mainSection, setMainSection] = useState<
-    'dashboard' | 'tutors' | 'students' | 'batches' | 'inquiries' | 'payments' | 'audit' | 'profile'
-  >('tutors');
+    'dashboard' | 'students' | 'tutors' | 'applications' | 'requests' | 'inquiries' | 'batches' | 'payments' | 'audit' | 'profile'
+  >('applications');
   const [adminStats, setAdminStats] = useState<{
     total_students: number;
     approved_tutors: number;
@@ -471,7 +471,7 @@ export const AdminDashboardPage: React.FC = () => {
           </div>
         </ClayCard>
 
-        {/* Section Navigation Tabs: Overview, Tutors, Students, Batches, Inquiries, Payments, Governance, Audit */}
+        {/* Section Navigation Tabs: 8 Distinct Admin Sections */}
         <div className="flex items-center gap-2 border-b border-[#DFD8F3] pb-3 overflow-x-auto select-none">
           <button
             type="button"
@@ -484,19 +484,6 @@ export const AdminDashboardPage: React.FC = () => {
           >
             <LayoutDashboard className="w-4 h-4" />
             <span>Overview</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setMainSection('tutors')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold transition-all whitespace-nowrap ${
-              mainSection === 'tutors'
-                ? 'bg-[#312E81] text-white shadow-sm'
-                : 'bg-white text-[#686487] border border-[#DFD8F3] hover:text-[#1C1938]'
-            }`}
-          >
-            <GraduationCap className="w-4 h-4" />
-            <span>Tutors ({applications.length})</span>
           </button>
 
           <button
@@ -514,6 +501,45 @@ export const AdminDashboardPage: React.FC = () => {
 
           <button
             type="button"
+            onClick={() => setMainSection('tutors')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold transition-all whitespace-nowrap ${
+              mainSection === 'tutors'
+                ? 'bg-[#312E81] text-white shadow-sm'
+                : 'bg-white text-[#686487] border border-[#DFD8F3] hover:text-[#1C1938]'
+            }`}
+          >
+            <GraduationCap className="w-4 h-4" />
+            <span>Tutors ({applications.filter((a) => a.status === 'approved').length})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setMainSection('applications')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold transition-all whitespace-nowrap ${
+              mainSection === 'applications'
+                ? 'bg-[#312E81] text-white shadow-sm'
+                : 'bg-white text-[#686487] border border-[#DFD8F3] hover:text-[#1C1938]'
+            }`}
+          >
+            <ShieldCheck className="w-4 h-4" />
+            <span>Applications ({applications.filter((a) => a.status === 'pending' || a.status === 'pending_review').length})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setMainSection('requests')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold transition-all whitespace-nowrap ${
+              mainSection === 'requests' || mainSection === 'inquiries'
+                ? 'bg-[#312E81] text-white shadow-sm'
+                : 'bg-white text-[#686487] border border-[#DFD8F3] hover:text-[#1C1938]'
+            }`}
+          >
+            <Clock className="w-4 h-4" />
+            <span>Requests ({requests.length})</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setMainSection('batches')}
             className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold transition-all whitespace-nowrap ${
               mainSection === 'batches'
@@ -527,19 +553,6 @@ export const AdminDashboardPage: React.FC = () => {
 
           <button
             type="button"
-            onClick={() => setMainSection('inquiries')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold transition-all whitespace-nowrap ${
-              mainSection === 'inquiries'
-                ? 'bg-[#312E81] text-white shadow-sm'
-                : 'bg-white text-[#686487] border border-[#DFD8F3] hover:text-[#1C1938]'
-            }`}
-          >
-            <Clock className="w-4 h-4" />
-            <span>Inquiries ({requests.length})</span>
-          </button>
-
-          <button
-            type="button"
             onClick={() => setMainSection('payments')}
             className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold transition-all whitespace-nowrap ${
               mainSection === 'payments'
@@ -548,20 +561,7 @@ export const AdminDashboardPage: React.FC = () => {
             }`}
           >
             <IndianRupee className="w-4 h-4" />
-            <span>Payments Desk ({payments.length})</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setMainSection('profile')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-bold transition-all whitespace-nowrap ${
-              mainSection === 'profile'
-                ? 'bg-[#312E81] text-white shadow-sm'
-                : 'bg-white text-[#686487] border border-[#DFD8F3] hover:text-[#1C1938]'
-            }`}
-          >
-            <ShieldCheck className="w-4 h-4" />
-            <span>Governance & Admin</span>
+            <span>Payments ({payments.length})</span>
           </button>
 
           <button
@@ -682,7 +682,7 @@ export const AdminDashboardPage: React.FC = () => {
                   <ClayButton
                     variant="primary"
                     size="sm"
-                    onClick={() => setMainSection('tutors')}
+                    onClick={() => setMainSection('applications')}
                     className="w-full flex items-center justify-center gap-1.5"
                   >
                     <span>Open Tutor Review Desk</span>
@@ -787,8 +787,99 @@ export const AdminDashboardPage: React.FC = () => {
           </div>
         )}
 
-        {/* SECTION 1: TUTOR APPLICATIONS DESK */}
+        {/* SECTION: APPROVED TUTOR MANAGEMENT */}
         {mainSection === 'tutors' && (
+          <div className="space-y-4 text-left">
+            <ClayCard className="p-5 border border-[#DFD8F3] space-y-4 bg-white">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#DFD8F3] pb-3">
+                <div>
+                  <h3 className="text-lg font-black text-[#1C1938] flex items-center gap-2">
+                    <GraduationCap className="w-5 h-5 text-[#4136CA]" />
+                    Approved Tutor Management
+                  </h3>
+                  <p className="text-xs text-[#686487]">
+                    Directory of verified educators mentoring Karnataka school students in 3-hour micro-batches.
+                  </p>
+                </div>
+                <ClayButton
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setMainSection('applications')}
+                  className="flex items-center gap-1.5"
+                >
+                  <span>Review Applications ({applications.filter((a) => a.status === 'pending' || a.status === 'pending_review').length})</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </ClayButton>
+              </div>
+
+              {applications.filter((a) => a.status === 'approved').length === 0 ? (
+                <div className="p-8 text-center text-xs text-[#686487]">
+                  No approved tutors currently active. Go to Applications tab to review and approve educators.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {applications
+                    .filter((a) => a.status === 'approved')
+                    .map((tutor) => (
+                      <div
+                        key={tutor.id}
+                        className="p-4 rounded-2xl bg-[#F8F7FD] border border-[#DFD8F3] space-y-3"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <h4 className="font-extrabold text-sm text-[#1C1938]">
+                              {tutor.tutor_profile?.name || 'Verified Tutor'}
+                            </h4>
+                            <span className="text-xs font-semibold text-[#4136CA]">
+                              {tutor.course_qualification || tutor.education_level}
+                            </span>
+                          </div>
+                          <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                            Verified Mentor
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 text-xs bg-white p-2.5 rounded-xl border border-[#DFD8F3]">
+                          <div>
+                            <span className="text-[10px] text-[#686487] block">Monthly Fee</span>
+                            <span className="font-bold text-[#1C1938]">
+                              ₹{Number(tutor.fee_amount || 3000).toLocaleString('en-IN')}/mo
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-[#686487] block">Experience</span>
+                            <span className="font-bold text-[#1C1938]">
+                              {tutor.teaching_experience || 'Qualified Educator'}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-[#686487] block">Subjects</span>
+                            <span className="font-bold text-[#1C1938] truncate block">
+                              {(tutor.subjects || []).join(', ') || 'Core Subjects'}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-[#686487] block">Contact</span>
+                            <span className="font-bold text-[#4136CA] truncate block">
+                              {tutor.tutor_profile?.phone || tutor.tutor_profile?.email || 'N/A'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="pt-1 flex items-center justify-between text-[11px] text-[#686487]">
+                          <span>Board: {(tutor.board_familiarity || ['Karnataka State Board']).join(', ')}</span>
+                          <span className="text-emerald-700 font-bold">Approved Educator</span>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </ClayCard>
+          </div>
+        )}
+
+        {/* SECTION: TUTOR APPLICATIONS DESK */}
+        {mainSection === 'applications' && (
           <div className="space-y-4">
             {/* Filter Tabs */}
             <div className="flex items-center gap-2 overflow-x-auto pb-1 select-none">
@@ -1208,7 +1299,7 @@ export const AdminDashboardPage: React.FC = () => {
         )}
 
         {/* SECTION 3: INQUIRIES & REQUESTS */}
-        {mainSection === 'inquiries' && (
+        {(mainSection === 'requests' || mainSection === 'inquiries') && (
           <div className="space-y-4 text-left">
             <ClayCard className="p-5 border border-[#DFD8F3] space-y-4 bg-white">
               <div className="flex items-center justify-between border-b border-[#DFD8F3] pb-3">
@@ -1307,8 +1398,9 @@ export const AdminDashboardPage: React.FC = () => {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {derivedBatches.map((batch) => {
+                  {derivedBatches.map((batch, idx) => {
                     const isFull = batch.enrolledCount >= 4;
+                    const bNumber = `BATCH ${String(idx + 1).padStart(2, '0')}`;
                     return (
                       <div
                         key={batch.id}
@@ -1316,8 +1408,13 @@ export const AdminDashboardPage: React.FC = () => {
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div>
-                            <h4 className="font-extrabold text-sm text-[#1C1938]">{batch.name}</h4>
-                            <p className="text-xs font-semibold text-[#4136CA]">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-black tracking-wider text-[#4136CA] bg-[#EDE9FE] px-2 py-0.5 rounded-lg">
+                                {bNumber}
+                              </span>
+                              <h4 className="font-extrabold text-sm text-[#1C1938] truncate">{batch.name}</h4>
+                            </div>
+                            <p className="text-xs font-semibold text-[#4136CA] mt-0.5">
                               Mentor: {batch.tutorName}
                               {batch.tutorPhone && (
                                 <span className="ml-1 text-[11px] text-[#686487]">({batch.tutorPhone})</span>

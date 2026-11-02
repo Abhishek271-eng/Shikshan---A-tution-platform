@@ -1,6 +1,6 @@
 import React from 'react';
 import { ShieldCheck, Heart, ArrowRight, Clock, Globe2, GraduationCap, Award } from 'lucide-react';
-import { TutorApplication } from '../../types';
+import { TutorApplication, TutorRequestStatus } from '../../types';
 import { SCHOOL_SUBJECTS, INDIVIDUAL_CLASSES, TEACHING_LANGUAGES } from '../../config/options';
 
 interface TutorCardProps {
@@ -9,6 +9,7 @@ interface TutorCardProps {
   onToggleFavorite: (tutorId: string) => void;
   onViewProfile: (tutor: TutorApplication) => void;
   onRequestTutor: (tutor: TutorApplication) => void;
+  existingRequestStatus?: TutorRequestStatus | null;
 }
 
 export const TutorCard: React.FC<TutorCardProps> = ({
@@ -17,6 +18,7 @@ export const TutorCard: React.FC<TutorCardProps> = ({
   onToggleFavorite,
   onViewProfile,
   onRequestTutor,
+  existingRequestStatus,
 }) => {
   const tutorName = tutor.tutor_profile?.name || (tutor as any).name || 'Verified Educator';
   const photoUrl = tutor.photo_url || tutor.tutor_profile?.photo_url || undefined;
@@ -194,10 +196,23 @@ export const TutorCard: React.FC<TutorCardProps> = ({
           <button
             type="button"
             onClick={() => onRequestTutor(tutor)}
-            className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#4136CA] to-[#5348E0] text-white text-xs font-bold shadow-clay-button hover:opacity-95 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
+            disabled={existingRequestStatus === 'pending' || existingRequestStatus === 'accepted'}
+            className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shadow-clay-button ${
+              existingRequestStatus === 'pending'
+                ? 'bg-amber-100 text-amber-800 border border-amber-200 cursor-not-allowed opacity-90'
+                : existingRequestStatus === 'accepted'
+                ? 'bg-emerald-100 text-emerald-800 border border-emerald-200 cursor-not-allowed opacity-90'
+                : 'bg-gradient-to-r from-[#4136CA] to-[#5348E0] hover:opacity-95 text-white active:scale-95 cursor-pointer'
+            }`}
           >
-            <span>Request</span>
-            <ArrowRight className="w-3.5 h-3.5" />
+            <span>
+              {existingRequestStatus === 'pending'
+                ? 'Requested'
+                : existingRequestStatus === 'accepted'
+                ? 'Enrolled'
+                : 'Request'}
+            </span>
+            {!existingRequestStatus && <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />}
           </button>
         </div>
       </div>

@@ -486,6 +486,7 @@ export const StudentDashboardPage: React.FC = () => {
                       onToggleFavorite={handleToggleFavorite}
                       onViewProfile={(t) => setSelectedTutorForProfile(t)}
                       onRequestTutor={(t) => setSelectedTutorForRequest(t)}
+                      existingRequestStatus={myRequests.find((r) => r.tutor_id === (tutor.tutor_id || tutor.id) && (r.status === 'pending' || r.status === 'accepted'))?.status}
                     />
                   ))}
                 </div>
@@ -592,6 +593,7 @@ export const StudentDashboardPage: React.FC = () => {
                     onToggleFavorite={handleToggleFavorite}
                     onViewProfile={(t) => setSelectedTutorForProfile(t)}
                     onRequestTutor={(t) => setSelectedTutorForRequest(t)}
+                    existingRequestStatus={myRequests.find((r) => r.tutor_id === (tutor.tutor_id || tutor.id) && (r.status === 'pending' || r.status === 'accepted'))?.status}
                   />
                 ))}
               </div>
@@ -829,6 +831,7 @@ export const StudentDashboardPage: React.FC = () => {
                     onToggleFavorite={handleToggleFavorite}
                     onViewProfile={(t) => setSelectedTutorForProfile(t)}
                     onRequestTutor={(t) => setSelectedTutorForRequest(t)}
+                    existingRequestStatus={myRequests.find((r) => r.tutor_id === (tutor.tutor_id || tutor.id) && (r.status === 'pending' || r.status === 'accepted'))?.status}
                   />
                 ))}
               </div>
@@ -944,6 +947,15 @@ export const StudentDashboardPage: React.FC = () => {
             favoriteIds.includes(selectedTutorForProfile.tutor_id || selectedTutorForProfile.id)
         )}
         onToggleFavorite={handleToggleFavorite}
+        existingRequestStatus={
+          selectedTutorForProfile
+            ? myRequests.find(
+                (r) =>
+                  r.tutor_id === (selectedTutorForProfile.tutor_id || selectedTutorForProfile.id) &&
+                  (r.status === 'pending' || r.status === 'accepted')
+              )?.status
+            : null
+        }
       />
 
       {/* Tutor Request Modal */}

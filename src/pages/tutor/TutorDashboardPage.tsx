@@ -83,6 +83,46 @@ const formatDaysLabel = (daysInput: any): string => {
   return cleanDays.length > 0 ? cleanDays.join(' · ') : 'Mon · Wed · Fri';
 };
 
+const formatBatchSubjectClass = (batch: any): string => {
+  if (batch.subject && batch.class_level) {
+    return `${batch.subject} · ${batch.class_level}`;
+  }
+  const name = batch.name || batch.batch_name || '';
+  const match = name.match(/^(.*?)\s*\((.*?)\)$/);
+  if (match) {
+    return `${match[1]} · ${match[2]}`;
+  }
+  return name || 'Mathematics · Class 8';
+};
+
+const checkScheduleConflict = (
+  newStart: string,
+  newDays: string[],
+  existingBatches: any[]
+): any | null => {
+  const newEnd = calculateEndTime(newStart);
+  for (const b of existingBatches) {
+    if (!b.start_time || !b.end_time) continue;
+    const bDays = formatDaysLabel(b.days)
+      .split(' · ')
+      .map((d) => d.trim().toLowerCase());
+    const overlapsDay = newDays.some((d) =>
+      bDays.some(
+        (bd) =>
+          d.toLowerCase().startsWith(bd.slice(0, 3)) ||
+          bd.startsWith(d.toLowerCase().slice(0, 3))
+      )
+    );
+    if (!overlapsDay) continue;
+
+    // Strict time overlap check: s1 < e2 && e1 > s2
+    if (newStart < b.end_time && newEnd > b.start_time) {
+      return b;
+    }
+  }
+  return null;
+};
+
 export const TutorDashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const { user, profile, getTutorRequests, updateTutorRequestStatus, uploadPhoto, removePhoto, signOut } = useAuth();
@@ -249,6 +289,15 @@ export const TutorDashboardPage: React.FC = () => {
 
     if (batchFee <= 0 || batchFee > 10000) {
       setBatchError('Please specify a valid monthly tuition fee (between ₹100 and ₹10,000).');
+      return;
+    }
+
+    // Pre-validation: Immediate conflict check against existing batches
+    const conflict = checkScheduleConflict(batchStart, batchDays, batches);
+    if (conflict) {
+      setBatchError(
+        `Schedule conflict: This time slot overlaps with existing batch "${conflict.name || conflict.batch_name}" (${formatTimeLabel(conflict.start_time)} – ${formatTimeLabel(conflict.end_time)} on ${formatDaysLabel(conflict.days)}). 3-hour batches cannot overlap on the same days.`
+      );
       return;
     }
 
@@ -796,21 +845,25 @@ export const TutorDashboardPage: React.FC = () => {
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                {batches.map((batch) => {
+                {batches.map((batch, idx) => {
                   const enrolled = getBatchEnrolledCount(batch.id);
                   const max = batch.max_capacity ?? 4;
                   const remaining = Math.max(0, max - enrolled);
                   const isFull = enrolled >= max;
-                  const bName = batch.name || batch.batch_name;
+                  const bNumber = `BATCH ${String(idx + 1).padStart(2, '0')}`;
+                  const subjectClass = formatBatchSubjectClass(batch);
+                  const timeDays = `${formatTimeLabel(batch.start_time)} – ${formatTimeLabel(batch.end_time)} (${formatDaysLabel(batch.days)})`;
 
                   return (
                     <div
                       key={batch.id}
-                      className="p-5 rounded-[26px] bg-white border border-[#E5DFF8] shadow-clay-sm flex flex-col justify-between gap-3.5 text-left"
+                      className="p-5 rounded-[26px] bg-white border border-[#E5DFF8] shadow-clay-sm flex flex-col justify-between gap-3 text-left overflow-hidden"
                     >
-                      <div>
+                      <div className="space-y-2">
                         <div className="flex items-center justify-between gap-2">
-                          <h4 className="font-extrabold text-sm text-[#1C1938] truncate">{bName}</h4>
+                          <span className="text-[11px] font-black tracking-wider text-[#4136CA] bg-[#EDE9FE] px-2.5 py-1 rounded-xl">
+                            {bNumber}
+                          </span>
                           <div className="flex items-center gap-1.5">
                             {isFull ? (
                               <span className="px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-black uppercase">
@@ -823,7 +876,7 @@ export const TutorDashboardPage: React.FC = () => {
                             )}
                             <button
                               type="button"
-                              onClick={() => handleDeleteBatch(batch.id, bName)}
+                              onClick={() => handleDeleteBatch(batch.id, batch.name || batch.batch_name)}
                               className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                               title="Delete Batch"
                             >
@@ -832,45 +885,63 @@ export const TutorDashboardPage: React.FC = () => {
                           </div>
                         </div>
 
-                        <div className="mt-2 space-y-1.5 text-xs text-[#686487]">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-bold text-[#4136CA]">
-                              {formatTimeLabel(batch.start_time)} – {formatTimeLabel(batch.end_time)}
-                            </span>
-                            <span>•</span>
-                            <span className="font-semibold text-slate-700">{formatDaysLabel(batch.days)}</span>
-                          </div>
+                        <div className="space-y-1">
+                          <h4 className="font-extrabold text-sm text-[#1C1938] leading-tight truncate">
+                            {subjectClass}
+                          </h4>
+                          <p className="text-xs font-semibold text-[#686487]">
+                            {timeDays}
+                          </p>
+                        </div>
 
-                          <div className="flex items-center gap-2 pt-0.5 text-[11px] flex-wrap">
-                            <span className="bg-[#EFEAFF] text-[#4136CA] font-bold px-2 py-0.5 rounded-lg flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
-                              3 Hours Session
-                            </span>
-                            <span className="text-[#7C3AED] font-bold">
-                              ₹{(batch.fee_amount || batch.fee || application?.fee_amount || 1500).toLocaleString('en-IN')} / mo
-                            </span>
-                          </div>
+                        <div className="flex items-center gap-2 pt-0.5 text-[11px] flex-wrap">
+                          <span className="bg-[#EFEAFF] text-[#4136CA] font-bold px-2 py-0.5 rounded-lg flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            3 Hours Session
+                          </span>
+                          <span className="text-[#7C3AED] font-bold">
+                            ₹{(batch.fee_amount || batch.fee || application?.fee_amount || 1500).toLocaleString('en-IN')} / mo
+                          </span>
                         </div>
                       </div>
 
-                      <div className="pt-2.5 border-t border-[#F3EFFB] flex flex-col gap-2">
+                      <div className="pt-2.5 border-t border-[#F3EFFB] space-y-2">
                         <div className="flex items-center justify-between text-xs">
                           <span className="font-bold text-slate-700">
-                            {enrolled}/{max} students
+                            Students: {enrolled} / {max}
                           </span>
                           <span className={`text-[11px] font-semibold ${isFull ? 'text-rose-600' : 'text-[#686487]'}`}>
                             {isFull ? 'Batch Full' : `${remaining} seat${remaining === 1 ? '' : 's'} available`}
                           </span>
                         </div>
 
-                        <button
-                          type="button"
-                          onClick={() => handleOpenRoster(batch)}
-                          className="w-full py-2.5 px-4 rounded-xl bg-[#EDE9FE] hover:bg-[#DDD6FE] text-[#6D28D9] font-black text-xs transition-all flex items-center justify-center gap-2 active:scale-98 shadow-xs cursor-pointer"
-                        >
-                          <Users className="w-4 h-4" />
-                          <span>Manage Batch</span>
-                        </button>
+                        <div className="w-full bg-[#E5DFF8] rounded-full h-1.5 overflow-hidden">
+                          <div
+                            className={`h-1.5 rounded-full transition-all duration-300 ${
+                              isFull ? 'bg-rose-500' : 'bg-[#4136CA]'
+                            }`}
+                            style={{ width: `${Math.min(100, (enrolled / max) * 100)}%` }}
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenRoster(batch)}
+                            className="py-2.5 px-3 rounded-xl bg-[#FAF9FE] hover:bg-[#F3EFFB] border border-[#DFD8F3] text-[#4136CA] font-black text-xs transition-all flex items-center justify-center gap-1.5 active:scale-98 shadow-xs cursor-pointer"
+                          >
+                            <Users className="w-3.5 h-3.5" />
+                            <span>View Students</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenRoster(batch)}
+                            className="py-2.5 px-3 rounded-xl bg-[#EDE9FE] hover:bg-[#DDD6FE] text-[#6D28D9] font-black text-xs transition-all flex items-center justify-center gap-1.5 active:scale-98 shadow-xs cursor-pointer"
+                          >
+                            <Users className="w-3.5 h-3.5" />
+                            <span>Manage Batch</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   );
@@ -1350,6 +1421,22 @@ export const TutorDashboardPage: React.FC = () => {
               >
                 <X className="w-5 h-5" />
               </button>
+            </div>
+
+            {/* Batch Details Summary */}
+            <div className="grid grid-cols-3 gap-2 p-2.5 rounded-2xl bg-[#FAF9FE] border border-[#E5DFF8] text-[11px]">
+              <div>
+                <span className="text-[#686487] block font-bold text-[10px]">DAYS</span>
+                <span className="font-extrabold text-[#1C1938] truncate block">{formatDaysLabel(selectedBatchForRoster.days)}</span>
+              </div>
+              <div>
+                <span className="text-[#686487] block font-bold text-[10px]">DURATION</span>
+                <span className="font-extrabold text-[#4136CA] block">3 Hours Fixed</span>
+              </div>
+              <div>
+                <span className="text-[#686487] block font-bold text-[10px]">CAPACITY</span>
+                <span className="font-extrabold text-[#059669] block">Max 4 Students</span>
+              </div>
             </div>
 
             {rosterMessage && (
